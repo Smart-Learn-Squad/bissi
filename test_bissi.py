@@ -7,5 +7,4 @@ response = ollama.chat(
     messages=[{'role': 'user', 'content': 'Qui est tu? Que sais tu faire?'}]
 )
 
-for chunk in response:
-    print(chunk.message.content)
+print(response.message.content)

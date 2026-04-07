@@ -3,9 +3,12 @@
 Provides storage and management for document templates.
 """
 import json
+import re
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Union
 from datetime import datetime
+
+from utils.helpers import expand_path, ensure_dir, save_json, load_json, now_iso
 
 
 class TemplateRepository:
@@ -17,24 +20,20 @@ class TemplateRepository:
         Args:
             repo_dir: Directory for template storage
         """
-        self.repo_dir = Path(repo_dir).expanduser()
-        self.repo_dir.mkdir(parents=True, exist_ok=True)
+        self.repo_dir = expand_path(repo_dir)
+        ensure_dir(self.repo_dir)
         self.index_file = self.repo_dir / 'index.json'
         self._load_index()
     
     def _load_index(self):
         """Load template index."""
-        if self.index_file.exists():
-            with open(self.index_file, 'r', encoding='utf-8') as f:
-                self.index = json.load(f)
-        else:
-            self.index = {}
+        self.index = load_json(self.index_file) or {}
+        if not self.index:
             self._save_index()
     
     def _save_index(self):
         """Save template index."""
-        with open(self.index_file, 'w', encoding='utf-8') as f:
-            json.dump(self.index, f, indent=2)
+        save_json(self.index, self.index_file)
     
     def add_template(self,
                      name: str,
@@ -65,8 +64,8 @@ class TemplateRepository:
                 'description': description,
                 'variables': variables or [],
                 'category': category,
-                'created': datetime.now().isoformat(),
-                'updated': datetime.now().isoformat(),
+                'created': now_iso(),
+                'updated': now_iso(),
                 'file': str(template_file)
             }
             self._save_index()
@@ -189,7 +188,7 @@ class TemplateRepository:
             if variables is not None:
                 self.index[name]['variables'] = variables
             
-            self.index[name]['updated'] = datetime.now().isoformat()
+            self.index[name]['updated'] = now_iso()
             self._save_index()
             
             return True
@@ -267,7 +266,6 @@ class TemplateRepository:
             template_name = name or file_path.stem
             
             # Extract variables from template
-            import re
             variables = list(set(re.findall(r'\{\{\s*(\w+)\s*\}\}', content)))
             
             return self.add_template(

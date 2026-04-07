@@ -8,6 +8,8 @@ from pathlib import Path
 from typing import List, Dict, Any, Optional, Union
 from datetime import datetime
 
+from utils.helpers import expand_path, ensure_dir, now_iso
+
 
 class ConversationStore:
     """SQLite-based conversation storage."""
@@ -18,8 +20,8 @@ class ConversationStore:
         Args:
             db_path: Path to SQLite database file
         """
-        self.db_path = Path(db_path).expanduser()
-        self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self.db_path = expand_path(db_path)
+        ensure_dir(self.db_path.parent)
         self._init_db()
     
     def _init_db(self):
@@ -60,7 +62,7 @@ class ConversationStore:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(
                 "INSERT INTO conversations (title) VALUES (?)",
-                (title or f"Conversation {datetime.now().strftime('%Y-%m-%d %H:%M')}",)
+                (title or f"Conversation {now_iso()}",)
             )
             conn.commit()
             return cursor.lastrowid
@@ -203,7 +205,7 @@ class ConversationStore:
             return {
                 'conversation_id': conversation_id,
                 'messages': history,
-                'exported_at': datetime.now().isoformat()
+                'exported_at': now_iso()
             }
         
         elif format == 'txt':

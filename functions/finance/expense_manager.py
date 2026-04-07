@@ -8,6 +8,8 @@ from typing import List, Dict, Any, Optional, Union
 from datetime import datetime
 from dataclasses import dataclass
 
+from utils.helpers import expand_path, load_json, save_json
+
 
 @dataclass
 class Expense:
@@ -33,7 +35,7 @@ class ExpenseManager:
         if data_path:
             self.data_path = Path(data_path)
         else:
-            self.data_path = Path('~/Dev/GestionnaireDeD-penses/depenses.json').expanduser()
+            self.data_path = expand_path('~/Dev/GestionnaireDeD-penses/depenses.json')
         
         self.config_path = self.data_path.parent / 'config.json'
         self.expenses: List[Expense] = []
@@ -44,25 +46,23 @@ class ExpenseManager:
     
     def _load_data(self):
         """Load expenses and config."""
-        if self.data_path.exists():
-            with open(self.data_path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                self.expenses = [
-                    Expense(
-                        date=item['date'],
-                        libelle=item['libelle'],
-                        montant=item['montant'],
-                        categorie=item['categorie'],
-                        id=item['id']
-                    )
-                    for item in data
-                ]
+        data = load_json(self.data_path)
+        if data:
+            self.expenses = [
+                Expense(
+                    date=item['date'],
+                    libelle=item['libelle'],
+                    montant=item['montant'],
+                    categorie=item['categorie'],
+                    id=item['id']
+                )
+                for item in data
+            ]
         
-        if self.config_path.exists():
-            with open(self.config_path, 'r', encoding='utf-8') as f:
-                config = json.load(f)
-                self.budget = config.get('budget', 0)
-                self.user_name = config.get('nom', 'User')
+        config = load_json(self.config_path)
+        if config:
+            self.budget = config.get('budget', 0)
+            self.user_name = config.get('nom', 'User')
     
     def _save_expenses(self):
         """Save expenses to file."""
@@ -76,9 +76,7 @@ class ExpenseManager:
             }
             for e in self.expenses
         ]
-        
-        with open(self.data_path, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
+        save_json(data, self.data_path)
     
     def add_expense(self, libelle: str, montant: float, categorie: str, date: Optional[str] = None) -> Expense:
         """Add new expense."""

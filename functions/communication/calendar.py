@@ -8,6 +8,8 @@ from typing import List, Dict, Any, Optional, Union
 from datetime import datetime, timedelta
 import json
 
+from utils.helpers import expand_path, ensure_dir
+
 
 class GoogleCalendarClient:
     """Google Calendar API client."""
@@ -22,7 +24,8 @@ class GoogleCalendarClient:
         """
         self.credentials_path = credentials_path or '~/.bissi/google_credentials.json'
         self.service = None
-        self.token_path = Path('~/.bissi/google_token.json').expanduser()
+        self.token_path = expand_path('~/.bissi/google_token.json')
+        ensure_dir(self.token_path.parent)
         self._authenticate()
     
     def _authenticate(self):
@@ -51,20 +54,20 @@ class GoogleCalendarClient:
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
             else:
-                if not Path(self.credentials_path).expanduser().exists():
+                if not expand_path(self.credentials_path).exists():
                     raise FileNotFoundError(
                         f"Google credentials file not found: {self.credentials_path}\n"
                         "Download from Google Cloud Console and save to this location."
                     )
                 
                 flow = InstalledAppFlow.from_client_secrets_file(
-                    str(Path(self.credentials_path).expanduser()),
+                    str(expand_path(self.credentials_path)),
                     self.SCOPES
                 )
                 creds = flow.run_local_server(port=0)
             
             # Save token for future runs
-            self.token_path.parent.mkdir(parents=True, exist_ok=True)
+            ensure_dir(self.token_path.parent)
             with open(self.token_path, 'w') as token:
                 token.write(creds.to_json())
         
@@ -263,6 +266,6 @@ def add_event(summary: str,
 
 def is_configured() -> bool:
     """Check if Google Calendar is configured."""
-    cred_path = Path('~/.bissi/google_credentials.json').expanduser()
-    token_path = Path('~/.bissi/google_token.json').expanduser()
+    cred_path = expand_path('~/.bissi/google_credentials.json')
+    token_path = expand_path('~/.bissi/google_token.json')
     return cred_path.exists() or token_path.exists()

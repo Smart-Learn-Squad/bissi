@@ -8,6 +8,8 @@ from typing import List, Dict, Any, Optional, Union
 from dataclasses import dataclass, asdict
 from datetime import datetime
 
+from utils.helpers import expand_path, ensure_dir, generate_id, save_json, load_json
+
 
 @dataclass
 class Contact:
@@ -23,8 +25,7 @@ class Contact:
     
     def __post_init__(self):
         if not self.id:
-            import hashlib
-            self.id = hashlib.md5(f"{self.name}_{self.email}".encode()).hexdigest()[:12]
+            self.id = generate_id(self.name, self.email)
 
 
 class ContactManager:
@@ -36,23 +37,21 @@ class ContactManager:
         Args:
             db_path: Path to contacts database
         """
-        self.db_path = Path(db_path).expanduser()
-        self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self.db_path = expand_path(db_path)
+        ensure_dir(self.db_path.parent)
         self.contacts: List[Contact] = []
         self._load()
     
     def _load(self):
         """Load contacts from database."""
-        if self.db_path.exists():
-            with open(self.db_path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                self.contacts = [Contact(**c) for c in data]
+        data = load_json(self.db_path)
+        if data:
+            self.contacts = [Contact(**c) for c in data]
     
     def _save(self):
         """Save contacts to database."""
         data = [asdict(c) for c in self.contacts]
-        with open(self.db_path, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
+        save_json(data, self.db_path)
     
     def add(self, contact: Contact) -> bool:
         """Add contact.

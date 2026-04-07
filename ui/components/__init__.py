@@ -60,6 +60,8 @@ from ui.components.complex import (
     FilePreviewCard,
     ThinkingIndicator,
     PersonaSelector,
+    LiquidGlassInput,
+    CenteredAvatar,
 )
 
 # Theme - design constants
@@ -111,6 +113,8 @@ __all__ = [
     "FilePreviewCard",
     "ThinkingIndicator",
     "PersonaSelector",
+    "LiquidGlassInput",
+    "CenteredAvatar",
     
     # Theme
     "Colors",

@@ -1,15 +1,15 @@
 """Complex UI components - advanced widgets.
 
-Complex: File drop zones, code blocks with syntax highlighting, markdown renderer.
+Complex: File drop zones, code blocks with syntax highlighting, markdown renderer, liquid glass.
 """
 import re
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
     QFrame, QTextEdit, QPushButton, QSizePolicy,
-    QFileDialog, QApplication
+    QFileDialog, QApplication, QGraphicsDropShadowEffect
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QMimeData
-from PyQt6.QtGui import QDragEnterEvent, QDropEvent, QFont, QColor
+from PyQt6.QtCore import Qt, pyqtSignal, QMimeData, QTimer
+from PyQt6.QtGui import QDragEnterEvent, QDropEvent, QFont, QColor, QPainter, QBrush, QRadialGradient
 
 from ui.components.atoms import AtomButton, AtomIconButton, AtomLabel, AtomBadge
 from ui.styles.theme import Colors, Typography, Spacing, Radius
@@ -449,3 +449,201 @@ class PersonaSelector(QFrame):
         card.mousePressEvent = lambda e: self.persona_selected.emit(key)
         
         return card
+
+
+class LiquidGlassInput(QFrame):
+    """Chat input with liquid glass (frosted) effect."""
+    
+    message_sent = pyqtSignal(str)
+    file_attached = pyqtSignal(str)
+    
+    def __init__(self, placeholder: str = "Send a message", parent=None):
+        super().__init__(parent)
+        
+        self.setMinimumHeight(56)
+        self.setMaximumWidth(720)
+        
+        # Main layout
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(16, 12, 16, 12)
+        layout.setSpacing(12)
+        
+        # Plus button (attach)
+        self.attach_btn = self._create_icon_button("+", size=32)
+        self.attach_btn.clicked.connect(self._attach_file)
+        layout.addWidget(self.attach_btn)
+        
+        # Globe/shortcut button
+        self.globe_btn = self._create_icon_button("🌐", size=32)
+        layout.addWidget(self.globe_btn)
+        
+        # Text input
+        self.input_field = QLineEdit()
+        self.input_field.setPlaceholderText(placeholder)
+        self.input_field.setFrame(False)
+        self.input_field.returnPressed.connect(self._send_message)
+        self.input_field.textChanged.connect(self._update_send_button)
+        
+        # Style input (transparent)
+        self.input_field.setStyleSheet(f"""
+            QLineEdit {{
+                background: transparent;
+                border: none;
+                color: white;
+                font-size: {Typography.BASE};
+                font-family: {Typography.FONT_FAMILY};
+                padding: 0;
+            }}
+            QLineEdit::placeholder {{
+                color: {Colors.GRAY_400};
+            }}
+        """)
+        
+        layout.addWidget(self.input_field, 1)
+        
+        # Model selector badge
+        self.model_badge = QLabel("gemma4:e2b ▾")
+        self.model_badge.setStyleSheet(f"""
+            QLabel {{
+                background-color: rgba(255, 255, 255, 0.1);
+                color: {Colors.GRAY_300};
+                border-radius: {Radius.FULL};
+                padding: 6px 12px;
+                font-size: {Typography.XS};
+                font-family: {Typography.FONT_FAMILY};
+            }}
+        """)
+        layout.addWidget(self.model_badge)
+        
+        # Send button
+        self.send_btn = self._create_icon_button("↑", size=32)
+        self.send_btn.setEnabled(False)
+        self.send_btn.setStyleSheet(self.send_btn.styleSheet() + f"""
+            QPushButton:enabled {{
+                background-color: white;
+                color: {Colors.GRAY_900};
+            }}
+        """)
+        self.send_btn.clicked.connect(self._send_message)
+        layout.addWidget(self.send_btn)
+        
+        # Enable blur/frosted effect
+        self._setup_liquid_glass()
+    
+    def _create_icon_button(self, icon: str, size: int = 32):
+        """Create circular icon button."""
+        btn = QPushButton(icon)
+        btn.setFixedSize(size, size)
+        btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: rgba(255, 255, 255, 0.08);
+                color: {Colors.GRAY_300};
+                border: none;
+                border-radius: {size // 2}px;
+                font-size: 16px;
+            }}
+            QPushButton:hover {{
+                background-color: rgba(255, 255, 255, 0.15);
+            }}
+        """)
+        return btn
+    
+    def _setup_liquid_glass(self):
+        """Setup the frosted glass appearance."""
+        # Semi-transparent dark background
+        self.setStyleSheet(f"""
+            QFrame {{
+                background-color: rgba(40, 40, 45, 0.75);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: {Radius.XL2};
+            }}
+        """)
+        
+        # Add shadow effect
+        shadow = QGraphicsDropShadowEffect(self)
+        shadow.setBlurRadius(40)
+        shadow.setColor(QColor(0, 0, 0, 80))
+        shadow.setOffset(0, 8)
+        self.setGraphicsEffect(shadow)
+    
+    def _update_send_button(self):
+        """Enable send button when there's text."""
+        has_text = bool(self.input_field.text().strip())
+        self.send_btn.setEnabled(has_text)
+    
+    def _send_message(self):
+        """Emit message signal."""
+        text = self.input_field.text().strip()
+        if text:
+            self.message_sent.emit(text)
+            self.input_field.clear()
+    
+    def _attach_file(self):
+        """Open file dialog."""
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, "Attach File", "", "All Files (*.*)"
+        )
+        if file_path:
+            self.file_attached.emit(file_path)
+    
+    def set_model(self, model: str):
+        """Update model badge."""
+        self.model_badge.setText(f"{model} ▾")
+
+
+class CenteredAvatar(QFrame):
+    """Centered logo/avatar with glow effect."""
+    
+    def __init__(self, icon: str = "🤖", size: int = 80, parent=None):
+        super().__init__(parent)
+        
+        self.icon = icon
+        self.size = size
+        self.setFixedSize(size, size)
+        
+        # Setup glow animation
+        self._glow_opacity = 0.6
+        self._glow_direction = 1
+        
+        self._timer = QTimer(self)
+        self._timer.timeout.connect(self._animate_glow)
+        self._timer.start(50)
+        
+        self.setStyleSheet("background: transparent; border: none;")
+    
+    def _animate_glow(self):
+        """Animate glow effect."""
+        self._glow_opacity += 0.02 * self._glow_direction
+        if self._glow_opacity >= 0.8 or self._glow_opacity <= 0.4:
+            self._glow_direction *= -1
+        self.update()
+    
+    def paintEvent(self, event):
+        """Custom paint for glowing effect."""
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        
+        # Draw glow
+        glow_color = QColor(255, 255, 255, int(self._glow_opacity * 255))
+        gradient = QRadialGradient(
+            self.size // 2, self.size // 2, self.size // 2
+        )
+        gradient.setColorAt(0, glow_color)
+        gradient.setColorAt(1, QColor(255, 255, 255, 0))
+        
+        painter.setBrush(QBrush(gradient))
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.drawEllipse(self.rect())
+        
+        # Draw icon
+        painter.setPen(QColor(255, 255, 255))
+        font = QFont()
+        font.setPointSize(self.size // 3)
+        painter.setFont(font)
+        
+        rect = self.rect()
+        painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, self.icon)
+        
+        painter.end()
+

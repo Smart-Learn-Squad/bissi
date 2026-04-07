@@ -647,3 +647,102 @@ class CenteredAvatar(QFrame):
         
         painter.end()
 
+
+class OllamaStyleWindow(QWidget):
+    """Main window with Ollama-style centered interface."""
+    
+    message_sent = pyqtSignal(str)
+    
+    def __init__(self, title: str = "BISSI", icon: str = "🤖", parent=None):
+        super().__init__(parent)
+        
+        self.setWindowTitle(title)
+        self.setMinimumSize(900, 600)
+        self.resize(1200, 800)
+        
+        # Dark background
+        self.setStyleSheet("""
+            QWidget {
+                background-color: #1a1a1a;
+            }
+        """)
+        
+        # Main layout
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        
+        # Top bar
+        top_bar = QHBoxLayout()
+        top_bar.setContentsMargins(20, 16, 20, 16)
+        
+        # Menu button
+        menu_btn = self._create_top_button("☰")
+        top_bar.addWidget(menu_btn)
+        
+        top_bar.addStretch()
+        
+        # New chat button
+        new_chat_btn = self._create_top_button("✎")
+        top_bar.addWidget(new_chat_btn)
+        
+        top_widget = QWidget()
+        top_widget.setLayout(top_bar)
+        layout.addWidget(top_widget)
+        
+        # Center content
+        center_widget = QWidget()
+        center_layout = QVBoxLayout(center_widget)
+        center_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        center_layout.setSpacing(24)
+        
+        # Avatar
+        self.avatar = CenteredAvatar(icon, size=80)
+        center_layout.addWidget(self.avatar, alignment=Qt.AlignmentFlag.AlignCenter)
+        
+        # Spacer to push input to bottom
+        center_layout.addStretch()
+        
+        # Input container
+        input_container = QWidget()
+        input_layout = QHBoxLayout(input_container)
+        input_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        input_layout.setContentsMargins(40, 0, 40, 40)
+        
+        # Liquid glass input
+        self.input_widget = LiquidGlassInput("Send a message")
+        self.input_widget.setSizePolicy(
+            QSizePolicy.Policy.Expanding, 
+            QSizePolicy.Policy.Fixed
+        )
+        self.input_widget.message_sent.connect(self.message_sent.emit)
+        
+        input_layout.addWidget(self.input_widget)
+        input_container.setMaximumWidth(800)
+        
+        center_layout.addWidget(input_container, alignment=Qt.AlignmentFlag.AlignHCenter)
+        
+        layout.addWidget(center_widget, 1)
+    
+    def _create_top_button(self, icon: str):
+        """Create top bar button."""
+        btn = QPushButton(icon)
+        btn.setFixedSize(36, 36)
+        btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: transparent;
+                color: {Colors.GRAY_400};
+                border: none;
+                border-radius: 8px;
+                font-size: 16px;
+            }}
+            QPushButton:hover {{
+                background-color: rgba(255, 255, 255, 0.1);
+                color: white;
+            }}
+        """)
+        return btn
+    
+    def set_model(self, model: str):
+        """Update model in input."""
+        self.input_widget.set_model(model)

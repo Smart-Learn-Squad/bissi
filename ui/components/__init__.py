@@ -10,7 +10,7 @@ Structure:
     theme.py      - Design tokens (colors, typography, spacing)
 
 Example:
-    >>> from ui.components import AtomButton, ChatBubble, Sidebar
+    >>> from ui.components import OllamaStyleWindow, LiquidGlassInput, CenteredAvatar, Sidebar
     >>> btn = AtomButton("Click me", variant="primary")
     >>> bubble = ChatBubble("Hello!", is_user=True)
 """
@@ -62,6 +62,7 @@ from ui.components.complex import (
     PersonaSelector,
     LiquidGlassInput,
     CenteredAvatar,
+    OllamaStyleWindow,
 )
 
 # Theme - design constants
@@ -115,6 +116,7 @@ __all__ = [
     "PersonaSelector",
     "LiquidGlassInput",
     "CenteredAvatar",
+    "OllamaStyleWindow",
     
     # Theme
     "Colors",

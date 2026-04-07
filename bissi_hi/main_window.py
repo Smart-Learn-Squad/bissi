@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import QApplication, QVBoxLayout, QWidget
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 
-from ui.components import LiquidGlassInput, CenteredAvatar
+from ui.components import OllamaStyleWindow, LiquidGlassInput, CenteredAvatar
 from bissi_hi.config import EDITION_DISPLAY, DEFAULT_MODEL, THEME
 
 

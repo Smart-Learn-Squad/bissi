@@ -5,7 +5,7 @@ Provides Optical Character Recognition for images and scanned PDFs using Tessera
 import pytesseract
 from PIL import Image
 from pathlib import Path
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Union
 import pdfplumber
 
 

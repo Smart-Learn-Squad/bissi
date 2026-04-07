@@ -8,7 +8,7 @@ BISSI is the definitive answer to the digital divide. Where the cloud fails due 
 ## Architecture
 
 ### BISSI Lite (Smartlearn)
-**Target:** Students | **Model:** gemma4:2b (2B parameters)
+**Target:** Students | **Model:** gemma4:e2b (2B parameters)
 
 Designed for students with limited resources. Features AI tutoring and seamless Office document management for offline learning.
 
@@ -18,7 +18,7 @@ Designed for students with limited resources. Features AI tutoring and seamless 
 - Document analysis and summarization
 
 ### BISSI Hi
-**Target:** Researchers | **Model:** gemma3:4b (4B parameters)
+**Target:** Researchers | **Model:** gemma4:e4b (4B parameters)
 
 Engineered for complex research tasks. Capable of advanced data analysis while ensuring total data sovereignty.
 
@@ -114,8 +114,8 @@ bissi/
 pip install -r requirements.txt
 
 # Configure Ollama (required)
-ollama pull gemma3:2b  # For Bissi Lite
-ollama pull gemma3:4b  # For Bissi Hi
+ollama pull gemma4:e2b  # For Bissi Lite
+ollama pull gemma4:e4b  # For Bissi Hi
 
 # Launch application
 python -m bissi
@@ -158,7 +158,7 @@ python -m bissi
 ```python
 # ~/.bissi/config.json
 {
-    "model": "gemma3:2b",
+    "model": "gemma4:e2b",
     "persona": "student",
     "memory": {
         "conversation_db": "~/.bissi/conversations.db",

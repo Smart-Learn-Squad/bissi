@@ -1,10 +1,21 @@
 """A test script for gemma's installation"""
 
 import ollama
+from configs.prompts import GLOBAL_SYSTEM_PROMPT
 
-response = ollama.chat(
-    model='gemma4:e2b',
-    messages=[{'role': 'user', 'content': 'Qui est tu? Que sais tu faire?'}]
-)
+messages = [{'role': 'system', 'content': GLOBAL_SYSTEM_PROMPT}]
 
-print(response.message.content)
+while True:
+    user_input = input("You: ")
+    if user_input.lower() in ['exit', 'quit', 'q']:
+        break
+    
+    messages.append({'role': 'user', 'content': user_input})
+    
+    response = ollama.chat(
+        model='gemma4:e4b',
+        messages=messages
+    )
+    
+    print(f"Bissi: {response.message.content}")
+    messages.append({'role': 'assistant', 'content': response.message.content})

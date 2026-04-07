@@ -3,41 +3,211 @@
 > **"Optima, immo absoluta perfectio"**
 
 ## Vision
-Bissi is the definitive answer to the digital divide. Where the cloud fails due to bandwidth constraints, Bissi excels through its local presence. We are reclaiming technological sovereignty by bringing world-class intelligence directly to the edge.
+BISSI is the definitive answer to the digital divide. Where the cloud fails due to bandwidth constraints, BISSI excels through its local presence. We are reclaiming technological sovereignty by bringing world-class intelligence directly to the edge.
 
-## "Smart-Learn" Architecture
-1. **Bissi Lite:** Designed for students. Featuring an AI Tutor and seamless Office document management (Word, Excel, PPT) for offline learning.
-2. **Bissi Hi:** Engineered for researchers. Capable of complex data analysis (DNA sequencing, Survival Analysis) while ensuring total data sovereignty.
+## Architecture
 
-## Why Bissi?
+### BISSI Lite (Smartlearn)
+**Target:** Students | **Model:** gemma4:2b (2B parameters)
+
+Designed for students with limited resources. Features AI tutoring and seamless Office document management for offline learning.
+
+- AI Tutor with step-by-step explanations
+- Office suite integration (Word, Excel, PowerPoint)
+- Study planning and exam preparation
+- Document analysis and summarization
+
+### BISSI Hi
+**Target:** Researchers | **Model:** gemma3:4b (4B parameters)
+
+Engineered for complex research tasks. Capable of advanced data analysis while ensuring total data sovereignty.
+
+- DNA sequence analysis and bioinformatics
+- Survival analysis and statistical modeling
+- Research paper synthesis
+- Advanced data visualization
+
+## Why BISSI?
+
 * **Zero Latency:** No server wait times; immediate inference.
 * **Zero Data Cost:** Once downloaded, it remains free for life—no internet required.
 * **Privacy First:** Your documents and research data never leave your local machine.
+* **Modular Design:** Use only what you need.
 
+## Project Structure
 
-```text
-Bissi/
+```
+bissi/
 │
-├── main.py                 # Entry point (Launches the PyQt6 interface)
-├── manager.py              # Orchestrator (Links the UI to the Core logic)
+├── main.py                    # Application entry point
+├── manager.py                 # Central orchestrator (BissiManager)
 │
-├── core/                   # Technical "Brain"
-│   ├── __init__.py
-│   └── bissi.py            # Ollama Engine (Sends prompts to Gemma 4)
+├── core/                      # AI Engine & Memory
+│   ├── bissi.py              # Ollama LLM interface (BissiEngine)
+│   └── memory/
+│       ├── conversation_store.py  # SQLite chat persistence
+│       └── vector_store.py        # ChromaDB RAG system
 │
-├── functions/              # "Muscles" (Specific capabilities)
-│   ├── __init__.py
-│   ├── office_reader.py    # Word, Excel, PPT parsing (Office integration)
-│   ├── dna_analyzer.py     # DNA transcription/translation logic (Bissi Hi)
-│   └── finance_tracker.py  # Expenditure model (Daily budget tracking)
+├── functions/                 # Capabilities (28+ modules)
+│   ├── office/               # Document processing
+│   │   ├── word.py           # Word documents
+│   │   ├── excel.py          # Spreadsheets & formulas
+│   │   ├── powerpoint.py     # Presentations
+│   │   ├── pdf.py            # PDF text extraction
+│   │   └── ocr.py            # Tesseract OCR
+│   ├── database/
+│   │   └── access.py         # Microsoft Access via pyodbc
+│   ├── communication/
+│   │   ├── email_client.py   # IMAP/SMTP client
+│   │   ├── calendar.py       # Google Calendar integration
+│   │   └── contacts.py       # Contact management (vCard)
+│   ├── media/
+│   │   ├── audio.py          # Whisper transcription, TTS
+│   │   ├── image.py          # PIL image processing
+│   │   └── video.py          # FFmpeg frame extraction
+│   ├── code/
+│   │   └── python_runner.py  # RestrictedPython sandbox
+│   ├── data/
+│   │   └── analysis.py       # Pandas/NumPy analytics
+│   ├── web/
+│   │   └── search.py         # URL fetching, content extraction
+│   ├── templates/
+│   │   ├── engine.py         # Jinja2 template engine
+│   │   └── repository.py     # Template storage
+│   ├── finance/
+│   │   └── expense_manager.py # Expense tracker integration
+│   ├── filesystem/
+│   │   └── explorer.py       # File navigation & search
+│   └── system/
+│       ├── operations.py     # Safe file operations
+│       └── clipboard.py      # System clipboard access
 │
-└── config/                 # "Memory" & Global Settings
-    ├── __init__.py
-    ├── settings.py         # Model selection (Gemma 4 tags) & Log paths
-    └── prompts.py          # System Prompts (Defining Bissi's personality)
+├── workflows/                 # Automation (IFTTT-style)
+│   ├── engine.py             # Workflow orchestrator
+│   ├── triggers.py           # Event triggers (time, file, etc.)
+│   └── actions.py            # Executable actions
+│
+├── configs/                   # Configuration & Personas
+│   ├── settings.py           # Global settings manager
+│   └── personas/
+│       ├── researcher.py     # Research assistant persona
+│       ├── student.py        # Study companion persona
+│       └── office_assistant.py # Productivity persona
+│
+├── ui/                        # User Interface
+│   ├── components/           # Atomic design system
+│   │   ├── atoms.py         # Buttons, inputs, labels
+│   │   ├── molecules.py     # Chat bubbles, cards
+│   │   ├── organisms.py     # Sidebar, ChatArea
+│   │   └── complex.py       # Code blocks, drop zones
+│   └── styles/
+│       └── theme.py         # Design tokens
+│
+└── utils/                     # Shared utilities
+    └── helpers.py            # Common functions (JSON, paths, etc.)
 ```
 
+## Quick Start
+
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Configure Ollama (required)
+ollama pull gemma3:2b  # For Bissi Lite
+ollama pull gemma3:4b  # For Bissi Hi
+
+# Launch application
+python -m bissi
+```
+
+## Key Features
+
+### Document Intelligence
+- Read/write Word, Excel, PowerPoint
+- PDF text extraction and OCR
+- Smart document summarization
+- Template-based generation
+
+### Communication Hub
+- Email (IMAP/SMTP) with attachments
+- Google Calendar event management
+- Contact vCard import/export
+- Meeting notes automation
+
+### Data & Analysis
+- Python sandbox for safe code execution
+- Pandas/NumPy data analysis
+- Automatic chart generation
+- Statistical insights
+
+### Media Processing
+- Audio transcription (Whisper)
+- Text-to-speech (gTTS)
+- Image processing (resize, convert)
+- Video frame extraction
+
+### Workflow Automation
+- File watchers (auto-backup, auto-process)
+- Scheduled tasks
+- Trigger-based actions
+- Document conversion pipelines
+
+## Configuration
+
+```python
+# ~/.bissi/config.json
+{
+    "model": "gemma3:2b",
+    "persona": "student",
+    "memory": {
+        "conversation_db": "~/.bissi/conversations.db",
+        "vector_store": "~/.bissi/vector_store"
+    },
+    "office": {
+        "auto_backup": true,
+        "backup_dir": "~/.bissi/backups"
+    }
+}
+```
+
+## Dependencies
+
+**Core:**
+- `ollama` - Local LLM inference
+- `chromadb` - Vector database
+- `sqlite3` - Conversation storage
+
+**Office:**
+- `python-docx`, `openpyxl`, `python-pptx` - Document processing
+- `PyPDF2`, `pdfplumber` - PDF handling
+- `pytesseract`, `pdf2image` - OCR
+
+**Media:**
+- `whisper` - Audio transcription
+- `Pillow` - Image processing
+
+**Data:**
+- `pandas`, `numpy`, `matplotlib` - Analytics
+- `RestrictedPython` - Safe code execution
+
+## Development
+
+```bash
+# Run tests
+pytest tests/
+
+# Code style
+black bissi/
+flake8 bissi/
+```
+
+## License
+
+MIT License - Smart-Learn Squad
+
 ---
+
 ### 🛡️ The Smart-Learn Squad
 *Refining intelligence through collective willpower.*
 

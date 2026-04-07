@@ -1,0 +1,451 @@
+"""Complex UI components - advanced widgets.
+
+Complex: File drop zones, code blocks with syntax highlighting, markdown renderer.
+"""
+import re
+from PyQt6.QtWidgets import (
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
+    QFrame, QTextEdit, QPushButton, QSizePolicy,
+    QFileDialog, QApplication
+)
+from PyQt6.QtCore import Qt, pyqtSignal, QMimeData
+from PyQt6.QtGui import QDragEnterEvent, QDropEvent, QFont, QColor
+
+from ui.components.atoms import AtomButton, AtomIconButton, AtomLabel, AtomBadge
+from ui.styles.theme import Colors, Typography, Spacing, Radius
+
+
+class FileDropZone(QFrame):
+    """Drag and drop file upload zone."""
+    
+    files_dropped = pyqtSignal(list)
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        
+        self.setAcceptDrops(True)
+        self.setMinimumHeight(160)
+        
+        layout = QVBoxLayout(self)
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.setSpacing(12)
+        
+        # Icon
+        icon = AtomLabel("📁", "xl3")
+        icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(icon)
+        
+        # Text
+        self.text = AtomLabel("Drop files here or click to browse", "base")
+        self.text.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.text.setStyleSheet(f"color: {Colors.TEXT_SECONDARY};")
+        layout.addWidget(self.text)
+        
+        # Subtext
+        subtext = AtomLabel("Supports PDF, DOCX, XLSX, TXT, images", "xs")
+        subtext.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        subtext.setStyleSheet(f"color: {Colors.TEXT_MUTED};")
+        layout.addWidget(subtext)
+        
+        # Browse button
+        self.browse_btn = AtomButton("Browse Files", variant="secondary", size="sm")
+        self.browse_btn.clicked.connect(self._browse_files)
+        layout.addWidget(self.browse_btn, alignment=Qt.AlignmentFlag.AlignCenter)
+        
+        # Styling
+        self._normal_style = f"""
+            QFrame {{
+                background-color: {Colors.GRAY_50};
+                border: 2px dashed {Colors.GRAY_300};
+                border-radius: {Radius.XL};
+            }}
+        """
+        self._hover_style = f"""
+            QFrame {{
+                background-color: {Colors.PRIMARY_50};
+                border: 2px dashed {Colors.PRIMARY_400};
+                border-radius: {Radius.XL};
+            }}
+        """
+        self.setStyleSheet(self._normal_style)
+    
+    def dragEnterEvent(self, event: QDragEnterEvent):
+        """Accept drag events with files."""
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+            self.setStyleSheet(self._hover_style)
+    
+    def dragLeaveEvent(self, event):
+        """Reset style on drag leave."""
+        self.setStyleSheet(self._normal_style)
+    
+    def dropEvent(self, event: QDropEvent):
+        """Handle file drop."""
+        self.setStyleSheet(self._normal_style)
+        
+        if event.mimeData().hasUrls():
+            files = [url.toLocalFile() for url in event.mimeData().urls()]
+            self.files_dropped.emit(files)
+    
+    def _browse_files(self):
+        """Open file dialog."""
+        files, _ = QFileDialog.getOpenFileNames(
+            self, "Select Files", "",
+            "All Files (*.*);;Documents (*.pdf *.docx *.txt);;Images (*.png *.jpg)"
+        )
+        if files:
+            self.files_dropped.emit(files)
+
+
+class CodeBlock(QFrame):
+    """Syntax-highlighted code block with copy button."""
+    
+    def __init__(self, code: str, language: str = "python", parent=None):
+        super().__init__(parent)
+        
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        
+        # Header with language and copy button
+        header = QHBoxLayout()
+        header.setContentsMargins(12, 8, 12, 8)
+        
+        # Language badge
+        lang_badge = AtomBadge(language, "gray")
+        header.addWidget(lang_badge)
+        
+        header.addStretch()
+        
+        # Copy button
+        copy_btn = AtomButton("Copy", variant="ghost", size="sm")
+        copy_btn.clicked.connect(lambda: self._copy_to_clipboard(code))
+        header.addWidget(copy_btn)
+        
+        header_widget = QFrame()
+        header_widget.setLayout(header)
+        header_widget.setStyleSheet(f"""
+            QFrame {{
+                background-color: {Colors.GRAY_800};
+                border-top-left-radius: {Radius.MD};
+                border-top-right-radius: {Radius.MD};
+            }}
+        """)
+        layout.addWidget(header_widget)
+        
+        # Code area
+        self.code_edit = QTextEdit()
+        self.code_edit.setPlainText(code)
+        self.code_edit.setReadOnly(True)
+        self.code_edit.setFont(QFont("JetBrains Mono, Fira Code, Consolas, monospace", 13))
+        self.code_edit.setMaximumHeight(400)
+        
+        # Simple syntax highlighting with stylesheet
+        self.code_edit.setStyleSheet(f"""
+            QTextEdit {{
+                background-color: {Colors.GRAY_900};
+                color: #e5e7eb;
+                border: none;
+                border-bottom-left-radius: {Radius.MD};
+                border-bottom-right-radius: {Radius.MD};
+                padding: 16px;
+            }}
+        """)
+        
+        layout.addWidget(self.code_edit)
+        
+        # Container styling
+        self.setStyleSheet(f"""
+            QFrame {{
+                background-color: transparent;
+                border-radius: {Radius.MD};
+            }}
+        """)
+    
+    def _copy_to_clipboard(self, text: str):
+        """Copy code to clipboard."""
+        clipboard = QApplication.clipboard()
+        clipboard.setText(text)
+
+
+class MarkdownRenderer(QFrame):
+    """Simple markdown to rich text renderer."""
+    
+    def __init__(self, markdown: str = "", parent=None):
+        super().__init__(parent)
+        
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setSpacing(12)
+        
+        self.content = QLabel()
+        self.content.setWordWrap(True)
+        self.content.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse |
+            Qt.TextInteractionFlag.TextSelectableByKeyboard
+        )
+        layout.addWidget(self.content)
+        
+        if markdown:
+            self.set_markdown(markdown)
+        
+        # Styling
+        self.setStyleSheet(f"""
+            QFrame {{
+                background-color: {Colors.SURFACE};
+                border-radius: {Radius.MD};
+            }}
+            QLabel {{
+                font-size: {Typography.BASE};
+                font-family: {Typography.FONT_FAMILY};
+                color: {Colors.TEXT_PRIMARY};
+                line-height: 1.6;
+            }}
+        """)
+    
+    def set_markdown(self, text: str):
+        """Convert markdown to HTML and display."""
+        html = self._markdown_to_html(text)
+        self.content.setText(html)
+    
+    def _markdown_to_html(self, markdown: str) -> str:
+        """Simple markdown parser."""
+        html = markdown
+        
+        # Bold
+        html = re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', html)
+        html = re.sub(r'__(.+?)__', r'<b>\1</b>', html)
+        
+        # Italic
+        html = re.sub(r'\*(.+?)\*', r'<i>\1</i>', html)
+        html = re.sub(r'_(.+?)_', r'<i>\1</i>', html)
+        
+        # Code inline
+        html = re.sub(r'`(.+?)`', r'<code style="background:#f3f4f6;padding:2px 4px;border-radius:4px;font-family:monospace;">\1</code>', html)
+        
+        # Headers
+        html = re.sub(r'^### (.+)$', r'<h3 style="margin:16px 0 8px;font-size:18px;font-weight:600;">\1</h3>', html, flags=re.M)
+        html = re.sub(r'^## (.+)$', r'<h2 style="margin:20px 0 12px;font-size:20px;font-weight:600;">\1</h2>', html, flags=re.M)
+        html = re.sub(r'^# (.+)$', r'<h1 style="margin:24px 0 16px;font-size:24px;font-weight:700;">\1</h1>', html, flags=re.M)
+        
+        # Lists
+        html = re.sub(r'^\* (.+)$', r'<li style="margin:4px 0;">\1</li>', html, flags=re.M)
+        
+        # Links
+        html = re.sub(r'\[(.+?)\]\((.+?)\)', r'<a href="\2" style="color:#3b82f6;text-decoration:none;">\1</a>', html)
+        
+        # Line breaks
+        html = html.replace('\n\n', '<br><br>')
+        html = html.replace('\n', '<br>')
+        
+        return html
+
+
+class FilePreviewCard(QFrame):
+    """Preview card for attached files with thumbnail/info."""
+    
+    removed = pyqtSignal()
+    
+    def __init__(self, file_path: str, parent=None):
+        super().__init__(parent)
+        
+        from pathlib import Path
+        from utils.helpers import format_file_size
+        
+        path = Path(file_path)
+        
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(12, 10, 12, 10)
+        layout.setSpacing(12)
+        
+        # Thumbnail or icon
+        if path.suffix.lower() in ['.png', '.jpg', '.jpeg', '.gif', '.bmp']:
+            # Try to show image thumbnail
+            try:
+                from PyQt6.QtGui import QPixmap
+                pixmap = QPixmap(str(path))
+                if not pixmap.isNull():
+                    pixmap = pixmap.scaled(48, 48, Qt.AspectRatioMode.KeepAspectRatioByExpanding, Qt.TransformationMode.SmoothTransformation)
+                    thumb = QLabel()
+                    thumb.setPixmap(pixmap)
+                    thumb.setFixedSize(48, 48)
+                    thumb.setStyleSheet(f"border-radius: {Radius.SM}; overflow: hidden;")
+                    layout.addWidget(thumb)
+                else:
+                    raise ValueError("Invalid image")
+            except:
+                icon = AtomLabel("🖼", "xl")
+                layout.addWidget(icon)
+        else:
+            # File type icon
+            icons = {
+                '.pdf': '📄', '.doc': '📝', '.docx': '📝',
+                '.xls': '📊', '.xlsx': '📊', '.csv': '📊',
+                '.py': '🐍', '.js': '📜', '.html': '🌐',
+                '.txt': '📃', '.md': '📋', '.json': '📋'
+            }
+            icon = icons.get(path.suffix.lower(), '📎')
+            icon_label = AtomLabel(icon, "xl")
+            layout.addWidget(icon_label)
+        
+        # File info
+        info = QVBoxLayout()
+        info.setSpacing(2)
+        
+        name = AtomLabel(path.name, "sm")
+        info.addWidget(name)
+        
+        size_text = format_file_size(path.stat().st_size)
+        size = AtomLabel(size_text, "xs")
+        size.setStyleSheet(f"color: {Colors.TEXT_MUTED};")
+        info.addWidget(size)
+        
+        layout.addLayout(info, 1)
+        
+        # Remove button
+        remove = AtomIconButton("×", size=28)
+        remove.clicked.connect(self.removed.emit)
+        layout.addWidget(remove)
+        
+        # Styling
+        self.setStyleSheet(f"""
+            QFrame {{
+                background-color: {Colors.GRAY_50};
+                border: 1px solid {Colors.GRAY_200};
+                border-radius: {Radius.MD};
+            }}
+        """)
+        
+        self.setMaximumWidth(280)
+
+
+class ThinkingIndicator(QFrame):
+    """Animated thinking/typing indicator."""
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(20, 16, 20, 16)
+        layout.setSpacing(8)
+        
+        # Dots
+        self.dots = []
+        for i in range(3):
+            dot = QLabel("●")
+            dot.setStyleSheet(f"""
+                color: {Colors.GRAY_400};
+                font-size: 10px;
+            """)
+            layout.addWidget(dot)
+            self.dots.append(dot)
+        
+        layout.addStretch()
+        
+        # Timer for animation
+        from PyQt6.QtCore import QTimer
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self._animate)
+        self._step = 0
+        
+        # Styling
+        self.setStyleSheet(f"""
+            QFrame {{
+                background-color: {Colors.GRAY_100};
+                border-radius: {Radius.XL};
+                max-width: 80px;
+            }}
+        """)
+    
+    def start(self):
+        """Start animation."""
+        self.timer.start(400)
+        self.show()
+    
+    def stop(self):
+        """Stop animation."""
+        self.timer.stop()
+        self.hide()
+    
+    def _animate(self):
+        """Animate dots."""
+        colors = [Colors.GRAY_400, Colors.GRAY_500, Colors.GRAY_600, Colors.GRAY_500]
+        for i, dot in enumerate(self.dots):
+            color_idx = (self._step + i) % len(colors)
+            dot.setStyleSheet(f"color: {colors[color_idx]}; font-size: 10px;")
+        self._step += 1
+
+
+class PersonaSelector(QFrame):
+    """Persona/role selector cards."""
+    
+    persona_selected = pyqtSignal(str)
+    
+    PERSONAS = {
+        "default": {"icon": "🤖", "name": "Default", "desc": "General purpose assistant"},
+        "researcher": {"icon": "🔬", "name": "Researcher", "desc": "Academic & scientific analysis"},
+        "student": {"icon": "📚", "name": "Student", "desc": "Learning & study support"},
+        "office": {"icon": "💼", "name": "Office", "desc": "Productivity & documents"},
+    }
+    
+    def __init__(self, current: str = "default", parent=None):
+        super().__init__(parent)
+        
+        layout = QHBoxLayout(self)
+        layout.setSpacing(12)
+        
+        for key, info in self.PERSONAS.items():
+            card = self._create_card(key, info, key == current)
+            layout.addWidget(card)
+        
+        layout.addStretch()
+        
+        self.setStyleSheet("background: transparent; border: none;")
+    
+    def _create_card(self, key: str, info: dict, active: bool) -> QFrame:
+        """Create persona card."""
+        card = QFrame()
+        card.setCursor(Qt.CursorShape.PointingHandCursor)
+        
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(16, 12, 16, 12)
+        layout.setSpacing(6)
+        
+        # Icon
+        icon = AtomLabel(info["icon"], "xl")
+        layout.addWidget(icon)
+        
+        # Name
+        name = AtomLabel(info["name"], "sm")
+        layout.addWidget(name)
+        
+        # Description
+        desc = AtomLabel(info["desc"], "xs")
+        desc.setStyleSheet(f"color: {Colors.TEXT_MUTED};")
+        layout.addWidget(desc)
+        
+        # Active indicator
+        if active:
+            card.setStyleSheet(f"""
+                QFrame {{
+                    background-color: {Colors.PRIMARY_50};
+                    border: 2px solid {Colors.PRIMARY_500};
+                    border-radius: {Radius.LG};
+                }}
+            """)
+        else:
+            card.setStyleSheet(f"""
+                QFrame {{
+                    background-color: {Colors.SURFACE};
+                    border: 1px solid {Colors.GRAY_200};
+                    border-radius: {Radius.LG};
+                }}
+                QFrame:hover {{
+                    border-color: {Colors.GRAY_300};
+                    background-color: {Colors.GRAY_50};
+                }}
+            """)
+        
+        card.mousePressEvent = lambda e: self.persona_selected.emit(key)
+        
+        return card

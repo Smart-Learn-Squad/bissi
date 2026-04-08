@@ -31,3 +31,32 @@ class DocxAgent:
             self.document.save(new_file_path)
         else:
             self.document.save(self.file_path)
+
+
+# Module-level convenience functions
+def read_document(file_path: str) -> str:
+    """Read all text from a Word document."""
+    agent = DocxAgent(file_path)
+    return "\n".join(agent.read_paragraphs())
+
+
+def read_with_structure(file_path: str) -> dict:
+    """Read document with structure (paragraphs and tables)."""
+    agent = DocxAgent(file_path)
+    return {
+        "paragraphs": agent.read_paragraphs(),
+        "tables": agent.read_tables()
+    }
+
+
+def create_document() -> DocxAgent:
+    """Create a new empty Word document."""
+    from docx import Document
+    from pathlib import Path
+    import tempfile
+    
+    # Create temp file
+    temp_path = Path(tempfile.gettempdir()) / "new_document.docx"
+    doc = Document()
+    doc.save(str(temp_path))
+    return DocxAgent(str(temp_path))

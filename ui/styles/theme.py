@@ -4,8 +4,16 @@ Design tokens (colors, fonts, spacing) for consistent styling.
 """
 
 # Colors - Tailwind-inspired palette
+from PyQt6.QtGui import QPalette, QColor
+from PyQt6.QtWidgets import QApplication
+
 class Colors:
-    # Primary
+    @staticmethod
+    def is_dark():
+        palette = QApplication.palette()
+        return palette.color(QPalette.ColorGroup.Active, QPalette.ColorRole.Window).lightness() < 128
+
+    # --- Standard Palette (Restored for compatibility) ---
     PRIMARY_50 = "#eff6ff"
     PRIMARY_100 = "#dbeafe"
     PRIMARY_200 = "#bfdbfe"
@@ -17,7 +25,6 @@ class Colors:
     PRIMARY_800 = "#1e40af"
     PRIMARY_900 = "#1e3a8a"
     
-    # Gray
     GRAY_50 = "#f9fafb"
     GRAY_100 = "#f3f4f6"
     GRAY_200 = "#e5e7eb"
@@ -28,20 +35,45 @@ class Colors:
     GRAY_700 = "#374151"
     GRAY_800 = "#1f2937"
     GRAY_900 = "#111827"
-    
-    # Semantic
-    BACKGROUND = "#fafafa"
-    SURFACE = "#ffffff"
-    BORDER = "#e5e7eb"
-    TEXT_PRIMARY = "#111827"
-    TEXT_SECONDARY = "#6b7280"
-    TEXT_MUTED = "#9ca3af"
-    
-    # Status
+
     SUCCESS = "#10b981"
     WARNING = "#f59e0b"
     ERROR = "#ef4444"
     INFO = "#3b82f6"
+
+    # --- Adaptive Surface Logic ---
+    @classmethod
+    def update_tokens(cls):
+        dark = cls.is_dark()
+        
+        # Base backgrounds
+        cls.BACKGROUND = "#080808" if dark else "#f8f9fa"
+        cls.SURFACE = "#111111" if dark else "#ffffff"
+        cls.BORDER = "rgba(255, 255, 255, 0.08)" if dark else "rgba(0, 0, 0, 0.1)"
+        
+        # Semantic Text (Adaptive)
+        cls.TEXT_PRIMARY = "#ffffff" if dark else "#111827"
+        cls.TEXT_SECONDARY = "rgba(255, 255, 255, 0.7)" if dark else "#4b5563"
+        cls.TEXT_MUTED = "rgba(255, 255, 255, 0.5)" if dark else "#9ca3af"
+        
+        # Glassmorphism Tokens
+        if dark:
+            cls.GLASS_BASE = "rgba(15, 15, 20, 0.65)"
+            cls.GLASS_SURFACE = "rgba(255, 255, 255, 0.04)"
+            cls.GLASS_BORDER = "rgba(255, 255, 255, 0.08)"
+            cls.GLASS_BORDER_LIGHT = "rgba(255, 255, 255, 0.15)"
+            cls.GLASS_TEXT = "rgba(255, 255, 255, 0.95)"
+            cls.GLASS_TEXT_MUTED = "rgba(255, 255, 255, 0.55)"
+        else:
+            cls.GLASS_BASE = "rgba(255, 255, 255, 0.70)"
+            cls.GLASS_SURFACE = "rgba(0, 0, 0, 0.03)"
+            cls.GLASS_BORDER = "rgba(0, 0, 0, 0.10)"
+            cls.GLASS_BORDER_LIGHT = "rgba(255, 255, 255, 0.40)"
+            cls.GLASS_TEXT = "rgba(0, 0, 0, 0.90)"
+            cls.GLASS_TEXT_MUTED = "rgba(0, 0, 0, 0.50)"
+
+# Initial token generation
+Colors.update_tokens()
 
 
 # Typography

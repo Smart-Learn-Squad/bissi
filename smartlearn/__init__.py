@@ -34,7 +34,7 @@ class SmartlearnApp:
     
     def run(self):
         """Launch Smartlearn application."""
-        from ui.main_window import main as ui_main
+        from smartlearn.main_window import main as ui_main
         ui_main()
 
 

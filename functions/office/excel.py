@@ -69,7 +69,7 @@ def get_sheet_info(file_path: Union[str, Path]) -> Dict[str, Any]:
 
 
 def write_excel(file_path: Union[str, Path],
-                data: Union[pd.DataFrame, List[List[Any]], Dict[str, List[List[Any]]],
+                data: Union[pd.DataFrame, List[List[Any]], Dict[str, List[List[Any]]]],
                 sheet_name: str = "Sheet1",
                 index: bool = False) -> None:
     """Write data to Excel file.

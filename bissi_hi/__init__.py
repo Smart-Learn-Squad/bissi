@@ -34,13 +34,13 @@ class BissiHiApp:
     
     def run(self):
         """Launch Bissi Hi application."""
-        from ui.main_window import main as ui_main
+        from bissi_hi.main_window import main as ui_main
         ui_main()
 
 
 def main():
     """Entry point for Bissi Hi."""
-    print("🔬 Starting Bissi Hi...")
+    print("Starting Bissi Hi...")
     print(f"   Model: {BissiHiApp.DEFAULT_MODEL}")
     print(f"   Persona: Researcher Edition")
     

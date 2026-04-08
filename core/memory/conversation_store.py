@@ -114,13 +114,20 @@ class ConversationStore:
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             
-            query = """SELECT role, content, metadata, timestamp
-                      FROM messages
-                      WHERE conversation_id = ?
-                      ORDER BY timestamp"""
-            
             if limit:
-                query += f" LIMIT {limit}"
+                # Get last N messages (most recent), then re-order ascending
+                query = f"""SELECT role, content, metadata, timestamp FROM (
+                              SELECT role, content, metadata, timestamp
+                              FROM messages
+                              WHERE conversation_id = ?
+                              ORDER BY timestamp DESC
+                              LIMIT {limit}
+                          ) ORDER BY timestamp ASC"""
+            else:
+                query = """SELECT role, content, metadata, timestamp
+                          FROM messages
+                          WHERE conversation_id = ?
+                          ORDER BY timestamp"""
             
             rows = conn.execute(query, (conversation_id,)).fetchall()
             
@@ -224,7 +231,6 @@ class ConversationStore:
         
         Args:
             query: Search text
-            
         Returns:
             Matching conversations with context
         """

@@ -217,12 +217,51 @@ class ExamTimer:
 
 
 # Convenience functions
-def create_study_schedule(subject: str, exam_date: str, 
-                          topics: List[str]) -> StudyPlan:
-    """Quick study plan creation."""
-    planner = StudyPlanner()
+class ChapterAnalyzer:
+    """Analyze course chapters to extract summaries and key concepts."""
     
-    exam = datetime.strptime(exam_date, "%Y-%m-%d")
-    days = (exam - datetime.now()).days
+    def __init__(self, manager=None):
+        from manager import get_manager
+        self.manager = manager or get_manager()
+
+    def analyze(self, text: str) -> Dict:
+        """Analyze text using Gemma 4 to produce a structured summary."""
+        prompt = f"""Analyze the following educational content and provide a structured output in JSON format:
+        {{
+            "summary": "A concise overview of the chapter",
+            "key_concepts": ["concept 1", "concept 2"],
+            "vocabulary": {{"term": "definition"}},
+            "study_tips": ["tip 1", "tip 2"]
+        }}
+        
+        Content:
+        {text[:5000]}
+        """
+        
+        try:
+            # We use the manager's process_request logic but with a direct prompt
+            # For a pure business logic, we'd ideally have a direct engine call
+            from core.bissi import answer_question
+            response = answer_question(text, "Provide a structured summary, key concepts, vocabulary, and study tips in JSON format.", model=self.manager.model)
+            
+            # Simple cleanup in case the LLM adds markdown blocks
+            clean_response = response.strip().replace('```json', '').replace('```', '')
+            return json.loads(clean_response)
+        except Exception as e:
+            return {
+                "summary": f"Analysis failed: {str(e)}",
+                "key_concepts": [],
+                "vocabulary": {},
+                "study_tips": []
+            }
+
+
+class PomodoroTimer:
+    """Business logic for Pomodoro study sessions."""
     
-    return planner.create_plan(subject, topics, max(1, days))
+    def __init__(self, work_min=25, break_min=5):
+        self.work_duration = timedelta(minutes=work_min)
+        self.break_duration = timedelta(minutes=break_min)
+        self.sessions_completed = 0
+        self.total_study_time = timedelta()
+        self.is_working = True

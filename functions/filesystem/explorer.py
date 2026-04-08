@@ -9,6 +9,48 @@ from typing import List, Dict, Any, Optional, Union, Iterator
 from datetime import datetime
 
 
+def read_text_file(file_path: Union[str, Path], max_lines: Optional[int] = None) -> Dict[str, Any]:
+    """Read the content of a text file (Python, Markdown, TXT, JSON, etc.).
+    
+    Use this tool to read source code files, documentation, config files, and any text-based file.
+    
+    Args:
+        file_path: Path to the text file
+        max_lines: Maximum number of lines to read (default: all)
+        
+    Returns:
+        Dictionary with file content and metadata
+    """
+    try:
+        path = Path(file_path)
+        if not path.exists():
+            return {'error': f'File not found: {file_path}'}
+        
+        if not path.is_file():
+            return {'error': f'Not a file: {file_path}'}
+        
+        # Read file content
+        with open(path, 'r', encoding='utf-8', errors='ignore') as f:
+            if max_lines:
+                lines = []
+                for i, line in enumerate(f):
+                    if i >= max_lines:
+                        break
+                    lines.append(line)
+                content = ''.join(lines)
+            else:
+                content = f.read()
+        
+        return {
+            'content': content,
+            'lines': len(content.split('\n')),
+            'size': path.stat().st_size,
+            'path': str(path.absolute())
+        }
+    except Exception as e:
+        return {'error': f'Failed to read file: {str(e)}'}
+
+
 def list_directory(directory: Union[str, Path], 
                    pattern: Optional[str] = None,
                    include_hidden: bool = False) -> List[Dict[str, Any]]:

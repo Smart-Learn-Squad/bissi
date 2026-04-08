@@ -4,6 +4,29 @@
 - **Ollama Python SDK** - https://github.com/ollama/ollama-python
 - **Ollama API Docs** - https://github.com/ollama/ollama/blob/main/docs/api.md
 
+## Available Tools
+
+### Core Functions
+
+1. **read_word** - Read Microsoft Word documents
+2. **read_excel** - Read Microsoft Excel spreadsheets  
+3. **read_pdf** - Read PDF documents
+4. **read_text_file** - Read text files (.py, .md, .txt)
+5. **search_files** - Search for files by pattern (includes root directory)
+6. **search_by_content** - Search files containing specific text
+7. **list_directory** - List directory contents with file sizes
+8. **get_file_info** - Get detailed file information
+9. **get_directory_tree** - Get hierarchical directory structure
+10. **get_recent_files** - Get recently modified files
+11. **safe_operator** - Get Python version and working directory
+
+### Multi-Step Reasoning
+
+The agent now supports up to **7 iterations** of tool calls for complex tasks, enabling:
+- Audit → Action → Calculation → Language synthesis workflow
+- Cross-verification of file searches with directory listings
+- Automatic retry on tool failures with alternative approaches
+
 ## Office Suite
 - **python-docx** (Word) - https://python-docx.readthedocs.io/
 - **openpyxl** (Excel) - https://openpyxl.readthedocs.io/

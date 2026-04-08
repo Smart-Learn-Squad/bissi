@@ -21,19 +21,30 @@ class BissiManager:
     """Central orchestrator connecting all BISSI components with native function calling."""
     
     # Default authoritative system prompt for BISSI
-    DEFAULT_SYSTEM_PROMPT = """You are BISSI, an autonomous AI agent with direct access to the filesystem and system tools.
+    DEFAULT_SYSTEM_PROMPT = """You are BISSI, an autonomous AI agent with direct tool access.
 
-ABSOLUTE REQUIREMENTS - YOU MUST FOLLOW THESE:
-1. When asked about Python version -> IMMEDIATELY call safe_operator with operation="get_python_version"
-2. When asked about working directory -> IMMEDIATELY call safe_operator with operation="get_current_directory"  
-3. When asked to read ANY file -> IMMEDIATELY call the appropriate read tool (read_text_file, read_word, etc.)
-4. When asked about file counts or sizes -> FIRST call search_files, THEN call get_file_info
-5. NEVER say "I don't have access" or "I cannot access" - YOU DO HAVE ACCESS - USE THE TOOLS
-6. CROSS-VERIFICATION: When finding the "largest" file, use both search_files AND list_directory to verify. Always include file sizes in your analysis.
-7. EXCEL PROACTIVITY: When asked to analyze Excel files, NEVER ask the user about column names first. IMMEDIATELY call read_excel to discover the structure yourself.
-8. LANGUAGE CONSISTENCY: ALWAYS respond in the SAME LANGUAGE as the user's query. If they ask in French, answer in French. If they ask in English, answer in English. Never switch languages mid-conversation.
+WORK PROTOCOL - FOLLOW THESE PHASES FOR EVERY TASK:
 
-You are an agent with tool access. ACT like one. Use tools without hesitation."""
+**Phase 1: AUDIT**
+For any file-related request, ALWAYS start with list_directory('.') to see what's actually on disk.
+
+**Phase 2: ACTION**
+If a file exists in the listing, you MUST read it with the appropriate tool (read_excel, read_word, read_text_file, etc.). 
+NEVER say "I cannot access" - you HAVE the tools, USE them immediately without asking permission.
+
+**Phase 3: CALCULATION**
+For data analysis, use the python_runner tool to execute code and guarantee accuracy. Don't guess - calculate.
+
+**Phase 4: LANGUAGE**
+ALWAYS respond in the SAME LANGUAGE as the user's query (French -> French, English -> English). 
+Never switch languages, even if reading documents in other languages.
+
+RULES:
+- You have tools. Use them proactively.
+- If a tool fails, try an alternative approach in the next iteration.
+- Never ask the user for information you can discover yourself with tools.
+
+You are an agent with tool access. ACT like one."""
 
     def __init__(self, 
                  model: str = 'gemma4:e2b',
@@ -57,8 +68,11 @@ You are an agent with tool access. ACT like one. Use tools without hesitation.""
             'read_pdf': self._tool_read_pdf,
             'read_text_file': self._tool_read_text_file,
             'search_files': self._tool_search_files,
+            'search_by_content': self._tool_search_by_content,
             'list_directory': self._tool_list_directory,
             'get_file_info': self._tool_file_info,
+            'get_directory_tree': self._tool_get_directory_tree,
+            'get_recent_files': self._tool_get_recent_files,
             'safe_operator': self._tool_safe_operator,
         }
 
@@ -82,7 +96,7 @@ You are an agent with tool access. ACT like one. Use tools without hesitation.""
                 'type': 'function',
                 'function': {
                     'name': 'read_excel',
-                    'description': 'Read and summarize a Microsoft Excel (.xlsx, .xls) spreadsheet.',
+                    'description': 'MUST USE: Read and analyze Microsoft Excel (.xlsx, .xls) spreadsheets. When asked about Excel data, IMMEDIATELY use this tool to read the file. NEVER ask the user about column names - read the file first to discover the structure yourself.',
                     'parameters': {
                         'type': 'object',
                         'properties': {
@@ -167,6 +181,52 @@ You are an agent with tool access. ACT like one. Use tools without hesitation.""
             {
                 'type': 'function',
                 'function': {
+                    'name': 'search_by_content',
+                    'description': 'Search for files containing specific text content within their body.',
+                    'parameters': {
+                        'type': 'object',
+                        'properties': {
+                            'directory': {'type': 'string', 'description': 'Directory to search in'},
+                            'query': {'type': 'string', 'description': 'Text to search for within files'},
+                            'extensions': {'type': 'array', 'items': {'type': 'string'}, 'description': 'Optional file extensions to limit search (e.g., [".py", ".txt"])'}
+                        },
+                        'required': ['directory', 'query']
+                    }
+                }
+            },
+            {
+                'type': 'function',
+                'function': {
+                    'name': 'get_directory_tree',
+                    'description': 'Get a hierarchical tree structure of a directory and all its subdirectories.',
+                    'parameters': {
+                        'type': 'object',
+                        'properties': {
+                            'path': {'type': 'string', 'description': 'Root directory path'},
+                            'max_depth': {'type': 'integer', 'description': 'Maximum depth to traverse (default: 3)'}
+                        },
+                        'required': ['path']
+                    }
+                }
+            },
+            {
+                'type': 'function',
+                'function': {
+                    'name': 'get_recent_files',
+                    'description': 'Get files sorted by modification time, most recent first.',
+                    'parameters': {
+                        'type': 'object',
+                        'properties': {
+                            'directory': {'type': 'string', 'description': 'Directory to search in'},
+                            'limit': {'type': 'integer', 'description': 'Number of recent files to return (default: 10)'}
+                        },
+                        'required': ['directory']
+                    }
+                }
+            },
+            {
+                'type': 'function',
+                'function': {
                     'name': 'safe_operator',
                     'description': 'Get Python version or current working directory. MUST USE when asked about Python version or working directory.',
                     'parameters': {
@@ -197,7 +257,7 @@ You are an agent with tool access. ACT like one. Use tools without hesitation.""
             return True
         return False
     
-    def process_request(self, user_input: str, max_iterations: int = 5) -> str:
+    def process_request(self, user_input: str, max_iterations: int = 7) -> str:
         """Process user request with recursive multi-step reasoning loop.
         
         Accumulates the full reasoning chain (assistant reflection + tool results)
@@ -205,7 +265,7 @@ You are an agent with tool access. ACT like one. Use tools without hesitation.""
         
         Args:
             user_input: The user's request
-            max_iterations: Maximum number of tool call cycles (default 5)
+            max_iterations: Maximum number of tool call cycles (default 7)
             
         Returns:
             The final assistant response after all tool iterations
@@ -404,6 +464,24 @@ You are an agent with tool access. ACT like one. Use tools without hesitation.""
     def _tool_file_info(self, file_path: str) -> Dict[str, Any]:
         try:
             return {'success': True, 'info': explorer.get_file_info(file_path)}
+        except Exception as e: return {'success': False, 'error': str(e)}
+
+    def _tool_search_by_content(self, directory: str, query: str, extensions: Optional[List[str]] = None) -> Dict[str, Any]:
+        """Search for files containing specific text content."""
+        try:
+            return {'success': True, 'results': explorer.search_by_content(directory, query, extensions)}
+        except Exception as e: return {'success': False, 'error': str(e)}
+
+    def _tool_get_directory_tree(self, path: str, max_depth: int = 3) -> Dict[str, Any]:
+        """Get hierarchical tree structure of directory."""
+        try:
+            return {'success': True, 'tree': explorer.get_directory_tree(path, max_depth)}
+        except Exception as e: return {'success': False, 'error': str(e)}
+
+    def _tool_get_recent_files(self, directory: str, limit: int = 10) -> Dict[str, Any]:
+        """Get recently modified files."""
+        try:
+            return {'success': True, 'files': explorer.get_recent_files(directory, limit)}
         except Exception as e: return {'success': False, 'error': str(e)}
 
     def _tool_safe_operator(self, operation: str) -> Dict[str, Any]:

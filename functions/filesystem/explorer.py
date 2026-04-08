@@ -102,50 +102,57 @@ def search_files(directory: Union[str, Path],
                  include_hidden: bool = False) -> List[Dict[str, Any]]:
     """Search for files matching pattern in directory and subdirectories.
     
-    IMPORTANT: This function searches BOTH the root directory AND all subdirectories.
-    Use this to find ALL files of a given type (e.g., "*.py" finds .py files everywhere).
+    CRITICAL: This function searches BOTH the root directory AND all subdirectories.
+    When searching for "*.py", it WILL find smartlearn.py, main.py, manager.py at root level
+    AND all __init__.py files in subdirectories.
     
     Args:
         directory: Root directory to search
-        pattern: Glob pattern (e.g., "*.txt", "report*")
+        pattern: Glob pattern (e.g., "*.txt", "report*", "*.py")
         recursive: Search in subdirectories (default: True)
         include_hidden: Include hidden files
         
     Returns:
         List of matching files with metadata including size
     """
-    path = Path(directory)
+    path = Path(directory).resolve()  # Resolve to absolute path
     matches = []
+    seen_paths = set()
     
-    # Always search root directory first, then subdirectories if recursive
-    # This ensures we find files at root level
+    # Search 1: Root directory only (non-recursive)
     for item in path.glob(pattern):
         if not include_hidden and any(part.startswith('.') for part in item.parts):
             continue
         if item.is_file():
-            stat = item.stat()
-            matches.append({
-                'name': item.name,
-                'path': str(item),
-                'size': stat.st_size,
-                'modified': datetime.fromtimestamp(stat.st_mtime).isoformat(),
-                'directory': str(item.parent)
-            })
-    
-    # Then search subdirectories if recursive
-    if recursive:
-        for item in path.rglob(pattern):
-            if not include_hidden and any(part.startswith('.') for part in item.parts):
-                continue
-            if item.is_file() and item not in [Path(m['path']) for m in matches]:
+            file_path = str(item.resolve())
+            if file_path not in seen_paths:
+                seen_paths.add(file_path)
                 stat = item.stat()
                 matches.append({
                     'name': item.name,
-                    'path': str(item),
+                    'path': file_path,
                     'size': stat.st_size,
                     'modified': datetime.fromtimestamp(stat.st_mtime).isoformat(),
                     'directory': str(item.parent)
                 })
+    
+    # Search 2: Subdirectories (recursive)
+    if recursive:
+        for item in path.rglob(pattern):
+            if not include_hidden and any(part.startswith('.') for part in item.parts):
+                continue
+            if item.is_file():
+                file_path = str(item.resolve())
+                if file_path not in seen_paths:
+                    seen_paths.add(file_path)
+                    stat = item.stat()
+                    matches.append({
+                        'name': item.name,
+                        'path': file_path,
+                        'size': stat.st_size,
+                        'modified': datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                        'directory': str(item.parent)
+                    })
     
     return sorted(matches, key=lambda x: x['name'].lower())
 

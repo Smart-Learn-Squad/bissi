@@ -100,29 +100,28 @@ def search_files(directory: Union[str, Path],
                  pattern: str = "*",
                  recursive: bool = True,
                  include_hidden: bool = False) -> List[Dict[str, Any]]:
-    """Search for files matching pattern.
+    """Search for files matching pattern in directory and subdirectories.
+    
+    IMPORTANT: This function searches BOTH the root directory AND all subdirectories.
+    Use this to find ALL files of a given type (e.g., "*.py" finds .py files everywhere).
     
     Args:
         directory: Root directory to search
         pattern: Glob pattern (e.g., "*.txt", "report*")
-        recursive: Search in subdirectories
+        recursive: Search in subdirectories (default: True)
         include_hidden: Include hidden files
         
     Returns:
-        List of matching files with metadata
+        List of matching files with metadata including size
     """
     path = Path(directory)
     matches = []
     
-    if recursive:
-        iterator = path.rglob(pattern)
-    else:
-        iterator = path.glob(pattern)
-    
-    for item in iterator:
+    # Always search root directory first, then subdirectories if recursive
+    # This ensures we find files at root level
+    for item in path.glob(pattern):
         if not include_hidden and any(part.startswith('.') for part in item.parts):
             continue
-        
         if item.is_file():
             stat = item.stat()
             matches.append({
@@ -132,6 +131,21 @@ def search_files(directory: Union[str, Path],
                 'modified': datetime.fromtimestamp(stat.st_mtime).isoformat(),
                 'directory': str(item.parent)
             })
+    
+    # Then search subdirectories if recursive
+    if recursive:
+        for item in path.rglob(pattern):
+            if not include_hidden and any(part.startswith('.') for part in item.parts):
+                continue
+            if item.is_file() and item not in [Path(m['path']) for m in matches]:
+                stat = item.stat()
+                matches.append({
+                    'name': item.name,
+                    'path': str(item),
+                    'size': stat.st_size,
+                    'modified': datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                    'directory': str(item.parent)
+                })
     
     return sorted(matches, key=lambda x: x['name'].lower())
 

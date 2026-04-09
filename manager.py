@@ -10,9 +10,11 @@ import json
 
 # Import modules
 from functions.office.word import DocxAgent
-from functions.office import excel, pdf, ocr
-from functions.filesystem import explorer
+from functions.office import excel, pdf, ocr, powerpoint
+from functions.filesystem import explorer, writer
 from functions.operations import SafeOperator, get_operator
+from functions.code import python_runner
+from functions.system import clipboard
 from core.memory.conversation_store import ConversationStore
 from core.memory.vector_store import VectorStore
 
@@ -21,33 +23,19 @@ class BissiManager:
     """Central orchestrator connecting all BISSI components with native function calling."""
     
     # Default authoritative system prompt for BISSI
-    DEFAULT_SYSTEM_PROMPT = """You are BISSI, an autonomous AI agent with direct tool access.
+    DEFAULT_SYSTEM_PROMPT = """You are BISSI, an autonomous expert agent.
+        STRATEGIC DOCTRINE:
+        1. NO TALKING, JUST DOING: Execute tools immediately. Do not explain what you are going to do.
+        2. RESOURCE HUNTER: If a file or resource is not explicitly provided with a path, use 'search_files' or 'list_directory' to find it yourself. NEVER ask the user "where is the file" if it might be on the disk.
+        3. DATA ANALYSIS: For any calculation (sum, average, count), ALWAYS use 'python_runner'. 
+        4. LARGE FILES: If a file has many rows/paragraphs, use 'python_runner' to process it programmatically instead of reading it into your chat context.
+        5. ACCURACY: Never hallucinate or invent data. If you haven't read the whole file, use a script to scan it.
+        6. OUTPUT: Respect the requested file format (docx, xlsx, txt) strictly.
 
-WORK PROTOCOL - FOLLOW THESE PHASES FOR EVERY TASK:
-
-**Phase 1: AUDIT**
-For any file-related request, ALWAYS start with list_directory('.') to see what's actually on disk.
-
-**Phase 2: ACTION**
-If a file exists in the listing, you MUST read it with the appropriate tool (read_excel, read_word, read_text_file, etc.). 
-NEVER say "I cannot access" - you HAVE the tools, USE them immediately without asking permission.
-
-**Phase 3: CALCULATION**
-For data analysis, use the python_runner tool to execute code and guarantee accuracy. Don't guess - calculate.
-
-**Phase 4: LANGUAGE**
-ALWAYS respond in the SAME LANGUAGE as the user's query (French -> French, English -> English). 
-Never switch languages, even if reading documents in other languages.
-
-RULES:
-- You have tools. Use them proactively.
-- If a tool fails, try an alternative approach in the next iteration.
-- Never ask the user for information you can discover yourself with tools.
-
-You are an agent with tool access. ACT like one."""
+        STRICT RULE: Never claim lack of access. Execute the plan step-by-step using tools."""
 
     def __init__(self, 
-                 model: str = 'gemma4:e2b',
+                 model: str = 'gemma4:e4b',
                  system_prompt: Optional[str] = None,
                  conversation_store: Optional[ConversationStore] = None,
                  vector_store: Optional[VectorStore] = None):
@@ -64,9 +52,15 @@ You are an agent with tool access. ACT like one."""
         # Available tools registry
         self.available_functions: Dict[str, Callable] = {
             'read_word': self._tool_read_word,
+            'write_word': self._tool_write_word,
             'read_excel': self._tool_read_excel,
+            'write_excel': self._tool_write_excel,
+            'read_pptx': self._tool_read_pptx,
+            'write_pptx': self._tool_write_pptx,
             'read_pdf': self._tool_read_pdf,
             'read_text_file': self._tool_read_text_file,
+            'write_text_file': self._tool_write_text_file,
+            'edit_text_file': self._tool_edit_text_file,
             'search_files': self._tool_search_files,
             'search_by_content': self._tool_search_by_content,
             'list_directory': self._tool_list_directory,
@@ -74,10 +68,45 @@ You are an agent with tool access. ACT like one."""
             'get_directory_tree': self._tool_get_directory_tree,
             'get_recent_files': self._tool_get_recent_files,
             'safe_operator': self._tool_safe_operator,
+            'python_runner': self._tool_python_runner,
+            'get_clipboard': self._tool_get_clipboard,
+            'set_clipboard': self._tool_set_clipboard,
+            'delete_file': self._tool_delete_file,
+            'move_file': self._tool_move_file,
         }
 
         # Tool definitions for Gemma 4
         self.tools = [
+            {
+                'type': 'function',
+                'function': {
+                    'name': 'python_runner',
+                    'description': 'REQUIRED for all data analysis, calculations, and complex logic. Use pandas for CSV/Excel/JSON files, numpy for math, and matplotlib for charts. ALWAYS provide the complete python code to execute.',
+                    'parameters': {
+                        'type': 'object',
+                        'properties': {
+                            'code': {'type': 'string', 'description': 'The Python code to execute in the sandbox.'}
+                        },
+                        'required': ['code']
+                    }
+                }
+            },
+            {
+                'type': 'function',
+                'function': {
+                    'name': 'write_word',
+                    'description': 'Create a new Word document or update an existing one with text content.',
+                    'parameters': {
+                        'type': 'object',
+                        'properties': {
+                            'file_path': {'type': 'string', 'description': 'The absolute or relative path where to save the .docx file.'},
+                            'content': {'type': 'string', 'description': 'The text content to write. Newlines will be treated as separate paragraphs.'},
+                            'append': {'type': 'boolean', 'description': 'Whether to add to the existing document (True) or overwrite (False). Default: False'}
+                        },
+                        'required': ['file_path', 'content']
+                    }
+                }
+            },
             {
                 'type': 'function',
                 'function': {
@@ -96,13 +125,123 @@ You are an agent with tool access. ACT like one."""
                 'type': 'function',
                 'function': {
                     'name': 'read_excel',
-                    'description': 'MUST USE: Read and analyze Microsoft Excel (.xlsx, .xls) spreadsheets. When asked about Excel data, IMMEDIATELY use this tool to read the file. NEVER ask the user about column names - read the file first to discover the structure yourself.',
+                    'description': 'Read Microsoft Excel (.xlsx, .xls) spreadsheets. Returns the column names and first 100 rows.',
                     'parameters': {
                         'type': 'object',
                         'properties': {
                             'file_path': {'type': 'string', 'description': 'The path to the Excel file.'}
                         },
                         'required': ['file_path']
+                    }
+                }
+            },
+            {
+                'type': 'function',
+                'function': {
+                    'name': 'write_excel',
+                    'description': 'Create or overwrite an Excel file with data.',
+                    'parameters': {
+                        'type': 'object',
+                        'properties': {
+                            'file_path': {'type': 'string', 'description': 'Path to save the .xlsx file.'},
+                            'data': {'type': 'array', 'items': {'type': 'object'}, 'description': 'List of objects representing rows (e.g., [{"col1": "val1"}, {"col1": "val2"}])'},
+                            'sheet_name': {'type': 'string', 'description': 'Name of the worksheet.'}
+                        },
+                        'required': ['file_path', 'data']
+                    }
+                }
+            },
+            {
+                'type': 'function',
+                'function': {
+                    'name': 'read_pptx',
+                    'description': 'Extract text content from a PowerPoint (.pptx) presentation.',
+                    'parameters': {
+                        'type': 'object',
+                        'properties': {
+                            'file_path': {'type': 'string', 'description': 'Path to the PowerPoint file.'}
+                        },
+                        'required': ['file_path']
+                    }
+                }
+            },
+            {
+                'type': 'function',
+                'function': {
+                    'name': 'write_pptx',
+                    'description': 'Create a new PowerPoint presentation with slides.',
+                    'parameters': {
+                        'type': 'object',
+                        'properties': {
+                            'file_path': {'type': 'string', 'description': 'Path to save the .pptx file.'},
+                            'title': {'type': 'string', 'description': 'Main title of the presentation.'},
+                            'slides': {
+                                'type': 'array', 
+                                'items': {
+                                    'type': 'object',
+                                    'properties': {
+                                        'title': {'type': 'string'},
+                                        'content': {'type': 'string'}
+                                    }
+                                },
+                                'description': 'List of slides with title and content.'
+                            }
+                        },
+                        'required': ['file_path', 'title', 'slides']
+                    }
+                }
+            },
+            {
+                'type': 'function',
+                'function': {
+                    'name': 'get_clipboard',
+                    'description': 'Read the current text content of the system clipboard.',
+                    'parameters': {
+                        'type': 'object',
+                        'properties': {}
+                    }
+                }
+            },
+            {
+                'type': 'function',
+                'function': {
+                    'name': 'set_clipboard',
+                    'description': 'Copy text to the system clipboard.',
+                    'parameters': {
+                        'type': 'object',
+                        'properties': {
+                            'text': {'type': 'string', 'description': 'The text to copy.'}
+                        },
+                        'required': ['text']
+                    }
+                }
+            },
+            {
+                'type': 'function',
+                'function': {
+                    'name': 'delete_file',
+                    'description': 'Permanently delete a file from the disk.',
+                    'parameters': {
+                        'type': 'object',
+                        'properties': {
+                            'file_path': {'type': 'string', 'description': 'Path to the file to delete.'}
+                        },
+                        'required': ['file_path']
+                    }
+                }
+            },
+            {
+                'type': 'function',
+                'function': {
+                    'name': 'move_file',
+                    'description': 'Move or rename a file.',
+                    'parameters': {
+                        'type': 'object',
+                        'properties': {
+                            'source': {'type': 'string', 'description': 'Current path of the file.'},
+                            'destination': {'type': 'string', 'description': 'New path for the file.'}
+                        },
+                        'required': ['source', 'destination']
                     }
                 }
             },
@@ -132,6 +271,38 @@ You are an agent with tool access. ACT like one."""
                             'max_lines': {'type': 'integer', 'description': 'Maximum number of lines to read (optional, reads all if not specified).'}
                         },
                         'required': ['file_path']
+                    }
+                }
+            },
+            {
+                'type': 'function',
+                'function': {
+                    'name': 'write_text_file',
+                    'description': 'Create or overwrite a text-based file (Code, Markdown, TXT, etc.) with the provided content. You can choose any filename and extension.',
+                    'parameters': {
+                        'type': 'object',
+                        'properties': {
+                            'file_path': {'type': 'string', 'description': 'The path and filename (e.g., "scripts/my_code.py").'},
+                            'content': {'type': 'string', 'description': 'The full text content to write.'},
+                            'append': {'type': 'boolean', 'description': 'If True, adds to the end. If False, overwrites. Default: False'}
+                        },
+                        'required': ['file_path', 'content']
+                    }
+                }
+            },
+            {
+                'type': 'function',
+                'function': {
+                    'name': 'edit_text_file',
+                    'description': 'Surgically replace a specific piece of text or code within a file. Best for fixing bugs or adding small features.',
+                    'parameters': {
+                        'type': 'object',
+                        'properties': {
+                            'file_path': {'type': 'string', 'description': 'Path to the file to edit.'},
+                            'old_text': {'type': 'string', 'description': 'The exact text to find and replace.'},
+                            'new_text': {'type': 'string', 'description': 'The new text to insert instead.'}
+                        },
+                        'required': ['file_path', 'old_text', 'new_text']
                     }
                 }
             },
@@ -420,7 +591,15 @@ You are an agent with tool access. ACT like one."""
     def _tool_read_word(self, file_path: str) -> Dict[str, Any]:
         try:
             agent = DocxAgent(file_path)
-            return {'success': True, 'content': agent.read_paragraphs()[:30], 'tables_count': len(agent.read_tables())}
+            # Increased limit to 500 paragraphs for better visibility of large files
+            return {'success': True, 'content': agent.read_paragraphs()[:500], 'tables_count': len(agent.read_tables())}
+        except Exception as e: return {'success': False, 'error': str(e)}
+
+    def _tool_write_word(self, file_path: str, content: str, append: bool = False) -> Dict[str, Any]:
+        from functions.office import word
+        try:
+            word.write_document(file_path, content, append)
+            return {'success': True, 'message': f'Document saved to {file_path}'}
         except Exception as e: return {'success': False, 'error': str(e)}
 
     def _tool_read_excel(self, file_path: str, max_rows: int = 100) -> Dict[str, Any]:
@@ -438,6 +617,57 @@ You are an agent with tool access. ACT like one."""
             }
         except Exception as e: return {'success': False, 'error': str(e)}
 
+    def _tool_write_excel(self, file_path: str, data: List[Dict[str, Any]], sheet_name: str = "Sheet1") -> Dict[str, Any]:
+        try:
+            import pandas as pd
+            df = pd.DataFrame(data)
+            excel.write_excel(file_path, df, sheet_name=sheet_name)
+            return {'success': True, 'message': f'Excel file saved to {file_path}'}
+        except Exception as e: return {'success': False, 'error': str(e)}
+
+    def _tool_read_pptx(self, file_path: str) -> Dict[str, Any]:
+        try:
+            slides = powerpoint.read_presentation(file_path)
+            return {'success': True, 'slides': slides}
+        except Exception as e: return {'success': False, 'error': str(e)}
+
+    def _tool_write_pptx(self, file_path: str, title: str, slides: List[Dict[str, str]]) -> Dict[str, Any]:
+        try:
+            agent = powerpoint.create_presentation(title)
+            for slide_data in slides:
+                agent.add_slide(slide_data.get('title', ''), slide_data.get('content', ''))
+            agent.save(file_path)
+            return {'success': True, 'message': f'Presentation saved to {file_path}'}
+        except Exception as e: return {'success': False, 'error': str(e)}
+
+    def _tool_get_clipboard(self) -> Dict[str, Any]:
+        try:
+            return {'success': True, 'content': clipboard.get_clipboard()}
+        except Exception as e: return {'success': False, 'error': str(e)}
+
+    def _tool_set_clipboard(self, text: str) -> Dict[str, Any]:
+        try:
+            clipboard.set_clipboard(text)
+            return {'success': True, 'message': 'Text copied to clipboard'}
+        except Exception as e: return {'success': False, 'error': str(e)}
+
+    def _tool_delete_file(self, file_path: str) -> Dict[str, Any]:
+        try:
+            # Simple direct delete for now, or use safe_operator for confirmation
+            import os
+            if os.path.exists(file_path):
+                os.remove(file_path)
+                return {'success': True, 'message': f'Deleted {file_path}'}
+            return {'success': False, 'error': 'File not found'}
+        except Exception as e: return {'success': False, 'error': str(e)}
+
+    def _tool_move_file(self, source: str, destination: str) -> Dict[str, Any]:
+        try:
+            import shutil
+            shutil.move(source, destination)
+            return {'success': True, 'message': f'Moved {source} to {destination}'}
+        except Exception as e: return {'success': False, 'error': str(e)}
+
     def _tool_read_pdf(self, file_path: str) -> Dict[str, Any]:
         try:
             result = ocr.smart_pdf_extract(file_path)
@@ -448,6 +678,18 @@ You are an agent with tool access. ACT like one."""
         """Read any text file (Python, Markdown, TXT, JSON, etc.)."""
         try:
             return explorer.read_text_file(file_path, max_lines)
+        except Exception as e: return {'success': False, 'error': str(e)}
+
+    def _tool_write_text_file(self, file_path: str, content: str, append: bool = False) -> Dict[str, Any]:
+        """Create or update a text-based file."""
+        try:
+            return writer.write_text_file(file_path, content, append)
+        except Exception as e: return {'success': False, 'error': str(e)}
+
+    def _tool_edit_text_file(self, file_path: str, old_text: str, new_text: str) -> Dict[str, Any]:
+        """Surgically replace text in a file."""
+        try:
+            return writer.replace_in_file(file_path, old_text, new_text)
         except Exception as e: return {'success': False, 'error': str(e)}
 
     def _tool_search_files(self, query: str, root_dir: str = '.') -> Dict[str, Any]:
@@ -482,6 +724,12 @@ You are an agent with tool access. ACT like one."""
         """Get recently modified files."""
         try:
             return {'success': True, 'files': explorer.get_recent_files(directory, limit)}
+        except Exception as e: return {'success': False, 'error': str(e)}
+
+    def _tool_python_runner(self, code: str) -> Dict[str, Any]:
+        """Execute Python code in sandbox."""
+        try:
+            return python_runner.run_code(code)
         except Exception as e: return {'success': False, 'error': str(e)}
 
     def _tool_safe_operator(self, operation: str) -> Dict[str, Any]:

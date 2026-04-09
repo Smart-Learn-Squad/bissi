@@ -54,9 +54,34 @@ def create_document() -> DocxAgent:
     from docx import Document
     from pathlib import Path
     import tempfile
-    
+
     # Create temp file
     temp_path = Path(tempfile.gettempdir()) / "new_document.docx"
     doc = Document()
     doc.save(str(temp_path))
     return DocxAgent(str(temp_path))
+
+
+def write_document(file_path: str, content: str, append: bool = False) -> bool:
+    """Write text content to a Word document.
+
+    Args:
+        file_path: Path to the .docx file
+        content: Text to write (can contain newlines for paragraphs)
+        append: If True, add to end of document. If False, create new/overwrite.
+    """
+    from docx import Document
+    import os
+
+    if append and os.path.exists(file_path):
+        doc = Document(file_path)
+    else:
+        doc = Document()
+
+    # Split content by newlines and add as paragraphs
+    for line in content.split('\n'):
+        if line.strip():
+            doc.add_paragraph(line)
+
+    doc.save(file_path)
+    return True

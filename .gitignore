@@ -1,0 +1,24 @@
+.venv/
+__pycache__/
+*.pyc
+.idea/
+.vscode/
+.bissi/
+.bissi_backups/
+
+# User specific exclusion
+ceo-augmente-programme-30-jours.docx
+
+# Test generated files
+test_validation.docx
+test_validation.xlsx
+test_bissi.docx
+ventes.xlsx
+meteo.py
+diag_word.docx
+diag_excel.xlsx
+diag_ppt.pptx
+rapport_de_ventes.xlsx
+meeting.docx
+Rapport_Final_Bissi.docx
+2 occurrences.txt

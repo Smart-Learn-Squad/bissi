@@ -1,24 +1,67 @@
-.venv/
+# --- Python -
+--
 __pycache__/
-*.pyc
-.idea/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+# --- PyQt / UI ---
+# Si tu génères du code via Qt Designer
+# *.ui
+# ui/resources_rc.py
+
+# --- Environnement & Secrets ---
+.env
+.venv
+env.bak
+venv.bak
+
+# --- Systèmes (Linux/macOS) ---
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*~
+*.swp
+
+# --- IDEs ---
 .vscode/
-.bissi/
-.bissi_backups/
+.idea/
+*.swp
+*.swo
 
-# User specific exclusion
-ceo-augmente-programme-30-jours.docx
+# --- BISSI Spécifique ---
+# On ignore les brouillons de test mais on garde le dossier
+drafts/*
+!drafts/__init__.py
 
-# Test generated files
-test_validation.docx
-test_validation.xlsx
-test_bissi.docx
-ventes.xlsx
-meteo.py
-diag_word.docx
-diag_excel.xlsx
-diag_ppt.pptx
-rapport_de_ventes.xlsx
-meeting.docx
-Rapport_Final_Bissi.docx
-2 occurrences.txt
+# On ignore les bases de données locales (ChromaDB / SQLite)
+# Attention : ne pas ignorer si tu veux livrer une base de pré-indexée
+core/memory/*.db
+core/memory/chroma_db/
+
+# --- Fichiers temporaires Office (générés par tes fonctions) ---
+~$*.docx
+~$*.xlsx
+~$*.pptx
+*.tmp
+
+# --- Logs & Résultats de tests ---
+*.log
+tests_results/

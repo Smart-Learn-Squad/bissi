@@ -1,128 +1,20 @@
-"""UI Components package for BISSI.
+"""UI components package for BISSI."""
 
-Atomic design system with web-styled PyQt6 components.
-
-Structure:
-    atoms.py      - Basic building blocks (buttons, inputs, labels)
-    molecules.py  - Simple combinations (bubbles, cards, nav items)
-    organisms.py  - Complex structures (sidebar, chat area, header)
-    complex.py    - Advanced widgets (drop zone, code blocks, markdown)
-    theme.py      - Design tokens (colors, typography, spacing)
-
-Example:
-    >>> from ui.components import OllamaStyleWindow, LiquidGlassInput, CenteredAvatar, Sidebar
-    >>> btn = AtomButton("Click me", variant="primary")
-    >>> bubble = ChatBubble("Hello!", is_user=True)
-"""
-
-# Atoms - smallest components
-from ui.components.atoms import (
-    AtomButton,
-    AtomIconButton,
-    AtomInput,
-    AtomTextArea,
-    AtomLabel,
-    AtomBadge,
-    AtomCheckbox,
-    AtomSelect,
-    AtomSpinner,
-    AtomDivider,
-    AtomAvatar,
-    AtomTooltip,
-    AtomTag,
-)
-
-# Molecules - combinations of atoms
-from ui.components.molecules import (
-    ChatBubble,
-    SearchBar,
-    FileCard,
-    NavItem,
-    MessageInput,
-    ConversationItem,
-)
-
-# Organisms - complex structures
-from ui.components.organisms import (
-    Sidebar,
-    ChatArea,
-    Header,
-    InputArea,
-    WelcomeScreen,
-    ToastNotification,
-)
-
-# Complex - advanced widgets
-from ui.components.complex import (
-    FileDropZone,
-    CodeBlock,
-    MarkdownRenderer,
-    FilePreviewCard,
-    ThinkingIndicator,
-    PersonaSelector,
-    LiquidGlassInput,
-    CenteredAvatar,
-    OllamaStyleWindow,
-)
-
-# Theme - design constants
-from ui.styles.theme import (
-    Colors,
-    Typography,
-    Spacing,
-    Radius,
-    Shadows,
-    Transitions,
-)
+from .sidebar import Sidebar
+from .chat import ChatPanel, MessageBubble
+from .explorer import FileExplorer
+from .editor import CodeEditor
+from .right_panel import RightPanel
+from .status_bar import StatusBar
+from .title_bar import TitleBar
 
 __all__ = [
-    # Atoms
-    "AtomButton",
-    "AtomIconButton",
-    "AtomInput",
-    "AtomTextArea",
-    "AtomLabel",
-    "AtomBadge",
-    "AtomCheckbox",
-    "AtomSelect",
-    "AtomSpinner",
-    "AtomDivider",
-    "AtomAvatar",
-    "AtomTooltip",
-    "AtomTag",
-    
-    # Molecules
-    "ChatBubble",
-    "SearchBar",
-    "FileCard",
-    "NavItem",
-    "MessageInput",
-    "ConversationItem",
-    
-    # Organisms
     "Sidebar",
-    "ChatArea",
-    "Header",
-    "InputArea",
-    "WelcomeScreen",
-    "ToastNotification",
-    
-    # Complex
-    "FileDropZone",
-    "CodeBlock",
-    "MarkdownRenderer",
-    "FilePreviewCard",
-    "ThinkingIndicator",
-    "PersonaSelector",
-    "LiquidGlassInput",
-    "CenteredAvatar",
-    "OllamaStyleWindow",
-    
-    # Theme
-    "Colors",
-    "Typography",
-    "Spacing",
-    "Radius",
-    "Shadows",
-    "Transitions",
+    "ChatPanel",
+    "MessageBubble",
+    "FileExplorer",
+    "CodeEditor",
+    "RightPanel",
+    "StatusBar",
+    "TitleBar",
 ]

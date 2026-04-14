@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bissi</title>
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<!-- ── APP SHELL ──────────────────────────────────────────── -->
+<div id="app">
+
+  <!-- TITLE BAR -->
+  <header id="titlebar">
+    <div class="titlebar-dots">
+      <span class="dot dot-red"></span>
+      <span class="dot dot-yellow"></span>
+      <span class="dot dot-green"></span>
+    </div>
+    <span id="app-title">Bissi — Agent Local</span>
+    <div class="titlebar-right">
+      <span id="model-badge" class="badge badge-teal">● gemma4:e2b · en ligne</span>
+      <button id="theme-toggle" class="icon-btn" title="Changer le thème">☾</button>
+    </div>
+  </header>
+
+  <!-- MAIN LAYOUT -->
+  <div id="layout">
+
+    <!-- SIDEBAR -->
+    <aside id="sidebar">
+      <div class="sidebar-header">Sessions</div>
+      <div id="sessions-list"></div>
+      <div class="sidebar-footer">
+        <div class="footer-label">Mémoire</div>
+        <div id="memory-count" class="footer-value accent">0 souvenirs</div>
+        <div id="rag-count" class="footer-dim">RAG · 0 chunks</div>
+      </div>
+    </aside>
+
+    <!-- CHAT PANEL -->
+    <main id="chat-panel">
+      <div id="chat-header">
+        <span id="chat-title">Nouvelle session</span>
+        <span id="chat-model-badge" class="badge badge-accent">gemma4:e2b</span>
+      </div>
+
+      <div id="messages-container">
+        <div id="messages"></div>
+      </div>
+
+      <div id="input-bar">
+        <div id="routing-hint"></div>
+        <div id="input-row">
+          <textarea
+            id="chat-input"
+            placeholder="Pose une question à Bissi…  (↑↓ historique · Ctrl+C interrupt)"
+            rows="1"
+          ></textarea>
+          <button id="send-btn" title="Envoyer">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </main>
+
+    <!-- RIGHT PANEL -->
+    <aside id="right-panel">
+      <div id="right-tabs">
+        <button class="tab-btn active" data-tab="explorer">Explorateur</button>
+        <button class="tab-btn" data-tab="editor">Éditeur</button>
+      </div>
+
+      <!-- Explorer -->
+      <div id="tab-explorer" class="tab-content active">
+        <div id="explorer-path" class="explorer-path"></div>
+        <div id="file-tree"></div>
+      </div>
+
+      <!-- Editor -->
+      <div id="tab-editor" class="tab-content">
+        <div id="editor-header">
+          <span id="editor-filename">Aucun fichier ouvert</span>
+          <span id="editor-agent-badge" class="badge badge-teal hidden">ouvert par Bissi</span>
+        </div>
+        <pre id="code-editor"><code id="code-content"></code></pre>
+      </div>
+    </aside>
+
+  </div><!-- /layout -->
+
+  <!-- STATUS BAR -->
+  <footer id="statusbar">
+    <span id="status-dot" class="status-dot teal"></span>
+    <span id="status-model">Ollama · gemma4:e2b</span>
+    <span id="status-memory">Mémoire · 0 souvenirs</span>
+    <span id="status-session">Session · 00:00:00</span>
+    <span class="spacer"></span>
+    <span id="status-rag">RAG · ChromaDB</span>
+  </footer>
+
+</div><!-- /app -->
+
+<script src="qwebchannel.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

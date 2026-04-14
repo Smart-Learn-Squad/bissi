@@ -1,0 +1,19 @@
+FROM gemma3:12b
+
+# On définit le format de réponse pour les outils
+TEMPLATE """{{ if .System }}<|start_header_id|>system<|end_header_id|>
+
+{{ .System }}<|eot_id|>{{ end }}{{ if .Prompt }}<|start_header_id|>user<|end_header_id|>
+
+{{ .Prompt }}<|eot_id|>{{ end }}<|start_header_id|>assistant<|end_header_id|>
+
+{{ if .Response }}{{ .Response }}<|eot_id|>{{ end }}"""
+
+# On lui donne sa mission de force
+SYSTEM """
+Tu es BISSI, un assistant autonome. 
+Tu DOIS utiliser les outils fournis pour répondre aux demandes techniques.
+Si une demande nécessite de lire un fichier ou d'écrire un document, appelle la fonction correspondante en JSON.
+"""
+
+PARAMETER temperature 0.2

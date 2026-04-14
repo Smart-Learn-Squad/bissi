@@ -103,7 +103,7 @@ def search_files(directory: Union[str, Path],
     """Search for files matching pattern in directory and subdirectories.
     
     CRITICAL: This function searches BOTH the root directory AND all subdirectories.
-    When searching for "*.py", it WILL find smartlearn.py, main.py, manager.py at root level
+    When searching for "*.py", it WILL find smartlearn.py, main.py at root level
     AND all __init__.py files in subdirectories.
     
     Args:

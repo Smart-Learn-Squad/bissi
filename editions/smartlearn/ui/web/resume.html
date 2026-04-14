@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SmartLearn — Résumés</title>
+  <link rel="icon" type="image/svg+xml" href="assets/images/logo.svg">
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="assets/css/common.css">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#4285f4">
+  <link rel="stylesheet" href="assets/css/resume.css">
+  <style>
+    html, body { height: 100%; overflow: hidden; }
+    .app { position: relative; display: flex; height: 100vh; }
+    :root {
+      --sb-width: 270px; --sb-collapsed: 64px;
+      --sb-transition: 0.3s cubic-bezier(0.4,0,0.2,1);
+    }
+    .sidebar {
+      width: var(--sb-width); flex-shrink: 0;
+      background: var(--sb-bg); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; padding: 20px 12px; gap: 4px;
+      backdrop-filter: blur(12px); transition: width var(--sb-transition);
+      overflow: hidden; position: relative; z-index: 10;
+    }
+    .sidebar.collapsed { width: var(--sb-collapsed); }
+    .toggle-btn {
+      display: flex; align-items: center; justify-content: center;
+      width: 32px; height: 32px; border-radius: 8px;
+      border: 1px solid var(--border); background: transparent;
+      color: var(--white-dim); cursor: pointer; flex-shrink: 0; transition: all 0.2s;
+    }
+    .toggle-btn:hover { background: var(--blue-dim); color: var(--blue); border-color: var(--blue); }
+    .sidebar.collapsed .toggle-btn { opacity: 0; pointer-events: none; width: 0; overflow: hidden; }
+    .close-btn {
+      display: flex; align-items: center; justify-content: center;
+      width: 32px; height: 32px; border-radius: 8px;
+      border: 1px solid var(--border); background: transparent;
+      color: var(--white-dim); cursor: pointer; flex-shrink: 0; transition: all 0.2s;
+    }
+    .close-btn:hover { background: rgba(239,68,68,0.1); color: #ef4444; border-color: rgba(239,68,68,0.3); }
+    .desktop-only { display: flex; }
+    .mobile-only  { display: none; }
+    .sb-header { display: flex; align-items: center; gap: 8px; }
+    .sb-header .brand { flex: 1; }
+    .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .brand-icon {
+      width: 36px; height: 36px; flex-shrink: 0; border-radius: 10px;
+      background: linear-gradient(135deg, var(--blue-dim), var(--blue-dim));
+      border: 1px solid var(--border); display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: transform 0.2s;
+    }
+    .brand-icon:hover { transform: scale(1.08); }
+    .brand-text { line-height: 1.2; overflow: hidden; opacity: 1; transition: opacity 0.2s; white-space: nowrap; }
+    .sidebar.collapsed .brand-text { opacity: 0; width: 0; pointer-events: none; }
+    .brand-name { font-family: 'Playfair Display', serif; font-size: 17px; font-weight: 700; color: var(--blue); letter-spacing: 0.04em; }
+    .brand-sub  { font-size: 11px; color: var(--white-dim); letter-spacing: 0.12em; text-transform: uppercase; }
+    .sb-divider { height: 1px; background: var(--border); margin: 12px 4px; flex-shrink: 0; }
+    .sb-nav { display: flex; flex-direction: column; gap: 2px; }
+    .sb-nav-link {
+      display: flex; align-items: center; gap: 10px; padding: 9px 10px;
+      border-radius: 8px; font-size: 13px; color: var(--white-dim);
+      text-decoration: none; transition: all 0.15s;
+      border-left: 2px solid transparent; white-space: nowrap; overflow: hidden; font-weight: 400;
+    }
+    .sb-nav-link:hover { background: var(--blue-dim); color: var(--text); border-left-color: var(--border); }
+    .sb-nav-link.active { background: var(--blue-dim); color: var(--blue); border-left-color: var(--blue); font-weight: 500; }
+    .sb-nav-link .nl-icon { flex-shrink: 0; }
+    .sidebar.collapsed .sb-nav { display: none; }
+    .sidebar.collapsed .sb-divider { display: none; }
+    .nl-icon { flex-shrink: 0; }
+    .sb-bottom {
+      margin-top: auto; padding-top: 12px; border-top: 1px solid var(--border);
+      display: flex; flex-direction: column; gap: 6px; align-items: stretch;
+    }
+    .hackathon-badge {
+      display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+      border-radius: 8px; background: var(--blue-dim); border: 1px solid var(--border);
+      font-size: 13px; color: var(--blue); overflow: hidden; white-space: nowrap;
+    }
+    .hb-icon { flex-shrink: 0; }
+    .hb-text { opacity: 1; transition: opacity 0.2s; }
+    .hb-text span { color: var(--white-dim); font-size: 11px; display: block; }
+    .sidebar.collapsed .hb-text { opacity: 0; width: 0; overflow: hidden; display: none; }
+    .sidebar.collapsed .sb-bottom { align-items: center; gap: 10px; }
+    .sidebar.collapsed .hackathon-badge,
+    .sidebar.collapsed .user-row { width: 40px; height: 40px; padding: 0; margin: 0; justify-content: center; border-radius: 10px; }
+    .sidebar.collapsed .hackathon-badge { border: 1px solid var(--border); gap: 0; }
+    .user-row {
+      display: flex; align-items: center; gap: 10px; padding: 8px 10px;
+      border-radius: 10px; cursor: pointer; overflow: hidden; transition: background 0.15s;
+    }
+    .user-row:hover { background: rgba(255,255,255,0.04); }
+    .avatar {
+      width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--blue), var(--blue-lt));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 600; color: #fff;
+    }
+    .user-info { opacity: 1; transition: opacity 0.2s; overflow: hidden; white-space: nowrap; }
+    .sidebar.collapsed .user-info { opacity: 0; width: 0; overflow: hidden; display: none; }
+    .sidebar.collapsed .user-row:hover { background: transparent; }
+    .sidebar.collapsed .avatar { width: 30px; height: 30px; font-size: 13px; }
+    .user-name { font-size: 13px; font-weight: 500; color: var(--text); }
+    .user-role { font-size: 11px; color: var(--blue); letter-spacing: 0.05em; }
+    .main { flex: 1; overflow-y: auto; position: relative; min-width: 0; }
+    .menu-btn {
+      display: none; align-items: center; justify-content: center;
+      position: fixed; top: 16px; left: 16px; z-index: 50;
+      width: 38px; height: 38px; border-radius: 10px;
+      border: 1px solid var(--border); background: var(--nav-bg);
+      backdrop-filter: blur(12px); color: var(--white-dim);
+      cursor: pointer; flex-shrink: 0; transition: all 0.2s; box-shadow: var(--shadow);
+    }
+    .menu-btn:hover { background: var(--blue-dim); color: var(--blue); }
+    .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 9; }
+    @media (max-width: 900px) {
+      .sidebar {
+        position: fixed; top: 0; left: 0; bottom: 0;
+        width: 270px !important; transform: translateX(-100%);
+        transition: transform var(--sb-transition); z-index: 100; padding: 24px 14px;
+      }
+      .sidebar.mobile-open { transform: translateX(0); }
+      .sidebar .brand-text, .sidebar .hb-text, .sidebar .user-info { opacity: 1 !important; width: auto !important; pointer-events: auto !important; }
+      .sidebar .sb-nav { display: flex !important; }
+      .desktop-only { display: none !important; }
+      .mobile-only  { display: flex !important; }
+      .menu-btn { display: flex; }
+      .main { padding-top: 0; }
+      .page { padding-top: 72px; }
+    }
+  </style>
+</head>
+<body>
+<div class="bg-canvas"></div>
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sb-header">
+      <div class="brand">
+        <div class="brand-icon" onclick="toggleSidebar()" title="Ouvrir / Fermer">
+          <svg class="inf-logo" width="22" height="14" viewBox="0 0 44 28" fill="none">
+            <defs>
+              <linearGradient id="infGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#3b82f6"/>
+                <stop offset="50%" stop-color="#60a5fa"/>
+                <stop offset="100%" stop-color="#3b82f6"/>
+              </linearGradient>
+            </defs>
+            <path d="M22 14C22 14 17 4 10 4C3 4 3 24 10 24C17 24 22 14 22 14C22 14 27 4 34 4C41 4 41 24 34 24C27 24 22 14 22 14Z"
+              stroke="url(#infGrad)" stroke-width="2.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <div class="brand-name">SmartLearn</div>
+          <div class="brand-sub">IA Pédagogique</div>
+        </div>
+      </div>
+      <button class="toggle-btn desktop-only" onclick="toggleSidebar()" title="Rétracter">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </button>
+      <button class="close-btn mobile-only" onclick="closeSidebar()" title="Fermer">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="sb-divider"></div>
+
+    <div class="sb-nav">
+      <a class="sb-nav-link" href="model.html">
+        <svg class="nl-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        <span class="nl-label">Chat</span>
+      </a>
+      <a class="sb-nav-link active" href="resume.html">
+        <svg class="nl-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="9" y1="7" x2="15" y2="7"/><line x1="9" y1="11" x2="15" y2="11"/><line x1="9" y1="15" x2="12" y2="15"/></svg>
+        <span class="nl-label">Résumé</span>
+      </a>
+      <a class="sb-nav-link" href="home.html">
+        <svg class="nl-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        <span class="nl-label">Progression</span>
+      </a>
+    </div>
+
+    <div class="sb-divider"></div>
+
+    <div class="sb-bottom">
+      <div class="hackathon-badge">
+        <span class="hb-icon">🏆</span>
+        <div class="hb-text"><div style="font-weight:600">Hack by IFRI 2026</div><span>Démo officielle</span></div>
+      </div>
+      <div class="user-row" id="sidebarUserRow">
+        <div class="avatar" id="sidebarAvatar">E</div>
+        <div class="user-info">
+          <div class="user-name" id="sidebarName">Étudiant</div>
+          <div class="user-role" id="sidebarRole">SmartLearn</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <button class="menu-btn" onclick="openSidebar()" title="Menu">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+        <line x1="3" y1="6" x2="21" y2="6"/>
+        <line x1="3" y1="12" x2="21" y2="12"/>
+        <line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+    </button>
+
+<div class="page">
+  <div class="page-header">
+    <div class="page-tag">Analyse de chapitre</div>
+    <h1>Transforme ton cours en<br/><em>connaissance structurée</em></h1>
+    <p>Colle le texte de ton chapitre — SmartLearn génère un résumé, les concepts clés et les définitions importantes.</p>
+  </div>
+
+  <div class="input-card">
+    <div class="input-card-header">
+      <span class="input-card-title">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Texte du chapitre
+      </span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <input type="file" id="uploadImage" accept="image/png,image/jpeg,image/webp" style="display:none" onchange="importerFichier(this,'image')"/>
+        <input type="file" id="uploadPdf"   accept="application/pdf"                 style="display:none" onchange="importerFichier(this,'pdf')"/>
+        <button class="upload-btn" onclick="document.getElementById('uploadImage').click()" title="Importer une image">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          Image
+        </button>
+        <button class="upload-btn" onclick="document.getElementById('uploadPdf').click()" title="Importer un PDF">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          PDF
+        </button>
+        <span class="char-count" id="charCount">0 caractères</span>
+      </div>
+    </div>
+    <div class="textarea-wrap">
+      <textarea id="courseText" class="course-textarea" autocomplete="off" spellcheck="false"
+        placeholder="Colle ici le texte de ton cours (minimum 80 caractères)…"
+        oninput="updateCount()"></textarea>
+    </div>
+    <div class="input-actions">
+      <span class="input-hint">💡 Minimum 80 caractères pour une analyse pertinente</span>
+      <button class="btn-analyser" id="btnAnalyser" onclick="analyser()">
+        <span class="btn-icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </span>
+        <span class="spin"></span>
+        Analyser le chapitre
+      </button>
+    </div>
+  </div>
+
+  <div class="error-state" id="errorState"></div>
+  <div class="loading-state" id="loadingState">
+    <div class="loading-dots"><span></span><span></span><span></span></div>
+    <p class="loading-text">SmartLearn analyse ton chapitre…</p>
+  </div>
+
+  <div class="results" id="results">
+    <div class="result-header">
+      <div>
+        <div class="result-label">Chapitre analysé</div>
+        <div class="result-title" id="resultTitle">—</div>
+      </div>
+      <div class="result-actions">
+        <button class="btn-action" onclick="copierTout()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          Copier
+        </button>
+        <button class="btn-action" onclick="nouvelleAnalyse()">↺ Nouveau</button>
+      </div>
+    </div>
+
+    <div class="results-grid">
+      <div class="result-card full">
+        <div class="rc-header"><span class="rc-icon">📝</span><span class="rc-title">Résumé du chapitre</span></div>
+        <div class="rc-body"><div class="resume-text" id="resultResume">—</div></div>
+      </div>
+      <div class="result-card">
+        <div class="rc-header"><span class="rc-icon">🔑</span><span class="rc-title">Concepts clés</span></div>
+        <div class="rc-body"><div class="concepts-wrap" id="resultConcepts"></div></div>
+      </div>
+      <div class="result-card">
+        <div class="rc-header"><span class="rc-icon">✅</span><span class="rc-title">Points essentiels</span></div>
+        <div class="rc-body"><div class="points-list" id="resultPoints"></div></div>
+      </div>
+      <div class="result-card full">
+        <div class="rc-header"><span class="rc-icon">📖</span><span class="rc-title">Définitions importantes</span></div>
+        <div class="rc-body"><div class="def-list" id="resultDefs"></div></div>
+      </div>
+    </div>
+
+    <div class="quiz-cta">
+      <div class="quiz-cta-text">
+        <h3>🎯 Prêt à tester ta compréhension ?</h3>
+        <p>SmartLearn peut générer un quiz basé sur ce chapitre pour vérifier ce que tu as retenu.</p>
+      </div>
+      <button class="btn-action primary" onclick="versQuiz()">Générer un quiz →</button>
+    </div>
+  </div>
+</div>
+
+<script src="assets/js/app-shell.js"></script>
+<script src="assets/js/resume.js"></script>
+</main>
+</div>
+</body>
+</html>

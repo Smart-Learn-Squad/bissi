@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SmartLearn — Ma Progression</title>
+  <link rel="icon" type="image/svg+xml" href="assets/images/logo.svg">
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="assets/css/common.css">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#4285f4">
+  <link rel="stylesheet" href="assets/css/home.css">
+</head>
+<body>
+<div class="bg-canvas"></div>
+<div class="timer-flash" id="timerFlash"></div>
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sb-header">
+      <div class="brand">
+        <div class="brand-icon" onclick="toggleSidebar()" title="Ouvrir / Fermer">
+          <svg class="inf-logo" width="22" height="14" viewBox="0 0 44 28" fill="none">
+            <defs>
+              <linearGradient id="infGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#3b82f6"/>
+                <stop offset="50%" stop-color="#60a5fa"/>
+                <stop offset="100%" stop-color="#3b82f6"/>
+              </linearGradient>
+            </defs>
+            <path d="M22 14C22 14 17 4 10 4C3 4 3 24 10 24C17 24 22 14 22 14C22 14 27 4 34 4C41 4 41 24 34 24C27 24 22 14 22 14Z"
+              stroke="url(#infGrad)" stroke-width="2.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <div class="brand-name">SmartLearn</div>
+          <div class="brand-sub">IA Pédagogique</div>
+        </div>
+      </div>
+      <button class="toggle-btn desktop-only" onclick="toggleSidebar()" title="Rétracter">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </button>
+      <button class="close-btn mobile-only" onclick="closeSidebar()" title="Fermer">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="sb-divider"></div>
+
+    <div class="sb-nav">
+      <a class="sb-nav-link" href="model.html">
+        <svg class="nl-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        <span class="nl-label">Chat</span>
+      </a>
+      <a class="sb-nav-link" href="resume.html">
+        <svg class="nl-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="9" y1="7" x2="15" y2="7"/><line x1="9" y1="11" x2="15" y2="11"/><line x1="9" y1="15" x2="12" y2="15"/></svg>
+        <span class="nl-label">Résumé</span>
+      </a>
+      <a class="sb-nav-link active" href="home.html">
+        <svg class="nl-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        <span class="nl-label">Progression</span>
+      </a>
+    </div>
+
+    <div class="sb-divider"></div>
+
+    <div class="sb-bottom">
+      <div class="hackathon-badge">
+        <span class="hb-icon">🏆</span>
+        <div class="hb-text"><div style="font-weight:600">Hack by IFRI 2026</div><span>Démo officielle</span></div>
+      </div>
+      <div class="user-row" id="sidebarUserRow">
+        <div class="avatar" id="sidebarAvatar">E</div>
+        <div class="user-info">
+          <div class="user-name" id="sidebarName">Étudiant</div>
+          <div class="user-role" id="sidebarRole">SmartLearn</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <button class="menu-btn" onclick="openSidebar()" title="Menu">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+        <line x1="3" y1="6" x2="21" y2="6"/>
+        <line x1="3" y1="12" x2="21" y2="12"/>
+        <line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+    </button>
+<div class="page">
+
+  <!-- En-tête -->
+  <div class="page-header">
+    <div class="page-tag">Tableau de bord</div>
+    <h1>Ma <em>progression</em></h1>
+    <p>Suivez votre maîtrise par chapitre et planifiez vos révisions intelligemment.</p>
+  </div>
+
+  <!-- Stats globales -->
+  <div class="stats-grid" id="statsGrid">
+    <div class="stat-card blue">
+      <span class="stat-icon">📚</span>
+      <div class="stat-val" id="statChapitres">6</div>
+      <div class="stat-label">Chapitres étudiés</div>
+      <div class="stat-sub">sur la session</div>
+    </div>
+    <div class="stat-card green">
+      <span class="stat-icon">🎯</span>
+      <div class="stat-val" id="statQuiz">14</div>
+      <div class="stat-label">Quiz complétés</div>
+      <div class="stat-sub">cette semaine</div>
+    </div>
+    <div class="stat-card blue">
+      <span class="stat-icon">⭐</span>
+      <div class="stat-val" id="statMoyenne">72<span style="font-size:18px">%</span></div>
+      <div class="stat-label">Score moyen</div>
+      <div class="stat-sub">tous chapitres</div>
+    </div>
+    <div class="stat-card amber">
+      <span class="stat-icon">⏱</span>
+      <div class="stat-val" id="statTemps">—</div>
+      <div class="stat-label">Temps d'étude</div>
+      <div class="stat-sub">cette semaine</div>
+    </div>
+  </div>
+
+  <!-- Grille principale -->
+  <div class="main-grid">
+
+    <!-- Colonne gauche -->
+    <div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">📖 Maîtrise par chapitre</span>
+          <span class="card-badge blue" id="chapterBadge">6 chapitres</span>
+        </div>
+        <div class="card-body">
+          <div class="chapters-list" id="chaptersList"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Colonne droite -->
+    <div class="right-col">
+
+      <!-- ═══ TIMER POMODORO ═══ -->
+      <div class="card timer-card">
+        <div class="card-header">
+          <span class="card-title">⏱ Timer Pomodoro</span>
+          <span class="card-badge green" id="timerBadge">Focus</span>
+        </div>
+        <div class="timer-body">
+
+          <!-- Sélecteur de mode -->
+          <div class="timer-modes">
+            <button class="timer-mode-btn active" onclick="setTimerMode('focus',25,'Focus')" id="modeBtn-focus">
+              Focus · 25min
+            </button>
+            <button class="timer-mode-btn" onclick="setTimerMode('short',5,'Courte pause')" id="modeBtn-short">
+              Pause · 5min
+            </button>
+            <button class="timer-mode-btn" onclick="setTimerMode('long',15,'Longue pause')" id="modeBtn-long">
+              Long · 15min
+            </button>
+          </div>
+
+          <!-- Anneau + affichage -->
+          <div class="timer-ring-wrap">
+            <svg class="timer-svg" viewBox="0 0 150 150">
+              <defs>
+                <linearGradient id="timerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#4089ff"/>
+                  <stop offset="100%" stop-color="#93c5fd"/>
+                </linearGradient>
+                <linearGradient id="timerGradGreen" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#10b981"/>
+                  <stop offset="100%" stop-color="#34d399"/>
+                </linearGradient>
+              </defs>
+              <circle class="timer-track" cx="75" cy="75" r="65"/>
+              <circle class="timer-progress" id="timerProgress" cx="75" cy="75" r="65"/>
+            </svg>
+            <div class="timer-center">
+              <div class="timer-display" id="timerDisplay">25:00</div>
+              <div class="timer-label" id="timerLabelInner">Focus</div>
+            </div>
+          </div>
+
+          <!-- Contrôles -->
+          <div class="timer-controls">
+            <button class="timer-btn timer-btn-sec" onclick="timerReset()" title="Réinitialiser">↺</button>
+            <button class="timer-btn timer-btn-main" onclick="timerToggle()" id="timerPlayBtn" title="Démarrer">▶</button>
+            <button class="timer-btn timer-btn-sec" onclick="timerSkip()" title="Passer">⏭</button>
+          </div>
+
+          <!-- Sessions -->
+          <div class="timer-sessions" id="timerSessions">
+            <div class="session-dot current" id="dot-0"></div>
+            <div class="session-dot" id="dot-1"></div>
+            <div class="session-dot" id="dot-2"></div>
+            <div class="session-dot" id="dot-3"></div>
+            <span class="timer-session-lbl" id="sessionLbl">Session 1/4</span>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Anneau global -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">🏆 Score global</span>
+          <span class="card-badge blue">Session</span>
+        </div>
+        <div class="ring-wrap">
+          <div class="ring-container">
+            <svg class="ring-svg" width="140" height="140" viewBox="0 0 140 140">
+              <defs>
+                <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#3b82f6"/>
+                  <stop offset="100%" stop-color="#93c5fd"/>
+                </linearGradient>
+              </defs>
+              <circle class="ring-bg" cx="70" cy="70" r="60"/>
+              <circle class="ring-fill" id="ringFill" cx="70" cy="70" r="60"/>
+            </svg>
+            <div class="ring-center">
+              <div class="ring-pct" id="ringPct">72%</div>
+              <div class="ring-lbl">Maîtrise</div>
+            </div>
+          </div>
+          <div class="ring-info">
+            <div class="ring-info-title">Niveau Intermédiaire</div>
+            <div class="ring-info-sub">Continuez — vous progressez bien !</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Points faibles -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">⚠️ Points faibles</span>
+          <span class="card-badge red">À revoir</span>
+        </div>
+        <div class="card-body">
+          <div class="weak-list" id="weakList"></div>
+        </div>
+      </div>
+
+      <!-- Planning -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">🗓 Prochaines révisions</span>
+          <span class="card-badge blue">Planning</span>
+        </div>
+        <div class="card-body">
+          <div class="plan-list" id="planList"></div>
+        </div>
+      </div>
+
+      <!-- Reset -->
+      <div style="display:flex;justify-content:flex-end">
+        <button class="reset-btn" onclick="resetDonnees()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="1 4 1 10 7 10"/>
+            <path d="M3.51 15a9 9 0 102.13-9.36L1 10"/>
+          </svg>
+          Réinitialiser les données
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="assets/js/app-shell.js"></script>
+<script src="assets/js/home.js"></script>
+  </main>
+</div>
+</body>
+</html>

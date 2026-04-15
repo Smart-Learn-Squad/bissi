@@ -3,6 +3,7 @@
 
 # ── AI / LLM ───────────────────────────────────────────────────
 ollama>=0.4.0
+gguf>=0.18.0
 
 # ── UI — PyQt6 (widgets + WebEngine) ──────────────────────────
 PyQt6>=6.7.0
@@ -39,4 +40,3 @@ pynput>=1.7.6
 pyodbc>=5.1.0                   # Access / ODBC databases (optional)
 rich>=13.7.0
 prompt-toolkit>=3.0.43
-

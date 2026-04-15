@@ -20,3 +20,25 @@ Priorité recommandée :
 1. Stabilisation du streaming
 2. Tests du parser
 3. Assets locaux 100%
+
+---
+
+## Piste future : adaptation Android / iOS
+
+Approche en 2 phases pour limiter le risque :
+
+1. **Phase 1 (rapide)** : mobile = client, moteur BISSI reste sur desktop/serveur local.
+   - UI mobile native (SwiftUI + Kotlin/Compose) ou Flutter.
+   - API unique pour chat, mémoire et outils.
+   - Permet de livrer vite sans réécrire l’inférence.
+
+2. **Phase 2 (offline mobile réel)** : portage on-device de l’inférence.
+   - Runtime natif (llama.cpp/Metal sur iOS, NDK sur Android).
+   - Modèles plus compacts (Q4/Q5 selon appareils).
+   - Mémoire locale par édition (SQLite + vecteur léger).
+
+Architecture long terme recommandée :
+
+- `Core` partagé (orchestration, prompts, mémoire).
+- `Inference adapter` par plateforme (Ollama desktop vs runtime mobile).
+- `UI clients` séparés (Web/PyQt, Android, iOS).

@@ -123,6 +123,10 @@ def _inline(raw: str) -> str:
 # ── Rendu d'un bloc de code ───────────────────────────────────
 
 def _code_block(code: str, lang: str = "") -> str:
+    norm_lang = _normalize_lang(lang)
+    if norm_lang in {"latex", "tex", "math"}:
+        return _latex_block(code)
+
     lines = code.split("\n")
     # Supprimer lignes vides en début/fin
     while lines and not lines[0].strip():
@@ -141,8 +145,15 @@ def _code_block(code: str, lang: str = "") -> str:
     ui = _C["ui"]
     badge = (
         f'<span style="float:right;font-size:10px;color:#aaa;'
-        f'font-family:{ui};">{_html.escape(lang)}</span>'
-        if lang else ""
+        f'font-family:{ui};">{_html.escape(norm_lang or lang)}</span>'
+        if (norm_lang or lang) else ""
+    )
+    code_tag = (
+        f'<pre style="margin:0;white-space:pre-wrap;">'
+        f'<code class="language-{_html.escape(norm_lang)}">{body_html}</code>'
+        f'</pre>'
+        if norm_lang
+        else f'<pre style="margin:0;white-space:pre-wrap;"><code>{body_html}</code></pre>'
     )
 
     return (
@@ -157,8 +168,44 @@ def _code_block(code: str, lang: str = "") -> str:
         f'font-size:12px;'
         f'color:{_C["code_text"]};'
         f'line-height:1.6;">'
-        f'{badge}{body_html}</td></tr></table>'
+        f'{badge}{code_tag}</td></tr></table>'
     )
+
+
+def _latex_block(code: str) -> str:
+    expr = code.strip()
+    if not expr:
+        expr = r"\text{ }"
+    safe = _html.escape(expr, quote=False)
+    return (
+        f'<div class="bissi-latex-block" style="margin:8px 0;'
+        f'padding:8px 10px;border:1px solid {_C["code_border"]};'
+        f'border-radius:6px;background:{_C["code_bg"]};">'
+        f'$$\n{safe}\n$$'
+        f'</div>'
+    )
+
+
+_LANG_ALIASES = {
+    "py": "python",
+    "python3": "python",
+    "rs": "rust",
+    "js": "javascript",
+    "ts": "typescript",
+    "sh": "bash",
+    "shell": "bash",
+    "yml": "yaml",
+    "md": "markdown",
+    "c++": "cpp",
+    "c#": "csharp",
+}
+
+
+def _normalize_lang(lang: str) -> str:
+    raw = (lang or "").strip().lower()
+    if not raw:
+        return ""
+    return _LANG_ALIASES.get(raw, raw)
 
 
 # ── Parser de bloc (hors code) ────────────────────────────────
@@ -169,6 +216,66 @@ _RE_H1 = re.compile(r'^#\s+(.*)')
 _RE_HR = re.compile(r'^-{3,}\s*$')
 _RE_UL = re.compile(r'^[-*•]\s+(.*)')
 _RE_OL = re.compile(r'^\d+\.\s+(.*)')
+_TABLE_SEP_RE = re.compile(r'^\s*\|?(?:\s*:?-{3,}:?\s*\|)+\s*:?-{3,}:?\s*\|?\s*$')
+
+
+def _split_table_row(line: str) -> list[str]:
+    row = line.strip()
+    if row.startswith("|"):
+        row = row[1:]
+    if row.endswith("|"):
+        row = row[:-1]
+    return [cell.strip() for cell in row.split("|")]
+
+
+def _looks_like_table_start(lines: list[str], index: int) -> bool:
+    if index + 1 >= len(lines):
+        return False
+    header = lines[index]
+    separator = lines[index + 1]
+    return "|" in header and _TABLE_SEP_RE.match(separator) is not None
+
+
+def _render_table(headers: list[str], rows: list[list[str]]) -> str:
+    width = len(headers)
+    for row in rows:
+        width = max(width, len(row))
+    if width == 0:
+        return ""
+
+    padded_headers = headers + [""] * (width - len(headers))
+    padded_rows = [row + [""] * (width - len(row)) for row in rows]
+    th_style = (
+        f'padding:7px 9px;border-bottom:1px solid {_C["code_border"]};'
+        f'background:#f4f4f7;text-align:left;font-weight:600;'
+        f'color:{_C["h2"]};vertical-align:top;'
+    )
+    td_style = (
+        f'padding:7px 9px;border-top:1px solid {_C["code_border"]};'
+        f'vertical-align:top;'
+    )
+    table_style = (
+        f'width:100%;border-collapse:collapse;border:1px solid {_C["code_border"]};'
+        f'border-radius:6px;overflow:hidden;margin:8px 0;'
+        f'font-family:{_C["ui"]};font-size:12px;line-height:1.5;'
+    )
+
+    head_html = "".join(
+        f'<th style="{th_style}">{_inline(cell)}</th>' for cell in padded_headers
+    )
+    body_html = "".join(
+        "<tr>"
+        + "".join(f'<td style="{td_style}">{_inline(cell)}</td>' for cell in row)
+        + "</tr>"
+        for row in padded_rows
+    )
+
+    return (
+        f'<table style="{table_style}">'
+        f'<thead><tr>{head_html}</tr></thead>'
+        f'<tbody>{body_html}</tbody>'
+        f'</table>'
+    )
 
 
 def _render_block(text: str) -> str:
@@ -177,6 +284,7 @@ def _render_block(text: str) -> str:
     out:  list[str] = []
     ul_buf: list[str] = []
     ol_buf: list[str] = []
+    i = 0
 
     def _flush_ul():
         if ul_buf:
@@ -198,7 +306,25 @@ def _render_block(text: str) -> str:
             )
             ol_buf.clear()
 
-    for line in lines:
+    while i < len(lines):
+        line = lines[i]
+
+        if _looks_like_table_start(lines, i):
+            _flush_ul(); _flush_ol()
+            headers = _split_table_row(line)
+            i += 2
+            rows: list[list[str]] = []
+            while i < len(lines):
+                row_line = lines[i]
+                if not row_line.strip() or "|" not in row_line:
+                    break
+                rows.append(_split_table_row(row_line))
+                i += 1
+            table_html = _render_table(headers, rows)
+            if table_html:
+                out.append(table_html)
+            continue
+
         # Horizontal rule
         if _RE_HR.match(line):
             _flush_ul(); _flush_ol()
@@ -259,6 +385,7 @@ def _render_block(text: str) -> str:
         _flush_ul(); _flush_ol()
         rendered = _inline(line)
         out.append(rendered if rendered.strip() else "<br>")
+        i += 1
 
     _flush_ul()
     _flush_ol()
@@ -268,7 +395,7 @@ def _render_block(text: str) -> str:
 # ── Parser principal ──────────────────────────────────────────
 
 _FENCE_RE = re.compile(
-    r'```(\w*)\n(.*?)(?:\n```|(?=```))',
+    r'```([A-Za-z0-9_+\-#.]*)\n(.*?)(?:\n```|(?=```))',
     re.DOTALL,
 )
 
@@ -296,7 +423,7 @@ def parse(text: str) -> ParseResult:
         if before:
             parts.append(_render_block(before))
 
-        lang = m.group(1).strip()
+        lang = _normalize_lang(m.group(1).strip())
         code = m.group(2)
         raw  = m.group(0)
 
@@ -324,10 +451,10 @@ def parse(text: str) -> ParseResult:
 
             first_nl = partial_raw.find("\n")
             if first_nl != -1:
-                partial_lang = partial_raw[:first_nl].strip()
+                partial_lang = _normalize_lang(partial_raw[:first_nl].strip())
                 partial_body = partial_raw[first_nl + 1:]
             else:
-                partial_lang = partial_raw.strip()
+                partial_lang = _normalize_lang(partial_raw.strip())
                 partial_body = ""
 
             if before_fence:

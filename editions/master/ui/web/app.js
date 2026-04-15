@@ -280,16 +280,65 @@ function renderMd(text) {
   ).join('');
 }
 
+function isTableSeparator(line) {
+  return /^\s*\|?(?:\s*:?-{3,}:?\s*\|)+\s*:?-{3,}:?\s*\|?\s*$/.test(line);
+}
+
+function splitTableRow(line) {
+  let row = line.trim();
+  if (row.startsWith('|')) row = row.slice(1);
+  if (row.endsWith('|')) row = row.slice(0, -1);
+  return row.split('|').map(cell => cell.trim());
+}
+
+function renderTable(headers, rows) {
+  const width = Math.max(headers.length, ...rows.map(r => r.length), 1);
+  const h = headers.slice();
+  while (h.length < width) h.push('');
+  const bodyRows = rows.map(r => {
+    const cells = r.slice();
+    while (cells.length < width) cells.push('');
+    return cells;
+  });
+
+  const thStyle = 'padding:7px 9px;border-bottom:1px solid #e8e8e8;background:#f4f4f7;text-align:left;font-weight:600;color:#2C2C2A;vertical-align:top;';
+  const tdStyle = 'padding:7px 9px;border-top:1px solid #e8e8e8;vertical-align:top;word-break:break-word;';
+  const tableStyle = 'width:100%;border-collapse:collapse;border:1px solid #e8e8e8;border-radius:6px;overflow:hidden;margin:8px 0;font-family:Inter,Segoe UI,Helvetica Neue,Arial,sans-serif;font-size:12px;line-height:1.5;';
+
+  const head = h.map(cell => `<th style="${thStyle}">${inl(cell)}</th>`).join('');
+  const body = bodyRows.map(row =>
+    `<tr>${row.map(cell => `<td style="${tdStyle}">${inl(cell)}</td>`).join('')}</tr>`
+  ).join('');
+
+  return `<table style="${tableStyle}"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+}
+
 function renderBlock(text) {
   const out = [];
   let inUl = false, inOl = false;
 
-  for (const line of text.split('\n')) {
+  const lines = text.split('\n');
+  for (let i = 0; i < lines.length; ) {
+    const line = lines[i];
     const isUl = /^[-*+] /.test(line);
     const isOl = /^\d+\. /.test(line);
 
     if (!isUl && inUl) { out.push('</ul>'); inUl = false; }
     if (!isOl && inOl) { out.push('</ol>'); inOl = false; }
+
+    if (i + 1 < lines.length && line.includes('|') && isTableSeparator(lines[i + 1])) {
+      const headers = splitTableRow(line);
+      i += 2;
+      const rows = [];
+      while (i < lines.length) {
+        const rowLine = lines[i];
+        if (!rowLine.trim() || !rowLine.includes('|')) break;
+        rows.push(splitTableRow(rowLine));
+        i += 1;
+      }
+      out.push(renderTable(headers, rows));
+      continue;
+    }
 
     if      (/^#### /.test(line)) out.push(`<h4>${inl(line.slice(5))}</h4>`);
     else if (/^### /.test(line))  out.push(`<h3>${inl(line.slice(4))}</h3>`);
@@ -307,6 +356,7 @@ function renderBlock(text) {
     } else {
       out.push(`<p>${inl(line)}</p>`);
     }
+    i += 1;
   }
   if (inUl) out.push('</ul>');
   if (inOl) out.push('</ol>');

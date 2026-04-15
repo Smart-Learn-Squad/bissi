@@ -1,0 +1,106 @@
+/* ══ THÈME CLAIR (défaut) ══ */
+:root {
+  --bg:          #f5f7fa;
+  --surface:     #ffffff;
+  --surface2:    #eef1f6;
+  --card:        #ffffff;
+
+  --text:        #0a0f1e;
+  --white:       #0a0f1e;
+  --white-dim:   rgba(10, 15, 30, 0.60);
+  --text-faint:  rgba(10, 15, 30, 0.38);
+
+  --blue:        #2563eb;
+  --blue-lt:     #3b82f6;
+  --blue-pale:   #93c5fd;
+  --blue-dim:    rgba(37, 99, 235, 0.10);
+  --blue-glow:   rgba(37, 99, 235, 0.07);
+
+  --black:       #ffffff;
+  --gold:        #2563eb;
+  --gold-lt:     #3b82f6;
+  --gold-dim:    rgba(37, 99, 235, 0.10);
+  --gold-glow:   rgba(37, 99, 235, 0.07);
+
+  --green:       #059669;
+  --green-dim:   rgba(5, 150, 105, 0.10);
+  --red:         #dc2626;
+  --red-dim:     rgba(220, 38, 38, 0.10);
+
+  --border:      rgba(37, 99, 235, 0.18);
+  --border-b:    rgba(37, 99, 235, 0.12);
+  --nav-bg:      rgba(255, 255, 255, 0.92);
+  --sb-bg:       #eef1f6;
+  --shadow:      0 2px 12px rgba(10, 15, 30, 0.08);
+  --shadow-lg:   0 6px 28px rgba(10, 15, 30, 0.14);
+
+  --sb-width:      270px;
+  --sb-collapsed:  64px;
+  --sb-transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ══ THÈME SOMBRE (préférence système) ══ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:          #0a0a0a;
+    --surface:     #1a1a1a;
+    --surface2:    #222222;
+    --card:        #1a1a1a;
+
+    --text:        #e8f0fe;
+    --white:       #e8f0fe;
+    --white-dim:   rgba(232, 240, 254, 0.60);
+    --text-faint:  rgba(232, 240, 254, 0.35);
+
+    --blue:        #60a5fa;
+    --blue-lt:     #93c5fd;
+    --blue-pale:   #bfdbfe;
+    --blue-dim:    rgba(96, 165, 250, 0.12);
+    --blue-glow:   rgba(96, 165, 250, 0.07);
+
+    --black:       #0a0a0a;
+    --gold:        #60a5fa;
+    --gold-lt:     #93c5fd;
+    --gold-dim:    rgba(96, 165, 250, 0.12);
+    --gold-glow:   rgba(96, 165, 250, 0.07);
+
+    --green:       #34d399;
+    --green-dim:   rgba(52, 211, 153, 0.12);
+    --red:         #f87171;
+    --red-dim:     rgba(248, 113, 113, 0.12);
+
+    --border:      rgba(96, 165, 250, 0.18);
+    --border-b:    rgba(96, 165, 250, 0.10);
+    --nav-bg:      rgba(0, 0, 0, 0.92);
+    --sb-bg:       #111111;
+    --shadow:      0 2px 16px rgba(0, 0, 0, 0.5);
+    --shadow-lg:   0 8px 32px rgba(0, 0, 0, 0.65);
+  }
+}
+
+/* Common styles */
+.logo-svg {
+  color: var(--blue-lt);
+}
+
+.footer-logo {
+  color: #3b82f6;
+  stroke-width: 3;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Fira Code', 'Plus Jakarta Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* SmartLearn typography override */
+html, body, button, input, textarea, select, option, * {
+  font-family: monospace, arial, roboto, sans-serif !important;
+}

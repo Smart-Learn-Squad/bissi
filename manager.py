@@ -1,5 +1,5 @@
-#!usr/bin/python3
-
+#!/usr/bin/env python3
+# """Download manager core code for user choice and installation of agent editions and models."""
 from dataclasses import dataclass
 
 

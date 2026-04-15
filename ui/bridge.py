@@ -13,6 +13,7 @@ from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
 
 from agent import BissiAgent, get_agent
 from core.config import DEFAULT_CONFIG
+from ui.parser import configure as _configure_parser, parse as _parse_markdown, parse_streaming as _parse_streaming
 from ui.themes import get_engine
 
 
@@ -31,15 +32,18 @@ class BissiBridge(QObject):
     profileUpdated   = pyqtSignal(str)          # JSON user profile stats
     themeChanged     = pyqtSignal(str)          # theme name
 
-    def __init__(self, parent=None):
+    def __init__(self, agent: BissiAgent | None = None, parent=None):
         super().__init__(parent)
-        self._agent  = get_agent(DEFAULT_CONFIG.OLLAMA_MODEL)
+        self._agent  = agent or get_agent(DEFAULT_CONFIG.OLLAMA_MODEL)
         self._engine = get_engine()
         self._worker = None
 
+        # Keep parser colors aligned with current theme for realtime rendering.
+        _configure_parser(self._engine.parser_colors())
+
         # Forward theme changes to JS
         self._engine.theme_changed.connect(
-            lambda name: self.themeChanged.emit(name)
+            self._on_theme_changed
         )
 
     # ── JS → Python slots ─────────────────────────────────────
@@ -96,6 +100,28 @@ class BissiBridge(QObject):
     def toggleTheme(self) -> str:
         """Toggle light/dark, return new theme name."""
         return self._engine.toggle()
+
+    @pyqtSlot(str, result=str)
+    def parseMarkdown(self, text: str) -> str:
+        """Parse final markdown to themed HTML via ui/parser.py."""
+        result = _parse_markdown(text)
+        return json.dumps({
+            "html": result.html,
+            "has_code": result.has_code,
+            "languages": result.languages,
+            "is_partial": result.is_partial,
+        })
+
+    @pyqtSlot(str, result=str)
+    def parseStreaming(self, accumulated: str) -> str:
+        """Parse streaming markdown token-by-token to themed HTML."""
+        result = _parse_streaming(accumulated)
+        return json.dumps({
+            "html": result.html,
+            "has_code": result.has_code,
+            "languages": result.languages,
+            "is_partial": result.is_partial,
+        })
 
     @pyqtSlot(str, result=str)
     def listDirectory(self, path: str) -> str:
@@ -157,3 +183,7 @@ class BissiBridge(QObject):
     def _emit_conversations(self) -> None:
         convs = self._agent.conversation_store.get_recent_conversations(10)
         self.conversationUpdated.emit(json.dumps(convs))
+
+    def _on_theme_changed(self, name: str) -> None:
+        _configure_parser(self._engine.parser_colors())
+        self.themeChanged.emit(name)

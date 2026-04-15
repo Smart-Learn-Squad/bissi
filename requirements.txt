@@ -1,36 +1,42 @@
-# BISSI - Smart-Learn Squad
-# Core dependencies
+# BISSI — Smart-Learn Squad
+# Install: pip install -r requirements.txt
 
-# AI / LLM
-ollama>=0.1.0
+# ── AI / LLM ───────────────────────────────────────────────────
+ollama>=0.4.0
 
-# Office Suite
-python-docx>=0.8.11
-openpyxl>=3.0.10
-python-pptx>=0.6.21
+# ── UI — PyQt6 (widgets + WebEngine) ──────────────────────────
+PyQt6>=6.7.0
+PyQt6-WebEngine>=6.7.0          # QWebEngineView, QWebEngineCore
+PyQt6-Qt6>=6.7.0                # Qt6 runtime (pulled by PyQt6, explicit for pip)
+
+# ── Office suite ───────────────────────────────────────────────
+python-docx>=1.1.0
+openpyxl>=3.1.0
+python-pptx>=0.6.23
 PyPDF2>=3.0.0
-pdfplumber>=0.9.0
+pdfplumber>=0.11.0
 
-# OCR
+# ── OCR / Image ────────────────────────────────────────────────
 pytesseract>=0.3.10
-pdf2image>=1.16.3
-Pillow>=10.0.0
+pdf2image>=1.17.0
+Pillow>=10.3.0
 
-# Data & Vector Store (future)
-numpy>=1.24.0
-pandas>=2.0.0
-matplotlib>=3.7.0
-chromadb>=0.4.0
-sentence-transformers>=2.2.0
+# ── Data / Vector store ────────────────────────────────────────
+numpy>=1.26.0
+pandas>=2.2.0
+matplotlib>=3.8.0
+chromadb>=0.5.0
+sentence-transformers>=3.0.0
 
-# Web (optional)
-requests>=2.31.0
+# ── Web / scraping ─────────────────────────────────────────────
+requests>=2.32.0
 beautifulsoup4>=4.12.0
 
-# System
+# ── System utilities ───────────────────────────────────────────
 pyperclip>=1.8.2
 pyautogui>=0.9.54
 pynput>=1.7.6
+pyodbc>=5.1.0                   # Access / ODBC databases (optional)
+rich>=13.7.0
+prompt-toolkit>=3.0.43
 
-# UI
-PyQt6>=6.5.0

@@ -1,0 +1,45 @@
+{
+  "layer": 1,
+  "experts": 4,
+  "top_k": 2,
+  "router_init": "normal",
+  "router_std": 0.02,
+  "seed": 43,
+  "expert_scale": 1.0,
+  "dense_shape": {
+    "ffn_gate": [
+      2560,
+      10240
+    ],
+    "ffn_up": [
+      2560,
+      10240
+    ],
+    "ffn_down": [
+      10240,
+      2560
+    ]
+  },
+  "expert_shape": {
+    "gate_experts": [
+      4,
+      640,
+      10240
+    ],
+    "up_experts": [
+      4,
+      640,
+      10240
+    ],
+    "down_experts": [
+      4,
+      10240,
+      640
+    ],
+    "router_weight": [
+      10240,
+      4
+    ]
+  },
+  "split_chunk": 640
+}

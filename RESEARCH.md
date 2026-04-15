@@ -109,6 +109,18 @@ gemma4.expert_used_count = K   (top-K actifs par token, typiquement K=2)
 
 ---
 
+## Ordre recommandé du pipeline (important)
+
+Pour la roadmap MoE, l'ordre conseillé est :
+
+1. Upcycling MoE sur poids denses (virtual-group init + router)
+2. Stabilisation / fine-tuning léger
+3. Quantification finale (GGUF 2–4 bits)
+
+> Éviter de quantifier avant l'upcycling : cela fige du bruit de quantization dans les experts et le routeur.
+
+---
+
 ## Leviers d'inférence locale pour Gemma 4
 
 Objectif pratique : **le plus puissant possible, sans connexion, sur matériel modeste**.
@@ -181,7 +193,11 @@ Objectif pratique : **le plus puissant possible, sans connexion, sur matériel m
 
 1. Lire papier NVIDIA (2) + cloner le repo NeMo pour le code
 2. Extraire les tenseurs FFN de gemma4:e2b avec `gguf-py`
+   (`python scripts/extract_gguf_ffn.py /chemin/model.gguf --json-out papers/ffn_layout.json`)
 3. Implémenter virtual group init sur 1-2 blocs (proof of concept)
+   (`python scripts/virtual_group_init.py --input-npz papers/ffn_block0.npz --output-npz papers/ffn_block0_moe_init.npz --experts 4 --top-k 2`)
+   ou en one-shot GGUF:
+   (`python scripts/upcycle_gguf_ffn.py --gguf-path /chemin/model.gguf --output-dir papers/upcycle_poc --experts 4 --top-k 2 --max-blocks 2`)
 4. Tester avec llama.cpp avant de rebuilder le GGUF complet
 5. Identifier un dataset minimal pour le fine-tuning (UpIT approach)
 

@@ -109,6 +109,60 @@ gemma4.expert_used_count = K   (top-K actifs par token, typiquement K=2)
 
 ---
 
+## Leviers d'inférence locale pour Gemma 4
+
+Objectif pratique : **le plus puissant possible, sans connexion, sur matériel modeste**.
+
+### 1. Quantization agressive
+
+- **Sources utiles** :
+  - GPTQ — [arXiv:2210.17323](https://arxiv.org/abs/2210.17323)
+  - QuIP — [arXiv:2307.13304](https://arxiv.org/abs/2307.13304)
+- **Idée** : viser des poids 2–4 bits pour réduire RAM et latence.
+- **Note pratique** : les formats GGUF `Q4_K_M`, `Q3_K_M`, `Q2_K`, `IQ2_XS`
+  viennent surtout de la chaîne `llama.cpp` / `ggml` ; les papiers ci-dessus
+  donnent le socle scientifique pour le post-training quantization.
+
+### 2. Speculative decoding
+
+- **Source** : Speculative Sampling — [arXiv:2302.01318](https://arxiv.org/abs/2302.01318)
+- **Idée** : un petit draft model propose, le grand modèle valide.
+- **Impact attendu** : accélération nette de l'inférence sans modifier le modèle
+  principal.
+
+### 3. Context window management
+
+- **Sources utiles** :
+  - RAG — [arXiv:2005.11401](https://arxiv.org/abs/2005.11401)
+  - Lost in the Middle — [arXiv:2307.03172](https://arxiv.org/abs/2307.03172)
+- **Idée** : garder un contexte actif court (par ex. ~2K tokens) et récupérer
+  seulement les chunks nécessaires depuis ChromaDB.
+- **Conclusion** : le long contexte brut n'est pas fiable ; la récupération
+  ciblée reste la meilleure option offline.
+
+### 4. Fine-tuning LoRA ciblé
+
+- **Sources utiles** :
+  - LoRA — [arXiv:2106.09685](https://arxiv.org/abs/2106.09685)
+  - QLoRA — [arXiv:2305.14314](https://arxiv.org/abs/2305.14314)
+- **Idée** : adapter Gemma 4 aux tâches Bissi (fichiers, documents, Python,
+  office, raisonnement local) avec peu de paramètres entraînables.
+- **Intérêt** : spécialisation forte pour peu de coût GPU.
+
+### Corpus local recommandé
+
+`papers/` doit contenir les PDFs de référence pour lecture hors-ligne :
+
+1. `GPTQ` — 2210.17323
+2. `QuIP` — 2307.13304
+3. `Speculative Sampling` — 2302.01318
+4. `RAG` — 2005.11401
+5. `Lost in the Middle` — 2307.03172
+6. `LoRA` — 2106.09685
+7. `QLoRA` — 2305.14314
+
+---
+
 ## État actuel de BISSI vs roadmap
 
 | Étape | Status | Description |

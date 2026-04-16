@@ -4,7 +4,6 @@ import sys
 import os
 import re
 from pathlib import Path
-from typing import Optional
 
 from rich.console import Console, Group
 from rich.live import Live
@@ -12,8 +11,8 @@ from rich.panel import Panel
 from rich.markdown import Markdown
 from rich.text import Text
 from rich.table import Table
-from rich.status import Status
 from rich import box
+from rich.align import Align
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.styles import Style as PromptStyle
@@ -39,11 +38,49 @@ class BissiREPL:
             ('class:path', f'@ {cwd} › '),
         ]
 
+    def _render_header(self):
+        """Render the fixed header with logo and title."""
+        # Build the title line: "Bi" (blue) + "Bissi Codes" (Codes in violet)
+        logo = Text("Bi", style="bold #1E90FF")
+        bissi_text = Text("Bissi ", style="white")
+        codes_text = Text("Codes", style="bold #A855F7")
+        
+        # Combine with proper spacing
+        title_line = logo + Text("  ") + bissi_text + codes_text
+        
+        return Panel(
+            Align.left(title_line),
+            border_style="#1DB854",
+            expand=True,
+            padding=(0, 1)
+        )
+
+    def _render_status_bar(self):
+        """Render the status bar with model and token info."""
+        model_info = Text(f"Model: {self.agent.model}", style="cyan")
+        tokens_info = Text("(21%)", style="dim")
+        spacer = Text(" " * 40)
+        
+        # Right-align tokens
+        line = Group(model_info, spacer, tokens_info)
+        return line
+
+    def _render_footer(self):
+        """Render the bottom footer with commands."""
+        left = Text("/ commands · ? help", style="dim")
+        right = Text("Claude Haiku 4.5", style="dim")
+        
+        # Create a simple footer with spacing
+        return Group(
+            Text("─" * 80, style="#1DB854"),
+            left
+        )
+
     def run(self):
-        self.console.print(Panel(
-            Text("BISSI — agent local · Gemma 4 via Ollama", justify="center", style="bold purple"),
-            border_style="purple"
-        ))
+        """Main REPL loop with polished UI."""
+        # Render header
+        self.console.print(self._render_header())
+        self.console.print()
 
         while True:
             try:
@@ -62,64 +99,89 @@ class BissiREPL:
                 continue
             except EOFError:
                 break
+        
+        # Print footer on exit
+        self.console.print()
+        self.console.print(self._render_footer())
 
     def _handle_command(self, cmd: str) -> bool:
         cmd = cmd.strip().lower()
-        if cmd in ['/exit', '/quit']:
+        if cmd in ['/exit', '/quit', 'exit', 'quit']:
             return True
         elif cmd == '/new':
             self.agent.start_conversation()
             self.console.print("[dim]Nouvelle conversation démarrée.[/dim]")
+            self.console.print()
         elif cmd == '/model':
             self.console.print(f"[bold]Modèle actif:[/bold] [cyan]{self.agent.model}[/cyan]")
+            self.console.print()
         elif cmd == '/history':
             history = self.agent.get_conversation_history()
             if not history:
                 self.console.print("[dim]Aucun historique pour cette conversation.[/dim]")
+                self.console.print()
                 return False
 
-            table = Table(box=box.SIMPLE_HEAVY, show_lines=False, header_style="bold magenta")
+            self.console.print("[bold]Historique (derniers 10 messages):[/bold]")
+            self.console.print()
+            table = Table(box=box.SIMPLE_HEAVY, show_lines=False, header_style="bold #A855F7")
             table.add_column("Rôle", style="cyan", no_wrap=True)
             table.add_column("Message", overflow="fold")
             for item in history[-10:]:
-                role = str(item.get("role", "?"))
+                role = str(item.get("role", "?")).capitalize()
                 content = str(item.get("content", ""))
                 preview = content.replace("\n", " ")
                 if len(preview) > 180:
                     preview = preview[:180] + "…"
                 table.add_row(role, preview)
             self.console.print(table)
-        elif cmd == '/help':
-            self.console.print("[bold]Commandes disponibles:[/bold]")
-            self.console.print("  /new     - Démarrer une nouvelle conversation")
-            self.console.print("  /exit    - Quitter")
-            self.console.print("  /model   - Afficher les infos du modèle")
-            self.console.print("  /history - Afficher l'historique récent")
+            self.console.print()
+        elif cmd in ['/help', '?', '/h']:
+            self.console.print()
+            self.console.print("[bold #1DB854]Commandes disponibles:[/bold #1DB854]")
+            self.console.print()
+            
+            commands_table = Table(box=box.SIMPLE, show_header=False)
+            commands_table.add_column(style="cyan")
+            commands_table.add_column(style="dim")
+            
+            commands_table.add_row("/new", "Démarrer une nouvelle conversation")
+            commands_table.add_row("/model", "Afficher les infos du modèle actif")
+            commands_table.add_row("/history", "Afficher l'historique récent (10 derniers)")
+            commands_table.add_row("/help, ?", "Afficher cette aide")
+            commands_table.add_row("/exit", "Quitter Bissi Codes")
+            
+            self.console.print(commands_table)
+            self.console.print()
+        else:
+            self.console.print(f"[yellow]Commande inconnue: {cmd}[/yellow]")
+            self.console.print("[dim]Tape /help ou ? pour l'aide.[/dim]")
+            self.console.print()
         return False
 
     def _process_input(self, text: str):
+        """Process user input and stream response with live rendering."""
         full_response = ""
         current_markdown = ""
         
-        with Live(console=self.console, refresh_per_second=12, vertical_overflow="visible") as live:
-            def on_chunk(chunk: str):
-                nonlocal full_response, current_markdown
-                full_response += chunk
-                current_markdown += chunk
-                live.update(self._render_markdown(current_markdown))
-
-            def on_tool_start(name: str, args: any):
-                self.console.print(f"[bold green]●[/bold green] [cyan]{name}[/cyan] [dim]{args}[/dim]")
-
-            def on_tool_done(name: str, result: any):
-                # We could show a summary of the result
-                pass
-
-            def on_thinking(msg: str):
-                # live.update(Text(f"Thinking: {msg}", style="dim italic"))
-                pass
-
+        # Show thinking indicator
+        with self.console.status("[bold #1DB854]Thinking...[/bold #1DB854]", spinner="dots"):
             try:
+                # Collect response
+                def on_chunk(chunk: str):
+                    nonlocal full_response, current_markdown
+                    full_response += chunk
+                    current_markdown += chunk
+
+                def on_tool_start(name: str, args: any):
+                    pass  # Silent tool execution
+
+                def on_tool_done(name: str, result: any):
+                    pass
+
+                def on_thinking(msg: str):
+                    pass
+
                 self.agent.process_request(
                     text,
                     on_chunk=on_chunk,
@@ -128,13 +190,18 @@ class BissiREPL:
                     on_thinking=on_thinking
                 )
             except Exception as e:
-                self.console.print(f"[bold red]Erreur:[/bold red] {e}")
+                self.console.print(f"[bold red]✗ Erreur:[/bold red] {e}")
+                self.console.print()
+                return
 
-        self.console.print() # spacer
+        # Render full response with live update
+        with Live(console=self.console, refresh_per_second=12, vertical_overflow="visible") as live:
+            rendered = self._render_markdown(full_response)
+            live.update(rendered)
 
-
-    def _on_token(self, token: str):
-        pass # Handle streaming
+        self.console.print()
+        self.console.print(Text("─" * 80, style="#1DB854"))
+        self.console.print()
 
     _TABLE_SEP_RE = re.compile(r'^\s*\|?(?:\s*:?-{3,}:?\s*\|)+\s*:?-{3,}:?\s*\|?\s*$')
 

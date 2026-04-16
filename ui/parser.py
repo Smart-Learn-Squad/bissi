@@ -332,6 +332,7 @@ def _render_block(text: str) -> str:
                 f'<hr style="border:none;border-top:1px solid'
                 f' {_C["hr"]};margin:8px 0;">'
             )
+            i += 1
             continue
 
         # ### H3
@@ -343,6 +344,7 @@ def _render_block(text: str) -> str:
                 f'color:{_C["h3"]};margin:8px 0 2px;">'
                 f'{_inline(m.group(1))}</p>'
             )
+            i += 1
             continue
 
         # ## H2
@@ -354,6 +356,7 @@ def _render_block(text: str) -> str:
                 f'color:{_C["h2"]};margin:10px 0 2px;">'
                 f'{_inline(m.group(1))}</p>'
             )
+            i += 1
             continue
 
         # # H1
@@ -365,6 +368,7 @@ def _render_block(text: str) -> str:
                 f'color:{_C["h1"]};margin:10px 0 4px;">'
                 f'{_inline(m.group(1))}</p>'
             )
+            i += 1
             continue
 
         # Unordered list
@@ -372,6 +376,7 @@ def _render_block(text: str) -> str:
         if m:
             _flush_ol()
             ul_buf.append(_inline(m.group(1)))
+            i += 1
             continue
 
         # Ordered list
@@ -379,6 +384,7 @@ def _render_block(text: str) -> str:
         if m:
             _flush_ul()
             ol_buf.append(_inline(m.group(1)))
+            i += 1
             continue
 
         # Ligne normale

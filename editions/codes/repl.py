@@ -70,6 +70,25 @@ class BissiREPL:
         elif cmd == '/new':
             self.agent.start_conversation()
             self.console.print("[dim]Nouvelle conversation démarrée.[/dim]")
+        elif cmd == '/model':
+            self.console.print(f"[bold]Modèle actif:[/bold] [cyan]{self.agent.model}[/cyan]")
+        elif cmd == '/history':
+            history = self.agent.get_conversation_history()
+            if not history:
+                self.console.print("[dim]Aucun historique pour cette conversation.[/dim]")
+                return False
+
+            table = Table(box=box.SIMPLE_HEAVY, show_lines=False, header_style="bold magenta")
+            table.add_column("Rôle", style="cyan", no_wrap=True)
+            table.add_column("Message", overflow="fold")
+            for item in history[-10:]:
+                role = str(item.get("role", "?"))
+                content = str(item.get("content", ""))
+                preview = content.replace("\n", " ")
+                if len(preview) > 180:
+                    preview = preview[:180] + "…"
+                table.add_row(role, preview)
+            self.console.print(table)
         elif cmd == '/help':
             self.console.print("[bold]Commandes disponibles:[/bold]")
             self.console.print("  /new     - Démarrer une nouvelle conversation")

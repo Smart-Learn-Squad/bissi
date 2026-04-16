@@ -488,6 +488,7 @@ function renderSessions(convs) {
   convs.forEach((c, i) => {
     const d = document.createElement('div');
     d.className = 'session-item' + (i === 0 ? ' active' : '');
+    d.dataset.convId = c.id;
     const title = c.title || (c.first_message || '').slice(0, 40) || `Session ${i + 1}`;
     const date  = c.updated_at ? new Date(c.updated_at).toLocaleDateString('fr') : '';
     d.innerHTML = `
@@ -496,6 +497,33 @@ function renderSessions(convs) {
     d.addEventListener('click', () => {
       list.querySelectorAll('.session-item').forEach(s => s.classList.remove('active'));
       d.classList.add('active');
+      // Load conversation content
+      const convId = parseInt(d.dataset.convId);
+      S.bissi.loadConversation(convId, json => {
+        try {
+          const history = JSON.parse(json);
+          if (history.error) {
+            sysMsg(`Erreur: ${history.error}`, 'error');
+            return;
+          }
+          // Clear messages and reload them
+          el('#messages').innerHTML = '';
+          el('#welcome-screen').style.display = 'none';
+          S.bubble = null;
+          // Render each message from history
+          history.forEach(msg => {
+            if (msg.role === 'user') {
+              const b = mkUserBubble(msg.content);
+            } else if (msg.role === 'assistant') {
+              S.bubble = mkAssistantBubble();
+              S.bubble.textContent = msg.content;
+            }
+          });
+          sysMsg(`Conversation chargée (${history.length} messages)`, 'dim');
+        } catch (e) {
+          console.error('[bissi] loadConversation error:', e);
+        }
+      });
     });
     list.appendChild(d);
   });

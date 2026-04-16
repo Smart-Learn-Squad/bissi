@@ -78,6 +78,22 @@ class BissiBridge(QObject):
         self._agent.start_conversation()
         self._emit_conversations()
 
+    @pyqtSlot(int, result=str)
+    def loadConversation(self, conv_id: int) -> str:
+        """Load full conversation history by ID.
+        
+        Args:
+            conv_id: Conversation ID to load
+            
+        Returns:
+            JSON list of messages with role, content, timestamp
+        """
+        try:
+            history = self._agent.conversation_store.get_history(conv_id)
+            return json.dumps(history or [])
+        except Exception as e:
+            return json.dumps({"error": str(e)})
+
     @pyqtSlot(result=str)
     def getInitialData(self) -> str:
         """Called once by JS on load — returns full app state as JSON."""

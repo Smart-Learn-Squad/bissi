@@ -31,6 +31,7 @@ def main():
 
     # Initialize Agent with Smartlearn Prompt
     agent = BissiAgent(
+        model="gemma4:e2b",
         system_prompt=SMARTLEARN_PROMPT,
         conversation_store=conv_store,
         vector_store=vec_store

@@ -12,9 +12,9 @@
     })();
   </script>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
+  <link rel="stylesheet" href="assets/vendor/katex/katex.min.css">
+  <script defer src="assets/vendor/katex/katex.min.js"></script>
+  <script defer src="assets/vendor/katex/auto-render.min.js"
           onload="window._katexReady=true"></script>
   <link rel="stylesheet" href="app.css"/>
 </head>
@@ -66,14 +66,28 @@
 
     <!-- Topbar -->
     <div class="topbar">
-      <div class="model-pill">
-        <span id="chat-model-badge">gemma4:e2b</span>
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+      <div class="topbar-left">
+        <button id="sidebar-toggle" class="layout-toggle-btn" title="Rétracter la barre latérale" aria-label="Rétracter la barre latérale">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+            <path d="M9 4v16"></path>
+          </svg>
+        </button>
+        <div class="model-pill">
+          <span id="chat-model-badge">gemma4:e2b</span>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
       </div>
       <div class="topbar-right">
         <span id="routing-hint" class="routing-hint"></span>
         <span id="status-session" class="topbar-dim">00:00:00</span>
         <span id="model-badge" class="model-badge-pill">● en ligne</span>
+        <button class="layout-toggle-btn workspace-toggle-btn" title="Rétracter l'espace de travail" aria-label="Rétracter l'espace de travail">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+            <path d="M15 4v16"></path>
+          </svg>
+        </button>
       </div>
     </div>
 
@@ -138,6 +152,12 @@
         </button>
         <button class="ptab" data-tab="editor">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
+        <button class="layout-toggle-btn workspace-toggle-btn" title="Rétracter l'espace de travail" aria-label="Rétracter l'espace de travail">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+            <path d="M15 4v16"></path>
+          </svg>
         </button>
       </div>
     </div>

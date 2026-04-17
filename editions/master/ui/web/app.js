@@ -21,6 +21,10 @@ const S = {
   pendingNewConversation: false,
 };
 window.S = S;
+const LAYOUT_KEYS = {
+  sidebarCollapsed: 'bissi-master-sidebar-collapsed',
+  panelCollapsed: 'bissi-master-panel-collapsed',
+};
 
 // ── Bootstrap ──────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -29,6 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
   bindInput();
   bindTheme();
   bindTabs();
+  bindLayoutToggles();
   startTimer();
   waitForBridge(0);
 });
@@ -784,22 +789,76 @@ function openFile(path, byAgent) {
   });
 }
 
-// ── Sidebar (collapsible, SmartLearn-style) ────────────────────
+// ── Layout (collapsible sidebar + workspace panel) ─────────────
+function bindLayoutToggles() {
+  const app = el('.app');
+  if (!app) return;
+
+  const sidebarCollapsed = localStorage.getItem(LAYOUT_KEYS.sidebarCollapsed) === '1';
+  const panelCollapsed = localStorage.getItem(LAYOUT_KEYS.panelCollapsed) === '1';
+  setSidebarCollapsed(sidebarCollapsed);
+  setWorkspaceCollapsed(panelCollapsed);
+
+  const sbBtn = el('#sidebar-toggle');
+  if (sbBtn) {
+    sbBtn.addEventListener('click', () => {
+      setSidebarCollapsed(!app.classList.contains('sidebar-collapsed'));
+    });
+  }
+
+  document.querySelectorAll('.workspace-toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      setWorkspaceCollapsed(!app.classList.contains('panel-collapsed'));
+    });
+  });
+}
+
+function setSidebarCollapsed(collapsed) {
+  const app = el('.app');
+  if (!app) return;
+  app.classList.toggle('sidebar-collapsed', collapsed);
+  localStorage.setItem(LAYOUT_KEYS.sidebarCollapsed, collapsed ? '1' : '0');
+  updateLayoutToggleLabels();
+}
+
+function setWorkspaceCollapsed(collapsed) {
+  const app = el('.app');
+  if (!app) return;
+  app.classList.toggle('panel-collapsed', collapsed);
+  localStorage.setItem(LAYOUT_KEYS.panelCollapsed, collapsed ? '1' : '0');
+  updateLayoutToggleLabels();
+}
+
+function updateLayoutToggleLabels() {
+  const app = el('.app');
+  if (!app) return;
+  const isSidebarCollapsed = app.classList.contains('sidebar-collapsed');
+  const isPanelCollapsed = app.classList.contains('panel-collapsed');
+
+  const sbBtn = el('#sidebar-toggle');
+  if (sbBtn) {
+    const title = isSidebarCollapsed ? 'Afficher la barre latérale' : 'Rétracter la barre latérale';
+    sbBtn.title = title;
+    sbBtn.setAttribute('aria-label', title);
+  }
+
+  document.querySelectorAll('.workspace-toggle-btn').forEach(btn => {
+    const title = isPanelCollapsed ? "Afficher l'espace de travail" : "Rétracter l'espace de travail";
+    btn.title = title;
+    btn.setAttribute('aria-label', title);
+  });
+}
+
 function toggleSidebar() {
-  const sb = document.getElementById('sidebar');
-  sb.classList.toggle('collapsed');
+  const app = el('.app');
+  if (!app) return;
+  setSidebarCollapsed(!app.classList.contains('sidebar-collapsed'));
 }
 function openSidebar() {
-  const sb = document.getElementById('sidebar');
-  const ov = document.getElementById('overlay');
-  sb.classList.add('mobile-open');
-  if (ov) { ov.style.display = 'block'; }
+  setSidebarCollapsed(false);
 }
 function closeSidebar() {
-  const sb = document.getElementById('sidebar');
-  const ov = document.getElementById('overlay');
-  sb.classList.remove('mobile-open');
-  if (ov) { ov.style.display = 'none'; }
+  setSidebarCollapsed(true);
 }
 
 // ── Session timer ──────────────────────────────────────────────

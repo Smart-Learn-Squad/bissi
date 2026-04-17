@@ -75,6 +75,8 @@ html, body {
   display: flex; flex-direction: column;
   padding: 14px 8px; gap: 2px;
   background: var(--bg2);
+  overflow: hidden;
+  transition: width 0.2s ease, min-width 0.2s ease, padding 0.2s ease, border-color 0.2s ease;
 }
 
 .sb-logo {
@@ -163,6 +165,9 @@ html, body {
   border-bottom: 0.5px solid var(--border);
   flex-shrink: 0;
 }
+.topbar-left {
+  display: flex; align-items: center; gap: 10px; min-width: 0;
+}
 .model-pill {
   display: flex; align-items: center; gap: 5px;
   font-size: 13px; font-weight: 500; color: var(--text);
@@ -179,6 +184,16 @@ html, body {
   border: 0.5px solid var(--border2);
   border-radius: 10px; color: var(--text3);
 }
+.layout-toggle-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 6px;
+  border: 0.5px solid transparent; background: none; cursor: pointer;
+  color: var(--text3); transition: all 0.12s;
+}
+.layout-toggle-btn:hover {
+  background: var(--bg3); color: var(--text2); border-color: var(--border2);
+}
+.layout-toggle-btn svg { width: 13px; height: 13px; }
 
 /* Messages */
 .chat-area {
@@ -363,10 +378,12 @@ html, body {
 
 /* ── RIGHT PANEL ─────────────────────────────────────────────── */
 .panel {
-  width: 320px; min-width: 320px;
+  width: 420px; min-width: 420px;
   border-left: 0.5px solid var(--border);
   display: flex; flex-direction: column;
   background: var(--bg2);
+  overflow: hidden;
+  transition: width 0.2s ease, min-width 0.2s ease, border-color 0.2s ease;
 }
 .panel-header {
   display: flex; align-items: center; justify-content: space-between;
@@ -456,6 +473,27 @@ html, body {
 
 /* ── BADGES ──────────────────────────────────────────────────── */
 .hidden { display: none !important; }
+
+.app.sidebar-collapsed .sidebar {
+  width: 0;
+  min-width: 0;
+  padding-left: 0;
+  padding-right: 0;
+  border-right-color: transparent;
+}
+
+.app.panel-collapsed .panel {
+  width: 0;
+  min-width: 0;
+  border-left-color: transparent;
+}
+
+.app.sidebar-collapsed #sidebar-toggle,
+.app.panel-collapsed .workspace-toggle-btn {
+  color: var(--blue-text);
+  border-color: rgba(59,130,246,0.35);
+  background: var(--blue-dim);
+}
 
 /* KaTeX */
 .katex-display { margin: 10px 0; overflow-x: auto; }

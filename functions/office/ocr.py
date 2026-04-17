@@ -112,8 +112,19 @@ def pdf_to_text(file_path: Union[str, Path],
     except ImportError:
         raise ImportError("pdf2image is required for OCR on PDFs. Install with: pip install pdf2image")
     
-    # Convert PDF to images
-    images = pdf2image.convert_from_path(file_path, dpi=dpi)
+    try:
+        images = pdf2image.convert_from_path(file_path, dpi=dpi)
+    except pdf2image.exceptions.PDFInfoNotInstalledError:
+        # Poppler not installed — try pdfplumber as fallback
+        with pdfplumber.open(file_path) as pdf:
+            all_text = []
+            for i, page in enumerate(pdf.pages):
+                text = page.extract_text() or ''
+                if text.strip():
+                    all_text.append(f"--- Page {i+1} ---\n{text}")
+            if all_text:
+                return '\n\n'.join(all_text)
+        return "[OCR unavailable] Poppler is not installed. Install Poppler for Windows from https://github.com/oschwartz10612/poppler-windows/releases and add to PATH."
     
     all_text = []
     for i, image in enumerate(images):
@@ -138,9 +149,11 @@ def smart_pdf_extract(file_path: Union[str, Path],
     from .pdf import read_pdf
     
     if is_scanned_pdf(file_path):
+        text = pdf_to_text(file_path, lang=lang)
+        method = 'ocr' if not text.startswith('[OCR unavailable]') else 'fallback_extraction'
         return {
-            'text': pdf_to_text(file_path, lang=lang),
-            'method': 'ocr',
+            'text': text,
+            'method': method,
             'is_scanned': True
         }
     else:
@@ -172,8 +185,10 @@ def extract_tables_ocr(file_path: Union[str, Path],
     except ImportError:
         raise ImportError("pdf2image is required. Install with: pip install pdf2image")
     
-    # Convert specific page to image
-    images = pdf2image.convert_from_path(file_path, first_page=page_number+1, last_page=page_number+1)
+    try:
+        images = pdf2image.convert_from_path(file_path, first_page=page_number+1, last_page=page_number+1)
+    except pdf2image.exceptions.PDFInfoNotInstalledError:
+        return [["[OCR unavailable] Poppler is not installed. Install from https://github.com/oschwartz10612/poppler-windows/releases"]]
     
     if not images:
         return []

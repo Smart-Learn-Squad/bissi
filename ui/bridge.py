@@ -72,11 +72,16 @@ class BissiBridge(QObject):
         if self._worker and self._worker.isRunning():
             self._worker.stop()
 
-    @pyqtSlot()
-    def newConversation(self) -> None:
-        """Start a fresh conversation."""
-        self._agent.start_conversation()
-        self._emit_conversations()
+    @pyqtSlot(result=str)
+    def newConversation(self) -> str:
+        """Start a fresh conversation and return updated conversations."""
+        conv_id = self._agent.start_conversation()
+        convs = self._agent.conversation_store.get_recent_conversations(10)
+        self.conversationUpdated.emit(json.dumps(convs))
+        return json.dumps({
+            "conversation_id": conv_id,
+            "conversations": convs,
+        })
 
     @pyqtSlot(int, result=str)
     def loadConversation(self, conv_id: int) -> str:
@@ -89,6 +94,9 @@ class BissiBridge(QObject):
             JSON list of messages with role, content, timestamp
         """
         try:
+            # Keep agent state aligned with selected conversation so next
+            # user message is sent to the same thread after app reload.
+            self._agent.current_conversation_id = conv_id
             history = self._agent.conversation_store.get_history(conv_id)
             return json.dumps(history or [])
         except Exception as e:

@@ -17,10 +17,15 @@ const S = {
   sessionStart: Date.now(),
   curPath:      null,
   rafPending:   false,  // requestAnimationFrame scheduled for stream render
+  welcomeHTML:  '',
+  pendingNewConversation: false,
 };
+window.S = S;
 
 // ── Bootstrap ──────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  const messages = el('#messages');
+  S.welcomeHTML = messages ? messages.innerHTML : '';
   bindInput();
   bindTheme();
   bindTabs();
@@ -73,12 +78,7 @@ function loadInitial() {
       
       // If no conversations, create a new one
       if (convs.length === 0) {
-        S.bissi.newConversation(json => {
-          try {
-            const result = JSON.parse(json);
-            renderSessions(result.conversations || [], false); // don't auto-load new conversation
-          } catch { /* noop */ }
-        });
+        startNewConversation();
       }
       
       sysMsg(`Bissi prêt · ${data.model} · tape un message`, 'dim');
@@ -184,8 +184,9 @@ function onInterrupted() {
 
 function onConvsUpdated(json) {
   try {
-    // Don't auto-load when updating; just refresh the list
-    renderSessions(JSON.parse(json), false);
+    const shouldAutoLoad = S.pendingNewConversation;
+    renderSessions(JSON.parse(json), shouldAutoLoad);
+    S.pendingNewConversation = false;
   } catch { /* noop */ }
 }
 
@@ -286,6 +287,50 @@ function sysMsg(text, variant = 'dim') {
   d.textContent = text;
   el('#messages').appendChild(d);
   scrollEnd();
+}
+
+function resetMessages(showWelcome = false) {
+  const messagesEl = el('#messages');
+  if (!messagesEl) return;
+  messagesEl.innerHTML = showWelcome ? (S.welcomeHTML || '') : '';
+  const welcomeEl = el('#welcome-screen');
+  if (welcomeEl) welcomeEl.style.display = showWelcome ? 'block' : 'none';
+  S.bubble = null;
+}
+
+function renderAssistantHistory(markdownText) {
+  const wrap = mkAssistantBubble();
+  wrap._raw = markdownText || '';
+  const content = wrap.querySelector('.bubble-content');
+  if (!content) return;
+
+  const fallbackRender = () => {
+    content.innerHTML = renderMd(wrap._raw);
+    hlCode(content);
+    renderMath(content);
+  };
+
+  if (!S.bissi || !wrap._raw) {
+    fallbackRender();
+    return;
+  }
+
+  S.bissi.parseMarkdown(wrap._raw, result => {
+    try {
+      const parsed = JSON.parse(result);
+      content.innerHTML = parsed.html || renderMd(wrap._raw);
+    } catch {
+      content.innerHTML = renderMd(wrap._raw);
+    }
+    hlCode(content);
+    renderMath(content);
+  });
+}
+
+function startNewConversation() {
+  if (!S.bissi) return;
+  S.pendingNewConversation = true;
+  S.bissi.newConversation(() => {});
 }
 
 // ── Markdown renderer ──────────────────────────────────────────
@@ -535,23 +580,23 @@ function renderSessions(convs, autoLoad = true) {
             sysMsg(`Erreur: ${history.error}`, 'error');
             return;
           }
-          // Clear messages and reload them
-          const messagesEl = el('#messages');
-          if (messagesEl) messagesEl.innerHTML = '';
-          
-          const welcomeEl = el('#welcome-screen');
-          if (welcomeEl) welcomeEl.style.display = 'none';
-          
-          S.bubble = null;
-          // Render each message from history
+          const hasMessages = Array.isArray(history) && history.length > 0;
+          resetMessages(!hasMessages);
+
+          if (!hasMessages) {
+            sysMsg('Conversation prête', 'dim');
+            return;
+          }
+
+          // Render each message from history with markdown parsing
           history.forEach(msg => {
             if (msg.role === 'user') {
-              const b = mkUserBubble(msg.content);
+              mkUserBubble(msg.content);
             } else if (msg.role === 'assistant') {
-              S.bubble = mkAssistantBubble();
-              S.bubble.textContent = msg.content;
+              renderAssistantHistory(msg.content);
             }
           });
+          S.bubble = null;
           sysMsg(`Conversation chargée (${history.length} messages)`, 'dim');
         } catch (e) {
           console.error('[bissi] loadConversation error:', e);

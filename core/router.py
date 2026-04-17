@@ -1,6 +1,5 @@
 """ModelRouter — BISSI now uses only gemma4:e2b.
 
-Previously routed between gemma4:e2b (fast) and gemma4:e4b (heavy).
 As of 2026-04-17, all requests use gemma4:e2b exclusively.
 """
 from __future__ import annotations

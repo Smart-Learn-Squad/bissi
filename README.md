@@ -18,7 +18,7 @@ Designed for students with limited resources. Features AI tutoring and seamless 
 - Document analysis and summarization
 
 ### BISSI Hi
-**Target:** Researchers | **Model:** gemma4:e4b (4B parameters)
+**Target:** Researchers | **Model:** gemma4:e2b (2B parameters)
 
 Engineered for complex research tasks. Capable of advanced data analysis while ensuring total data sovereignty.
 
@@ -114,8 +114,7 @@ bissi/
 pip install -r requirements.txt
 
 # Configure Ollama (required)
-ollama pull gemma4:e2b  # For Bissi Lite
-ollama pull gemma4:e4b  # For Bissi Hi
+ollama pull gemma4:e2b  # For all Bissi editions
 
 # Launch application
 python -m bissi

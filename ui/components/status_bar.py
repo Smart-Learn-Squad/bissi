@@ -82,13 +82,8 @@ class StatusBar(QWidget):
         self._rag_lbl.setText(f"RAG · {n} chunks")
 
     def set_routing(self, model: str, score: float):
-        """Affiche le modèle actif choisi par le router MoE."""
-        short = model.split(":")[-1]   # "e2b" ou "e4b"
-        color = (
-            self.theme.C["purple"]
-            if short == "e4b"
-            else self.theme.C["teal"]
-        )
+        """Affiche le modèle actif (gemma4:e2b)."""
+        color = self.theme.C["teal"]
         self._model_lbl.setText(f"Ollama · {model}")
         self._model_lbl.setStyleSheet(
             f"font-size:11px;color:{color};font-family:{self.theme.FONT_UI};"

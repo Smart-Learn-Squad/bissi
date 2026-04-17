@@ -126,14 +126,14 @@ function onThinking(msg) {
       const [modelPart, scorePart] = msg.split('·');
       const model = modelPart.replace('→', '').trim();
       const score = parseFloat((scorePart || '').replace('score', '').trim());
-      hint.style.color = model.includes('e4b') ? 'var(--purple)' : 'var(--teal)';
+      hint.style.color = 'var(--teal)';
       const statusModel = el('#status-model');
       if (statusModel) statusModel.textContent = `Ollama · ${model}`;
       
       const badge = el('#model-badge');
       if (badge) {
         badge.textContent = `● ${model} · en ligne`;
-        badge.className = model.includes('e4b') ? 'badge badge-purple' : 'badge badge-teal';
+        badge.className = 'badge badge-teal';
       }
     } catch { /* malformed, ignore */ }
   }
@@ -207,7 +207,7 @@ function mkUserBubble(text) {
 
 function mkAssistantBubble() {
   const model = (el('#chat-model-badge') || {}).textContent || 'bissi';
-  const isHeavy = model.includes('e4b');
+  const isHeavy = false;
   const wrap = document.createElement('div');
   wrap.className = 'msg-assistant';
   wrap.innerHTML = `

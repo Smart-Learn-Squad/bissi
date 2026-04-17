@@ -491,19 +491,33 @@
 
             // Render each message
             history.forEach((msg) => {
-              if (msg.role === "user") {
+              const role = (msg.role || '').toLowerCase();
+              if (role === 'user') {
                 addUserMessage(msg.content);
-              } else if (msg.role === "assistant") {
-                // Use Python parser for rich rendering when available
-                parseFinalWithBridge(msg.content, (html) => {
-                  const wrap = document.createElement("div");
-                  wrap.className = "msg ai";
-                  wrap.innerHTML = `<div class="msg-av">∞</div><div class="msg-content">${html}</div>`;
-                  $("#messages")?.appendChild(wrap);
-                  enhanceRenderedContent(wrap);
-                  scrollToBottom();
-                });
+                return;
               }
+
+              // Fallback: render anything not user as assistant/tool/system output.
+              const raw = msg.content || (msg.metadata ? (typeof msg.metadata === 'string' ? msg.metadata : JSON.stringify(msg.metadata)) : '');
+
+              if (!raw) {
+                // show placeholder if nothing to render
+                const wrap = document.createElement('div');
+                wrap.className = 'msg ai';
+                wrap.innerHTML = `<div class='msg-av'>∞</div><div class='msg-content'><em>(message vide)</em></div>`;
+                $('#messages')?.appendChild(wrap);
+                return;
+              }
+
+              // Use Python parser for rich rendering when available
+              parseFinalWithBridge(raw, (html) => {
+                const wrap = document.createElement('div');
+                wrap.className = 'msg ai';
+                wrap.innerHTML = `<div class='msg-av'>∞</div><div class='msg-content'>${html}</div>`;
+                $('#messages')?.appendChild(wrap);
+                enhanceRenderedContent(wrap);
+                scrollToBottom();
+              });
             });
           } catch (e) {
             console.error("loadConversation parse error", e);

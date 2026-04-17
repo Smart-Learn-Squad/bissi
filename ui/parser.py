@@ -7,7 +7,7 @@ Supported syntax:
   ``` fenced code blocks (with optional language)
   `  inline code
   **bold**, *italic*, ~~strikethrough~~
-  # H1  ## H2  ### H3
+  # H1  ## H2  ### H3  #### H4
   - / *  unordered lists
   1.     ordered lists
   ---    horizontal rule
@@ -211,6 +211,7 @@ def _normalize_lang(lang: str) -> str:
 # ── Parser de bloc (hors code) ────────────────────────────────
 
 _RE_H3 = re.compile(r'^###\s+(.*)')
+_RE_H4 = re.compile(r'^####\s+(.*)')
 _RE_H2 = re.compile(r'^##\s+(.*)')
 _RE_H1 = re.compile(r'^#\s+(.*)')
 _RE_HR = re.compile(r'^-{3,}\s*$')
@@ -284,7 +285,9 @@ def _render_block(text: str) -> str:
     out:  list[str] = []
     ul_buf: list[str] = []
     ol_buf: list[str] = []
+    para_buf: list[str] = []
     i = 0
+    just_spaced = False
 
     def _flush_ul():
         if ul_buf:
@@ -292,7 +295,7 @@ def _render_block(text: str) -> str:
                 f'<li style="margin:2px 0;">{x}</li>' for x in ul_buf
             )
             out.append(
-                f'<ul style="margin:4px 0 4px 16px;padding:0;">{items}</ul>'
+                f'<ul style="margin:3px 0 3px 16px;padding:0;">{items}</ul>'
             )
             ul_buf.clear()
 
@@ -302,15 +305,25 @@ def _render_block(text: str) -> str:
                 f'<li style="margin:2px 0;">{x}</li>' for x in ol_buf
             )
             out.append(
-                f'<ol style="margin:4px 0 4px 16px;padding:0;">{items}</ol>'
+                f'<ol style="margin:3px 0 3px 16px;padding:0;">{items}</ol>'
             )
             ol_buf.clear()
+
+    def _flush_para():
+        if para_buf:
+            merged = " ".join(x.strip() for x in para_buf if x.strip())
+            if merged:
+                out.append(
+                    f'<p style="margin:3px 0;line-height:1.6;">'
+                    f'{_inline(merged)}</p>'
+                )
+            para_buf.clear()
 
     while i < len(lines):
         line = lines[i]
 
         if _looks_like_table_start(lines, i):
-            _flush_ul(); _flush_ol()
+            _flush_ul(); _flush_ol(); _flush_para()
             headers = _split_table_row(line)
             i += 2
             rows: list[list[str]] = []
@@ -323,79 +336,116 @@ def _render_block(text: str) -> str:
             table_html = _render_table(headers, rows)
             if table_html:
                 out.append(table_html)
+            just_spaced = False
             continue
 
         # Horizontal rule
         if _RE_HR.match(line):
-            _flush_ul(); _flush_ol()
+            _flush_ul(); _flush_ol(); _flush_para()
             out.append(
                 f'<hr style="border:none;border-top:1px solid'
-                f' {_C["hr"]};margin:8px 0;">'
+                f' {_C["hr"]};margin:6px 0;">'
             )
+            just_spaced = False
+            i += 1
+            continue
+
+        # #### H4
+        m = _RE_H4.match(line)
+        if m:
+            _flush_ul(); _flush_ol(); _flush_para()
+            out.append(
+                f'<p style="font-size:12px;font-weight:600;'
+                f'color:{_C["h3"]};margin:6px 0 2px;">'
+                f'{_inline(m.group(1))}</p>'
+            )
+            just_spaced = False
             i += 1
             continue
 
         # ### H3
         m = _RE_H3.match(line)
         if m:
-            _flush_ul(); _flush_ol()
+            _flush_ul(); _flush_ol(); _flush_para()
             out.append(
                 f'<p style="font-size:13px;font-weight:600;'
-                f'color:{_C["h3"]};margin:8px 0 2px;">'
+                f'color:{_C["h3"]};margin:7px 0 2px;">'
                 f'{_inline(m.group(1))}</p>'
             )
+            just_spaced = False
             i += 1
             continue
 
         # ## H2
         m = _RE_H2.match(line)
         if m:
-            _flush_ul(); _flush_ol()
+            _flush_ul(); _flush_ol(); _flush_para()
             out.append(
                 f'<p style="font-size:15px;font-weight:600;'
-                f'color:{_C["h2"]};margin:10px 0 2px;">'
+                f'color:{_C["h2"]};margin:8px 0 2px;">'
                 f'{_inline(m.group(1))}</p>'
             )
+            just_spaced = False
             i += 1
             continue
 
         # # H1
         m = _RE_H1.match(line)
         if m:
-            _flush_ul(); _flush_ol()
+            _flush_ul(); _flush_ol(); _flush_para()
             out.append(
                 f'<p style="font-size:17px;font-weight:700;'
-                f'color:{_C["h1"]};margin:10px 0 4px;">'
+                f'color:{_C["h1"]};margin:8px 0 3px;">'
                 f'{_inline(m.group(1))}</p>'
             )
+            just_spaced = False
             i += 1
             continue
 
         # Unordered list
         m = _RE_UL.match(line)
         if m:
-            _flush_ol()
+            _flush_ol(); _flush_para()
             ul_buf.append(_inline(m.group(1)))
+            just_spaced = False
             i += 1
             continue
 
         # Ordered list
         m = _RE_OL.match(line)
         if m:
-            _flush_ul()
+            _flush_ul(); _flush_para()
             ol_buf.append(_inline(m.group(1)))
+            just_spaced = False
             i += 1
             continue
 
-        # Ligne normale
+        # Ligne vide -> un seul espacement visuel entre blocs
+        if not line.strip():
+            _flush_ul(); _flush_ol(); _flush_para()
+            if not just_spaced:
+                out.append('<div style="height:4px;"></div>')
+                just_spaced = True
+            i += 1
+            continue
+
+        # Ligne normale : accumuler en paragraphe compact
         _flush_ul(); _flush_ol()
-        rendered = _inline(line)
-        out.append(rendered if rendered.strip() else "<br>")
+        para_buf.append(line)
+        just_spaced = False
         i += 1
 
     _flush_ul()
     _flush_ol()
-    return "<br>".join(out)
+    _flush_para()
+
+    spacer = '<div style="height:4px;"></div>'
+    while out and out[-1] == spacer:
+        out.pop()
+    while out and out[0] == spacer:
+        out.pop(0)
+
+    return "".join(out)
 
 
 # ── Parser principal ──────────────────────────────────────────
@@ -417,6 +467,12 @@ def parse(text: str) -> ParseResult:
     """
     if not text:
         return ParseResult(html="")
+
+    # LLM output frequently escapes math delimiters as \$...\$.
+    # Normalize before markdown parsing so KaTeX can render formulas.
+    text = text.replace(r"\$", "$")
+    # Avoid giant visual gaps from excessive blank lines.
+    text = re.sub(r"\n{3,}", "\n\n", text)
 
     parts:     list[str] = []
     has_code               = False

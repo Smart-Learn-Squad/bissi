@@ -155,7 +155,9 @@ class ConversationStore:
             
             rows = conn.execute(
                 """SELECT c.id, c.title, c.created_at, c.updated_at,
-                          COUNT(m.id) as message_count
+                          COUNT(m.id) as message_count,
+                          (SELECT content FROM messages WHERE conversation_id = c.id 
+                           ORDER BY id ASC LIMIT 1) as first_message
                    FROM conversations c
                    LEFT JOIN messages m ON c.id = m.conversation_id
                    GROUP BY c.id
@@ -170,7 +172,8 @@ class ConversationStore:
                     'title': row['title'],
                     'created_at': row['created_at'],
                     'updated_at': row['updated_at'],
-                    'message_count': row['message_count']
+                    'message_count': row['message_count'],
+                    'first_message': row['first_message']
                 }
                 for row in rows
             ]

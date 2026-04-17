@@ -557,6 +557,7 @@ function renderSessions(convs) {
     list.innerHTML = '<div class="session-empty">Aucune session</div>';
     return;
   }
+  let firstItem = null;
   convs.forEach((c, i) => {
     const d = document.createElement('div');
     d.className = 'session-item' + (i === 0 ? ' active' : '');
@@ -602,7 +603,13 @@ function renderSessions(convs) {
       });
     });
     list.appendChild(d);
+    if (i === 0) firstItem = d;
   });
+  
+  // Auto-load the first (newest) conversation
+  if (firstItem) {
+    firstItem.click();
+  }
 }
 
 // ── File explorer ──────────────────────────────────────────────

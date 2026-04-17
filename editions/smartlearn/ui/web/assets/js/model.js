@@ -450,16 +450,80 @@
       return;
     }
 
+    let firstItem = null;
     conversations.forEach((c, idx) => {
       const item = document.createElement("div");
       item.className = `hist-item${idx === 0 ? " active" : ""}`;
+      item.dataset.convId = c.id;
       const title = c.title || c.first_message || `Session ${idx + 1}`;
       item.innerHTML = `
         <span class="hi-icon">💬</span>
         <span class="hi-text">${esc(title)}</span>
       `;
+
+      // Load conversation when clicked
+      item.addEventListener('click', () => {
+        // mark active
+        list.querySelectorAll('.hist-item').forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+
+        const convId = parseInt(item.dataset.convId, 10);
+        if (!S.bissi?.loadConversation) return;
+
+        S.bissi.loadConversation(convId, (raw) => {
+          try {
+            const history = JSON.parse(raw);
+            if (history.error) {
+              pushSystem(`Erreur: ${history.error}`);
+              return;
+            }
+
+            const hasMessages = Array.isArray(history) && history.length > 0;
+            const messagesEl = $("#messages");
+            if (messagesEl) messagesEl.innerHTML = hasMessages ? "" : (S.welcomeHtml || "");
+            S.activeAiNode = null;
+            S.activeAiRaw = "";
+
+            if (!hasMessages) {
+              pushSystem("Conversation prête");
+              return;
+            }
+
+            // Render each message
+            history.forEach((msg) => {
+              if (msg.role === "user") {
+                addUserMessage(msg.content);
+              } else if (msg.role === "assistant") {
+                // Use Python parser for rich rendering when available
+                parseFinalWithBridge(msg.content, (html) => {
+                  const wrap = document.createElement("div");
+                  wrap.className = "msg ai";
+                  wrap.innerHTML = `<div class="msg-av">∞</div><div class="msg-content">${html}</div>`;
+                  $("#messages")?.appendChild(wrap);
+                  enhanceRenderedContent(wrap);
+                  scrollToBottom();
+                });
+              }
+            });
+          } catch (e) {
+            console.error("loadConversation parse error", e);
+          }
+        });
+      });
+
       list.appendChild(item);
+      if (idx === 0) firstItem = item;
     });
+
+    // Auto-load the first conversation if welcome screen is visible or messages empty
+    const msgs = $("#messages");
+    const welcome = $("#welcome");
+    if (firstItem && msgs) {
+      const showWelcome = welcome && welcome.style.display !== "none";
+      if (showWelcome || msgs.children.length === 0) {
+        firstItem.click();
+      }
+    }
   }
 
   function scrollToBottom() {

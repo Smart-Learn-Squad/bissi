@@ -55,15 +55,15 @@ class UserProfileStore:
     # ── Enregistrement ─────────────────────────────────────────
 
     def record(self, model: str, domains: Set[str]) -> None:
-        """Enregistre une décision de routage dans le profil.
+        """Records a routing decision (stub - e2b only as of 2026-04-17).
 
         Args:
-            model:   Modèle choisi ("gemma4:e2b" ou "gemma4:e4b").
-            domains: Ensemble des domaines détectés dans la requête.
+            model:   Model used (always "gemma4:e2b").
+            domains: Set of detected domains in the request.
         """
+        # As of 2026-04-17, only gemma4:e2b is used.
+        # This method is kept for API compatibility but doesn't differentiate.
         self._data["total_requests"] += 1
-        if model == "gemma4:e4b":
-            self._data["heavy_requests"] += 1
         for domain in domains:
             self._data["domains"][domain] = (
                 self._data["domains"].get(domain, 0) + 1
@@ -74,29 +74,15 @@ class UserProfileStore:
 
     @property
     def heavy_ratio(self) -> float:
-        """Ratio de requêtes lourdes. Retourne 0.5 si pas assez de données."""
-        total = self._data["total_requests"]
-        if total < _MIN_SAMPLES:
-            return 0.5  # neutre — pas encore de profil
-        return self._data["heavy_requests"] / total
+        """Ratio of heavy requests (stub - always 0.0 as e2b only)."""
+        return 0.0
 
     def threshold_adjustment(self) -> float:
-        """Calcule l'ajustement du seuil selon le profil.
+        """Calculates threshold adjustment (stub - always 0.0 as e2b only).
 
         Returns:
-            float entre -0.10 et +0.08 :
-            - Utilisateur lourd (>65% e4b)  → -0.10 (seuil plus bas)
-            - Utilisateur léger (<35% e4b)  → +0.08 (seuil plus haut)
-            - Profil mixte ou insuffisant   →  0.00
+            Always 0.0 - no adjustment needed with single model.
         """
-        if self._data["total_requests"] < _MIN_SAMPLES:
-            return 0.0  # pas encore assez de données
-
-        ratio = self.heavy_ratio
-        if ratio > 0.65:
-            return -0.10
-        elif ratio < 0.35:
-            return +0.08
         return 0.0
 
     @property

@@ -267,10 +267,10 @@ class BissiWindow(QMainWindow):
             self._current_bubble.add_tool_line(name, "", result)
 
     def _on_thinking(self, msg: str):
-        """Affiche les infos de routage MoE dans la status bar."""
+        """Affiche les infos de routage dans la status bar."""
         if not msg:
             return
-        # Format attendu : "→ gemma4:e4b · score 0.72"
+        # Format attendu : "→ gemma4:e2b · score 0.72"
         if "gemma4:" in msg:
             try:
                 parts = msg.split("·")

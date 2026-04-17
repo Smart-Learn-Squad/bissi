@@ -1,7 +1,7 @@
-"""ModelRouter — Software MoE for BISSI.
+"""ModelRouter — BISSI now uses only gemma4:e2b.
 
-Routes each request to gemma4:e2b (fast) or gemma4:e4b (heavy)
-based on a weighted complexity score. Zero LLM overhead.
+Previously routed between gemma4:e2b (fast) and gemma4:e4b (heavy).
+As of 2026-04-17, all requests use gemma4:e2b exclusively.
 """
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Literal, Set
 
-Model = Literal["gemma4:e2b", "gemma4:e4b"]
+Model = Literal["gemma4:e2b"]
 
 # ── Signal tables ──────────────────────────────────────────────
 
@@ -163,15 +163,14 @@ class ModelRouter:
 
         Args:
             prompt:               Texte de l'utilisateur.
-            threshold_adjustment: Ajustement du seuil selon le profil
-                                  utilisateur (ex: -0.08 pour un user lourd).
+            threshold_adjustment: (Unused - always returns gemma4:e2b)
         """
         score, reasons, domains = self.score(prompt)
-        threshold = max(0.15, self.BASE_THRESHOLD + threshold_adjustment)
-        model: Model = "gemma4:e4b" if score >= threshold else "gemma4:e2b"
+        # Always use e2b as of 2026-04-17
+        model: Model = "gemma4:e2b"
 
         reason = (
-            f"score={score} | seuil={threshold:.2f} | "
+            f"gemma4:e2b (score={score}) | "
             + " | ".join(reasons)
         )
         return RouteResult(model=model, score=score,

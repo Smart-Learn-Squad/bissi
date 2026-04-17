@@ -74,7 +74,7 @@ FORBIDDEN:
 """
 
     def __init__(self,
-                 model: str = 'gemma4:e4b',
+                 model: str = 'gemma4:e2b',
                  system_prompt: Optional[str] = None,
                  conversation_store: Optional[ConversationStore] = None,
                  vector_store: Optional[VectorStore] = None):
@@ -925,7 +925,7 @@ FORBIDDEN:
 _agent_instance: Optional[BissiAgent] = None
 
 
-def get_agent(model: str = 'gemma4:e4b') -> BissiAgent:
+def get_agent(model: str = 'gemma4:e2b') -> BissiAgent:
     """Get or create the BissiAgent singleton."""
     global _agent_instance
     if _agent_instance is None:

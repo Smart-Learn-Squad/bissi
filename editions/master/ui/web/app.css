@@ -111,11 +111,11 @@ html, body {
   display: flex; align-items: center; gap: 8px;
   padding: 6px 10px; border-radius: var(--radius);
   cursor: pointer; color: var(--text2); font-size: 12px;
-  transition: background 0.12s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden; white-space: nowrap;
 }
-.session-item:hover  { background: var(--bg); }
-.session-item.active { background: var(--bg); color: var(--text); }
+.session-item:hover  { background: var(--bg); color: var(--text2); transform: translateX(2px); }
+.session-item.active { background: var(--bg); color: var(--text); font-weight: 500; }
 .session-item .dot {
   width: 5px; height: 5px; border-radius: 50%;
   background: var(--blue); flex-shrink: 0;
@@ -443,6 +443,9 @@ html, body {
 .live-dot.teal  { background: var(--teal);  box-shadow: 0 0 4px var(--teal); }
 .live-dot.amber { background: var(--amber); box-shadow: 0 0 4px var(--amber); animation: pulse 1.2s ease-in-out infinite; }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+@keyframes slideIn { from { transform: translateX(-8px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+.session-item { animation: slideIn 0.3s ease-out; }
 
 /* ── BADGES ──────────────────────────────────────────────────── */
 .hidden { display: none !important; }

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bissi</title>
+  <script>
+    (function(){
+      var t = localStorage.getItem('bissi-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', t);
+    })();
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
+          onload="window._katexReady=true"></script>
+  <link rel="stylesheet" href="app.css"/>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ── SIDEBAR ─────────────────────────────────────── -->
+  <aside class="sidebar" id="sidebar">
+
+    <div class="sb-logo">
+      <svg width="16" height="16" viewBox="0 0 44 28" fill="none">
+        <path d="M22 14C22 14 17 4 10 4C3 4 3 24 10 24C17 24 22 14 22 14C22 14 27 4 34 4C41 4 41 24 34 24C27 24 22 14 22 14Z"
+          stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      bissi
+    </div>
+
+    <div class="sb-btn" onclick="if(window.S&&S.bissi)S.bissi.newConversation()">
+      <svg class="sb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+      Nouvelle session
+    </div>
+
+    <div class="sb-section">Sessions</div>
+    <div class="hist-items" id="sessions-list"></div>
+
+    <div class="sb-bottom">
+      <div class="sb-status-row">
+        <span id="status-dot" class="live-dot teal"></span>
+        <span id="status-model" class="sb-status-text">gemma4:e2b</span>
+      </div>
+      <div class="sb-bottom-icons">
+        <button id="theme-toggle" class="icon-action" title="Thème">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"/>
+            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+          </svg>
+        </button>
+        <div class="sb-memory" title="Mémoire">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+          <span id="memory-count">0</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── MAIN ───────────────────────────────────────── -->
+  <main class="main">
+
+    <!-- Topbar -->
+    <div class="topbar">
+      <div class="model-pill">
+        <span id="chat-model-badge">gemma4:e2b</span>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+      <div class="topbar-right">
+        <span id="routing-hint" class="routing-hint"></span>
+        <span id="status-session" class="topbar-dim">00:00:00</span>
+        <span id="model-badge" class="model-badge-pill">● en ligne</span>
+      </div>
+    </div>
+
+    <!-- Messages -->
+    <div class="chat-area" id="messages-container">
+      <div id="messages">
+
+        <!-- Welcome -->
+        <div class="welcome" id="welcome-screen">
+          <div class="welcome-icon">
+            <svg width="28" height="18" viewBox="0 0 44 28" fill="none">
+              <path d="M22 14C22 14 17 4 10 4C3 4 3 24 10 24C17 24 22 14 22 14C22 14 27 4 34 4C41 4 41 24 34 24C27 24 22 14 22 14Z"
+                stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="welcome-title">bissi</div>
+          <div class="welcome-sub">Agent local · fichiers, code, calculs, Office</div>
+          <div class="welcome-chips">
+            <span class="wchip">hors-ligne</span>
+            <span class="wchip">moe routing</span>
+            <span class="wchip">office suite</span>
+            <span class="wchip">python</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Input -->
+    <div class="input-area">
+      <div class="input-box">
+        <textarea
+          class="input-field" id="chat-input"
+          placeholder="Envoyer un message à Bissi…"
+          rows="1"
+        ></textarea>
+        <div class="input-actions">
+          <button class="send-btn" id="send-btn" title="Envoyer">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="22" y1="2" x2="11" y2="13"/>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="input-foot">
+        <span class="input-hint" id="rag-count">RAG · ChromaDB</span>
+        <span id="status-rag" class="input-hint">⚡ Bissi · Ollama</span>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ── RIGHT PANEL ───────────────────────────────── -->
+  <aside class="panel" id="right-panel">
+
+    <div class="panel-header">
+      <span class="panel-title">Espace de travail</span>
+      <div class="panel-tabs" id="right-tabs">
+        <button class="ptab active" data-tab="explorer">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+        </button>
+        <button class="ptab" data-tab="editor">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Sub-header: path or filename -->
+    <div class="panel-subheader" id="panel-subheader">
+      <span id="explorer-path" class="panel-path"></span>
+      <span id="editor-filename" class="panel-path hidden">Aucun fichier</span>
+      <span id="editor-agent-badge" class="agent-badge hidden">bissi</span>
+    </div>
+
+    <!-- Explorer tab -->
+    <div id="tab-explorer" class="tab-content active">
+      <div id="file-tree" class="file-tree"></div>
+    </div>
+
+    <!-- Editor tab -->
+    <div id="tab-editor" class="tab-content">
+      <pre id="code-editor" class="code-editor"><code id="code-content"></code></pre>
+    </div>
+
+    <!-- Panel footer -->
+    <div class="panel-footer">
+      <div class="panel-progress-row">
+        <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+        <div class="live-dot teal" id="panel-dot"></div>
+        <span class="panel-dim" id="status-memory">0 souvenirs</span>
+      </div>
+    </div>
+
+  </aside>
+
+</div><!-- /app -->
+
+<script src="app.js"></script>
+</body>
+</html>

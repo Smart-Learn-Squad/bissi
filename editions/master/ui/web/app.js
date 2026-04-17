@@ -183,7 +183,10 @@ function onInterrupted() {
 }
 
 function onConvsUpdated(json) {
-  try { renderSessions(JSON.parse(json)); } catch { /* noop */ }
+  try {
+    // Don't auto-load when updating; just refresh the list
+    renderSessions(JSON.parse(json), false);
+  } catch { /* noop */ }
 }
 
 function onThemeChanged(name) {

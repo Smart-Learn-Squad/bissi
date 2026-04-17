@@ -187,6 +187,7 @@ html, body {
 }
 .chat-area::-webkit-scrollbar { width: 4px; }
 .chat-area::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+#messages { display: flex; flex-direction: column; gap: 10px; }
 
 /* Welcome */
 .welcome {
@@ -213,15 +214,17 @@ html, body {
   padding: 8px 14px; border-radius: 16px 16px 4px 16px;
   font-size: 13px; max-width: 70%;
   color: var(--text);
-  border: 0.5px solid var(--border);
+  border: 1px solid rgba(0,0,0,0.28);
   line-height: 1.6; word-break: break-word;
   animation: fadeUp 0.18s ease;
+  margin: 4px 0 10px auto;
 }
 
 /* Assistant message */
 .msg-assistant {
   display: flex; gap: 10px; align-items: flex-start;
   animation: fadeUp 0.18s ease;
+  margin: 8px 0 10px;
 }
 .assistant-icon {
   width: 26px; height: 26px; border-radius: 50%;
@@ -230,7 +233,11 @@ html, body {
   flex-shrink: 0; margin-top: 2px; color: var(--text2);
 }
 .assistant-icon svg { width: 13px; height: 13px; }
-.msg-body { flex: 1; min-width: 0; }
+.msg-body {
+  flex: 1; min-width: 0;
+  border-left: 2px solid rgba(0,0,0,0.24);
+  padding-left: 10px;
+}
 .msg-header {
   display: flex; align-items: center; gap: 7px;
   margin-bottom: 7px; font-size: 12px;
@@ -356,7 +363,7 @@ html, body {
 
 /* ── RIGHT PANEL ─────────────────────────────────────────────── */
 .panel {
-  width: 260px; min-width: 260px;
+  width: 320px; min-width: 320px;
   border-left: 0.5px solid var(--border);
   display: flex; flex-direction: column;
   background: var(--bg2);

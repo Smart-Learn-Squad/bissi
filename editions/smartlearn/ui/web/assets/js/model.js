@@ -492,13 +492,24 @@
             // Render each message
             history.forEach((msg) => {
               const role = (msg.role || '').toLowerCase();
+
+              const rawContent = msg.content || (msg.metadata ? (typeof msg.metadata === 'string' ? msg.metadata : JSON.stringify(msg.metadata)) : '');
+
               if (role === 'user') {
-                addUserMessage(msg.content);
+                // Render user message with markdown parsing so LaTeX/formatting shows
+                parseFinalWithBridge(rawContent, (html) => {
+                  const wrap = document.createElement('div');
+                  wrap.className = 'msg user';
+                  wrap.innerHTML = `<div class='msg-av'>E</div><div class='msg-content'>${html}</div>`;
+                  $('#messages')?.appendChild(wrap);
+                  enhanceRenderedContent(wrap);
+                  scrollToBottom();
+                });
                 return;
               }
 
               // Fallback: render anything not user as assistant/tool/system output.
-              const raw = msg.content || (msg.metadata ? (typeof msg.metadata === 'string' ? msg.metadata : JSON.stringify(msg.metadata)) : '');
+              const raw = rawContent;
 
               if (!raw) {
                 // show placeholder if nothing to render

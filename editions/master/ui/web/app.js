@@ -107,6 +107,7 @@ function onToolDone(name, result) {
 
 function onThinking(msg) {
   const hint = el('#routing-hint');
+  if (!hint) return;
   hint.textContent = msg;
   if (!msg) return;
   if (msg.includes('gemma4:')) {
@@ -115,10 +116,14 @@ function onThinking(msg) {
       const model = modelPart.replace('→', '').trim();
       const score = parseFloat((scorePart || '').replace('score', '').trim());
       hint.style.color = model.includes('e4b') ? 'var(--purple)' : 'var(--teal)';
-      el('#status-model').textContent = `Ollama · ${model}`;
+      const statusModel = el('#status-model');
+      if (statusModel) statusModel.textContent = `Ollama · ${model}`;
+      
       const badge = el('#model-badge');
-      badge.textContent = `● ${model} · en ligne`;
-      badge.className = model.includes('e4b') ? 'badge badge-purple' : 'badge badge-teal';
+      if (badge) {
+        badge.textContent = `● ${model} · en ligne`;
+        badge.className = model.includes('e4b') ? 'badge badge-purple' : 'badge badge-teal';
+      }
     } catch { /* malformed, ignore */ }
   }
 }
@@ -574,8 +579,12 @@ function renderSessions(convs) {
             return;
           }
           // Clear messages and reload them
-          el('#messages').innerHTML = '';
-          el('#welcome-screen').style.display = 'none';
+          const messagesEl = el('#messages');
+          if (messagesEl) messagesEl.innerHTML = '';
+          
+          const welcomeEl = el('#welcome-screen');
+          if (welcomeEl) welcomeEl.style.display = 'none';
+          
           S.bubble = null;
           // Render each message from history
           history.forEach(msg => {

@@ -69,7 +69,18 @@ function loadInitial() {
       setModel(data.model || '');
       updateProfile(data.profile);
       const convs = Array.isArray(data.conversations) ? data.conversations : [];
-      renderSessions(convs);
+      renderSessions(convs, true); // auto-load existing conversations
+      
+      // If no conversations, create a new one
+      if (convs.length === 0) {
+        S.bissi.newConversation(json => {
+          try {
+            const result = JSON.parse(json);
+            renderSessions(result.conversations || [], false); // don't auto-load new conversation
+          } catch { /* noop */ }
+        });
+      }
+      
       sysMsg(`Bissi prêt · ${data.model} · tape un message`, 'dim');
       loadDir(null);
     } catch (e) {
@@ -550,7 +561,7 @@ function updateProfile(profile) {
 }
 
 // ── Sessions sidebar ───────────────────────────────────────────
-function renderSessions(convs) {
+function renderSessions(convs, autoLoad = true) {
   const list = el('#sessions-list');
   list.innerHTML = '';
   if (!convs || !convs.length) {
@@ -606,8 +617,8 @@ function renderSessions(convs) {
     if (i === 0) firstItem = d;
   });
   
-  // Auto-load the first (newest) conversation
-  if (firstItem) {
+  // Auto-load the first (newest) conversation only if autoLoad flag is true
+  if (autoLoad && firstItem) {
     firstItem.click();
   }
 }

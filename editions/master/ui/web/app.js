@@ -24,7 +24,10 @@ window.S = S;
 const LAYOUT_KEYS = {
   sidebarCollapsed: 'bissi-master-sidebar-collapsed',
   panelCollapsed: 'bissi-master-panel-collapsed',
+  panelWidth: 'bissi-master-panel-width',
 };
+const WORKSPACE_DEFAULT_WIDTH = 420;
+const WORKSPACE_MIN_WIDTH = 320;
 
 // ── Bootstrap ──────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -34,6 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
   bindTheme();
   bindTabs();
   bindLayoutToggles();
+  bindWorkspaceResize();
   startTimer();
   waitForBridge(0);
 });
@@ -480,6 +484,7 @@ function renderMath(container) {
         { left: '\\(', right: '\\)', display: false },
       ],
       throwOnError: false,
+      strict: 'ignore',
     });
   } catch { /* ignore parse errors */ }
 }
@@ -796,6 +801,14 @@ function bindLayoutToggles() {
 
   const sidebarCollapsed = localStorage.getItem(LAYOUT_KEYS.sidebarCollapsed) === '1';
   const panelCollapsed = localStorage.getItem(LAYOUT_KEYS.panelCollapsed) === '1';
+  const storedPanelWidth = Number(localStorage.getItem(LAYOUT_KEYS.panelWidth));
+
+  if (Number.isFinite(storedPanelWidth) && storedPanelWidth > 0) {
+    setWorkspacePanelWidth(storedPanelWidth, false);
+  } else {
+    setWorkspacePanelWidth(WORKSPACE_DEFAULT_WIDTH, false);
+  }
+
   setSidebarCollapsed(sidebarCollapsed);
   setWorkspaceCollapsed(panelCollapsed);
 
@@ -813,6 +826,61 @@ function bindLayoutToggles() {
   });
 }
 
+function bindWorkspaceResize() {
+  const resizer = el('#workspace-resizer');
+  if (!resizer) return;
+
+  let resizing = false;
+
+  resizer.addEventListener('pointerdown', e => {
+    const app = el('.app');
+    if (!app || app.classList.contains('panel-collapsed') || window.innerWidth <= 860) return;
+    resizing = true;
+    resizer.classList.add('resizing');
+    document.body.style.cursor = 'col-resize';
+    e.preventDefault();
+  });
+
+  window.addEventListener('pointermove', e => {
+    if (!resizing) return;
+    const width = window.innerWidth - e.clientX;
+    setWorkspacePanelWidth(width, false);
+  });
+
+  window.addEventListener('pointerup', () => {
+    if (!resizing) return;
+    resizing = false;
+    resizer.classList.remove('resizing');
+    document.body.style.cursor = '';
+    const panel = el('#right-panel');
+    if (panel) setWorkspacePanelWidth(panel.getBoundingClientRect().width, true);
+  });
+
+  window.addEventListener('resize', () => {
+    const app = el('.app');
+    if (!app || app.classList.contains('panel-collapsed') || window.innerWidth <= 860) return;
+    const panel = el('#right-panel');
+    if (panel) setWorkspacePanelWidth(panel.getBoundingClientRect().width, false);
+  });
+}
+
+function workspaceMaxWidth() {
+  const app = el('.app');
+  const sidebarVisible = app && !app.classList.contains('sidebar-collapsed') && window.innerWidth > 600;
+  const reservedForMain = sidebarVisible ? 560 : 420;
+  return Math.max(WORKSPACE_MIN_WIDTH, window.innerWidth - reservedForMain);
+}
+
+function setWorkspacePanelWidth(width, persist) {
+  const raw = Number(width);
+  const base = Number.isFinite(raw) && raw > 0 ? raw : WORKSPACE_DEFAULT_WIDTH;
+  const clamped = Math.max(WORKSPACE_MIN_WIDTH, Math.min(Math.round(base), workspaceMaxWidth()));
+  document.documentElement.style.setProperty('--panel-width', `${clamped}px`);
+  if (persist) {
+    localStorage.setItem(LAYOUT_KEYS.panelWidth, String(clamped));
+  }
+}
+
 function setSidebarCollapsed(collapsed) {
   const app = el('.app');
   if (!app) return;
@@ -826,6 +894,10 @@ function setWorkspaceCollapsed(collapsed) {
   if (!app) return;
   app.classList.toggle('panel-collapsed', collapsed);
   localStorage.setItem(LAYOUT_KEYS.panelCollapsed, collapsed ? '1' : '0');
+  if (!collapsed) {
+    const storedPanelWidth = Number(localStorage.getItem(LAYOUT_KEYS.panelWidth));
+    setWorkspacePanelWidth(storedPanelWidth, false);
+  }
   updateLayoutToggleLabels();
 }
 

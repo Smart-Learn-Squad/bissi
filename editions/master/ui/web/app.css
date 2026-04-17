@@ -7,6 +7,7 @@
 /* ── TOKENS ─────────────────────────────────────────────────── */
 :root {
   --font: 'JetBrains Mono', 'Fira Code', monospace;
+  --panel-width: 420px;
 
   --bg:        #141414;
   --bg2:       #1a1a1a;
@@ -378,12 +379,33 @@ html, body {
 
 /* ── RIGHT PANEL ─────────────────────────────────────────────── */
 .panel {
-  width: 420px; min-width: 420px;
+  width: var(--panel-width); min-width: var(--panel-width);
   border-left: 0.5px solid var(--border);
   display: flex; flex-direction: column;
   background: var(--bg2);
   overflow: hidden;
   transition: width 0.2s ease, min-width 0.2s ease, border-color 0.2s ease;
+}
+.workspace-resizer {
+  width: 8px;
+  cursor: col-resize;
+  background: transparent;
+  position: relative;
+  flex-shrink: 0;
+}
+.workspace-resizer::after {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--border);
+  transition: background 0.12s ease;
+}
+.workspace-resizer:hover::after,
+.workspace-resizer.resizing::after {
+  background: var(--blue);
 }
 .panel-header {
   display: flex; align-items: center; justify-content: space-between;
@@ -487,6 +509,10 @@ html, body {
   min-width: 0;
   border-left-color: transparent;
 }
+.app.panel-collapsed .workspace-resizer {
+  width: 0;
+  pointer-events: none;
+}
 
 .app.sidebar-collapsed #sidebar-toggle,
 .app.panel-collapsed .workspace-toggle-btn {
@@ -500,6 +526,7 @@ html, body {
 
 /* ── MOBILE ──────────────────────────────────────────────────── */
 @media (max-width: 860px) {
+  .workspace-resizer { display: none; }
   .panel   { display: none; }
   .sidebar { width: 160px; min-width: 160px; }
 }

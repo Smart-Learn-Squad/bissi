@@ -838,8 +838,17 @@ FORBIDDEN:
         return explorer.read_text_file(file_path, max_lines)
 
     @tool_result
-    def _tool_write_text_file(self, file_path: str, content: str, append: bool = False) -> Dict[str, Any]:
-        return writer.write_text_file(file_path, content, append)
+    def _tool_write_text_file(
+        self,
+        file_path: Optional[str] = None,
+        content: str = "",
+        append: bool = False,
+        path: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        target_path = file_path or path
+        if not target_path:
+            return {'success': False, 'error': "Missing required argument: 'file_path'"}
+        return writer.write_text_file(target_path, content, append)
 
     @tool_result
     def _tool_edit_text_file(self, file_path: str, old_text: str, new_text: str) -> Dict[str, Any]:

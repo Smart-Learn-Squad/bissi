@@ -455,7 +455,17 @@ function hlCode(container) {
 
 // Render LaTeX math with KaTeX (fires after markdown is in the DOM)
 function renderMath(container) {
-  if (!window._katexReady || typeof renderMathInElement === 'undefined') return;
+  if (!container) return;
+  if (!window._katexReady || typeof renderMathInElement === 'undefined') {
+    // KaTeX CDN can load after first render; retry a few times.
+    const retries = Number(container.dataset.katexRetries || '0');
+    if (retries < 20) {
+      container.dataset.katexRetries = String(retries + 1);
+      setTimeout(() => renderMath(container), 120);
+    }
+    return;
+  }
+  delete container.dataset.katexRetries;
   try {
     renderMathInElement(container, {
       delimiters: [

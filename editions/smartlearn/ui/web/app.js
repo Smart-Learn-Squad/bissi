@@ -142,13 +142,22 @@ function onThinking(msg) {
 function onFinished(json) {
   try {
     const data = JSON.parse(json);
-    // Finalize streaming bubble: re-render with proper markdown
+    // Finalize streaming bubble: re-render with proper markdown using Python parser
     if (S.bubble) {
       const content = S.bubble.querySelector('.bubble-content');
-      if (content) {
-        content.innerHTML = renderMd(S.bubble._raw || '');
-        hlCode(content);
-        renderMath(content);
+      if (content && S.bubble._raw) {
+        // Use Python parser for full markdown support
+        S.bissi.parseMarkdown(S.bubble._raw, result => {
+          try {
+            const parseResult = JSON.parse(result);
+            content.innerHTML = parseResult.html || renderMd(S.bubble._raw || '');
+            hlCode(content);
+            renderMath(content);
+          } catch (e) {
+            console.error('[bissi] parseMarkdown error:', e);
+            content.innerHTML = renderMd(S.bubble._raw || '');
+          }
+        });
       }
       S.bubble = null;
     }

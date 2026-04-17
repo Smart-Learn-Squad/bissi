@@ -27,15 +27,15 @@ from dataclasses import dataclass, field
 # ── Palette (injectée depuis le thème) ────────────────────────
 _C: dict[str, str] = {
     "code_bg":    "#f8f8f6",
-    "code_text":  "#2C2C2A",
+    "code_text":  "#222219",
     "code_border":"#e8e8e8",
     "inline_bg":  "#EEEDFE",
     "inline_text":"#3C3489",
-    "h1":         "#1a1a1a",
-    "h2":         "#2C2C2A",
+    "h1":         "#55e326",
+    "h2":         "#1BE2D5F8",
     "h3":         "#534AB7",
-    "hr":         "#e8e8e8",
-    "link":       "#534AB7",
+    "hr":         "#fffafa",
+    "link":       "#258EC7",
     "mono":       "JetBrains Mono,Fira Code,Consolas,Monospace",
     "ui":         "Inter,Segoe UI,Helvetica Neue,Arial,sans-serif",
 }

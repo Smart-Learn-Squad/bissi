@@ -10,6 +10,7 @@
     parserFrameQueued: false,
     parserInFlight: false,
     parserLastRequestedRaw: "",
+    quizRequestActive: false,
   };
 
   const $ = (sel) => document.querySelector(sel);
@@ -17,6 +18,165 @@
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
+  const PROGRESS_KEY = "bissi_smartlearn_progress";
+
+  function loadProgress() {
+    try {
+      const raw = localStorage.getItem(PROGRESS_KEY);
+      if (!raw) return { chapitres: [], quizCompleted: 0, totalTemps: 0 };
+      const parsed = JSON.parse(raw);
+      return {
+        chapitres: Array.isArray(parsed?.chapitres) ? parsed.chapitres : [],
+        quizCompleted: Number(parsed?.quizCompleted || 0),
+        totalTemps: Number(parsed?.totalTemps || 0),
+      };
+    } catch (_) {
+      return { chapitres: [], quizCompleted: 0, totalTemps: 0 };
+    }
+  }
+
+  function saveProgress(progress) {
+    localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress));
+  }
+
+  function recordQuizResult(scorePercent) {
+    const progress = loadProgress();
+    const titre = (sessionStorage.getItem("sl_titre_cours") || "Conversation").trim();
+    const now = new Date().toISOString();
+    const idx = progress.chapitres.findIndex((c) => String(c?.titre || "").trim().toLowerCase() === titre.toLowerCase());
+    if (idx >= 0) {
+      const prev = Number(progress.chapitres[idx].score || 0);
+      progress.chapitres[idx] = {
+        titre,
+        score: Math.round((prev + scorePercent) / 2),
+        date: now,
+      };
+    } else {
+      progress.chapitres.unshift({ titre, score: scorePercent, date: now });
+    }
+    progress.quizCompleted = Number(progress.quizCompleted || 0) + 1;
+    const slTemps = Number(localStorage.getItem("sl_temps_etude") || 0);
+    progress.totalTemps = Math.max(Number(progress.totalTemps || 0), slTemps);
+    saveProgress(progress);
+  }
+
+  function parseStrictQuizJson(raw) {
+    const txt = String(raw || "").replace(/```json|```/gi, "").trim();
+    const start = txt.indexOf("{");
+    const end = txt.lastIndexOf("}");
+    if (start < 0 || end <= start) throw new Error("Réponse quiz invalide");
+    const data = JSON.parse(txt.slice(start, end + 1));
+    if (!Array.isArray(data?.questions) || !data.questions.length) {
+      throw new Error("Aucune question reçue");
+    }
+    return {
+      questions: data.questions.slice(0, 3).map((q, i) => ({
+        q: String(q?.q || `Question ${i + 1}`),
+        options: Array.isArray(q?.options) ? q.options.map((o) => String(o)) : [],
+        answer: q?.answer,
+      })).filter((q) => q.options.length >= 2),
+    };
+  }
+
+  function answerIndex(question) {
+    if (typeof question.answer === "number") return question.answer;
+    if (typeof question.answer === "string") {
+      const letter = question.answer.trim().toUpperCase();
+      if (/^[A-D]$/.test(letter)) return letter.charCodeAt(0) - 65;
+      const idx = question.options.findIndex((o) => o.trim().toLowerCase() === question.answer.trim().toLowerCase());
+      if (idx >= 0) return idx;
+    }
+    return -1;
+  }
+
+  function requestQuizFromAgent(prompt) {
+    if (!S.bissi?.sendMessage) return Promise.reject(new Error("Bridge indisponible"));
+    return new Promise((resolve, reject) => {
+      const onDone = (raw) => {
+        cleanup();
+        try {
+          const payload = JSON.parse(raw);
+          resolve(payload?.full || "");
+        } catch (_) {
+          resolve(String(raw || ""));
+        }
+      };
+      const onErr = (msg) => {
+        cleanup();
+        reject(new Error(String(msg || "Erreur quiz")));
+      };
+      const cleanup = () => {
+        S.quizRequestActive = false;
+        try { S.bissi.responseFinished.disconnect(onDone); } catch (_) {}
+        try { S.bissi.errorOccurred.disconnect(onErr); } catch (_) {}
+        unlockInput();
+      };
+      S.quizRequestActive = true;
+      lockInput();
+      S.bissi.responseFinished.connect(onDone);
+      S.bissi.errorOccurred.connect(onErr);
+      S.bissi.sendMessage(prompt);
+    });
+  }
+
+  function renderQuizCard(quiz) {
+    hideWelcome();
+    const wrap = document.createElement("div");
+    wrap.className = "msg ai";
+    wrap.innerHTML = `
+      <div class="msg-av">∞</div>
+      <div class="msg-content">
+        <div style="border:1px solid #1f2a44;border-radius:12px;padding:12px;background:#0f1424;">
+          <div style="font-weight:700;color:#cfd8ff;margin-bottom:10px">🎯 Quiz SmartLearn</div>
+          <div id="quizQuestion" style="font-weight:600;margin-bottom:10px"></div>
+          <div id="quizOptions" style="display:grid;gap:8px"></div>
+          <div id="quizMeta" style="margin-top:10px;color:#9fb0d8;font-size:12px"></div>
+        </div>
+      </div>`;
+    $("#messages")?.appendChild(wrap);
+    const qNode = wrap.querySelector("#quizQuestion");
+    const oNode = wrap.querySelector("#quizOptions");
+    const mNode = wrap.querySelector("#quizMeta");
+    if (!qNode || !oNode || !mNode) return;
+
+    let index = 0;
+    let score = 0;
+    const total = quiz.questions.length;
+
+    const show = () => {
+      const q = quiz.questions[index];
+      qNode.textContent = `Q${index + 1}/${total} — ${q.q}`;
+      oNode.innerHTML = "";
+      mNode.textContent = "Choisis une réponse.";
+      q.options.forEach((opt, optIndex) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.textContent = opt;
+        btn.style.cssText = "text-align:left;padding:9px 10px;border:1px solid #2a3b6b;border-radius:9px;background:#111a31;color:#e7ecff;cursor:pointer;";
+        btn.onclick = () => {
+          const ok = optIndex === answerIndex(q);
+          if (ok) score += 1;
+          mNode.textContent = ok ? "✅ Bonne réponse" : "❌ Mauvaise réponse";
+          [...oNode.querySelectorAll("button")].forEach((b) => { b.disabled = true; b.style.opacity = "0.75"; });
+          setTimeout(() => {
+            index += 1;
+            if (index < total) {
+              show();
+              return;
+            }
+            const pct = Math.round((score / total) * 100);
+            qNode.textContent = `Score final: ${score}/${total} (${pct}%)`;
+            oNode.innerHTML = "";
+            mNode.textContent = "Résultat sauvegardé dans ta progression.";
+            recordQuizResult(pct);
+          }, 500);
+        };
+        oNode.appendChild(btn);
+      });
+    };
+    show();
+    scrollToBottom();
+  }
 
   function init() {
     const welcome = $("#welcome");
@@ -372,12 +532,14 @@
   }
 
   function onToken(token) {
+    if (S.quizRequestActive) return;
     if (!S.activeAiNode) addAiBubble();
     S.activeAiRaw += token;
     scheduleStreamingRender();
   }
 
   function onFinished(raw) {
+    if (S.quizRequestActive) return;
     const node = S.activeAiNode;
     const finalRaw = (() => {
       try {
@@ -411,6 +573,7 @@
   }
 
   function onError(message) {
+    if (S.quizRequestActive) return;
     pushSystem(`Erreur: ${message}`);
     S.activeAiNode = null;
     S.activeAiRaw = "";
@@ -421,6 +584,7 @@
   }
 
   function onInterrupted() {
+    if (S.quizRequestActive) return;
     pushSystem("Generation interrompue.");
     S.activeAiNode = null;
     S.activeAiRaw = "";
@@ -611,8 +775,21 @@
     );
   }
 
-  function proposerQuiz() {
-    useSuggestion("Genere un quiz progressif de 10 questions sur notre dernier chapitre.");
+  async function proposerQuiz() {
+    try {
+      const prompt = [
+        "Genere un quiz de 3 questions QCM sur notre conversation.",
+        "Format JSON strict uniquement:",
+        '{"questions":[{"q":"...","options":["...","...","...","..."],"answer":"..."}]}',
+        "Aucun markdown, aucun texte en dehors du JSON."
+      ].join("\n");
+      const raw = await requestQuizFromAgent(prompt);
+      const quiz = parseStrictQuizJson(raw);
+      if (!quiz.questions.length) throw new Error("Quiz vide");
+      renderQuizCard(quiz);
+    } catch (e) {
+      pushSystem(`Impossible de générer le quiz: ${e?.message || "erreur"}`);
+    }
   }
 
   window.autoResize = autoResize;

@@ -3,15 +3,48 @@
   ══════════════════════════════════════════ */
 
   const MOIS = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+  const PROGRESS_KEY = "bissi_smartlearn_progress";
+
+  function normalizeProgress(parsed) {
+    return {
+      chapitres: Array.isArray(parsed?.chapitres) ? parsed.chapitres.map((c) => ({
+        titre: String(c?.titre || c?.nom || "Chapitre"),
+        score: Math.max(0, Math.min(100, Number(c?.score || 0))),
+        date: c?.date || (c?.timestamp ? new Date(c.timestamp).toISOString() : new Date().toISOString()),
+      })) : [],
+      quizCompleted: Math.max(0, Number(parsed?.quizCompleted || 0)),
+      totalTemps: Math.max(0, Number(parsed?.totalTemps || 0)),
+    };
+  }
 
   function chargerDonnees() {
-    const s = localStorage.getItem('sl_progression');
-    if (s) { try { return JSON.parse(s); } catch(e){} }
-    return { chapitres: [] };
+    try {
+      const s = localStorage.getItem(PROGRESS_KEY);
+      if (s) return normalizeProgress(JSON.parse(s));
+    } catch (_) {}
+
+    // Legacy migration from old storage shape.
+    try {
+      const old = localStorage.getItem('sl_progression');
+      if (old) {
+        const parsed = JSON.parse(old);
+        const migrated = normalizeProgress({
+          chapitres: parsed?.chapitres || [],
+          quizCompleted: Array.isArray(parsed?.chapitres)
+            ? parsed.chapitres.reduce((a, c) => a + Number(c?.quiz || 0), 0)
+            : 0,
+          totalTemps: Number(localStorage.getItem("sl_temps_etude") || 0),
+        });
+        localStorage.setItem(PROGRESS_KEY, JSON.stringify(migrated));
+        return migrated;
+      }
+    } catch (_) {}
+
+    return { chapitres: [], quizCompleted: 0, totalTemps: 0 };
   }
 
   function sauvegarder(data) {
-    localStorage.setItem('sl_progression', JSON.stringify(data));
+    localStorage.setItem(PROGRESS_KEY, JSON.stringify(normalizeProgress(data)));
   }
 
   function classeScore(s) {
@@ -35,7 +68,7 @@
       planning.push({
         jour: String(d.getDate()).padStart(2, '0'),
         mois: MOIS[d.getMonth()],
-        nom: ch.nom,
+        titre: ch.titre,
         duree,
         urgence
       });
@@ -46,7 +79,9 @@
   /* Formate la date relative d'un quiz */
   function dateRelative(ts) {
     if (!ts) return '';
-    const diff = Math.floor((Date.now() - ts) / 86400000);
+    const base = new Date(ts).getTime();
+    if (!Number.isFinite(base)) return "";
+    const diff = Math.floor((Date.now() - base) / 86400000);
     if (diff === 0) return "Aujourd'hui";
     if (diff === 1) return 'Hier';
     if (diff < 7)  return `Il y a ${diff}j`;
@@ -76,15 +111,15 @@
       item.className = 'chapter-item';
       item.innerHTML = `
         <div class="chapter-top">
-          <div class="chapter-name">${esc(ch.nom)}</div>
+          <div class="chapter-name">${esc(ch.titre)}</div>
           <div class="chapter-score score-${cls}">${ch.score}%</div>
         </div>
         <div class="prog-bar-wrap">
           <div class="prog-bar ${cls}" id="bar${i}" style="width:0%"></div>
         </div>
         <div class="chapter-meta">
-          <span class="chapter-tag">${esc(ch.matiere || 'Général')}</span>
-          <span>${ch.quiz} quiz${ch.quiz > 1 ? 's' : ''}${dateAff ? ' · ' + dateAff : ''}</span>
+          <span class="chapter-tag">Chapitre</span>
+          <span>${dateAff ? dateAff : 'Récent'}</span>
         </div>`;
       liste.appendChild(item);
       setTimeout(() => {
@@ -109,7 +144,7 @@
     faibles.forEach(ch => {
       const item = document.createElement('div');
       item.className = 'weak-item';
-      item.innerHTML = `<div class="weak-dot"></div><div class="weak-name">${esc(ch.nom)}</div><div class="weak-score">${ch.score}%</div>`;
+      item.innerHTML = `<div class="weak-dot"></div><div class="weak-name">${esc(ch.titre)}</div><div class="weak-score">${ch.score}%</div>`;
       liste.appendChild(item);
     });
   }
@@ -132,7 +167,7 @@
           <div class="plan-date-lbl">${p.mois}</div>
         </div>
         <div class="plan-info">
-          <div class="plan-name">${esc(p.nom)}</div>
+          <div class="plan-name">${esc(p.titre)}</div>
           <div class="plan-duration">${p.duree}</div>
         </div>
         <span class="plan-chip ${p.urgence}">${labels[p.urgence]}</span>`;
@@ -162,12 +197,16 @@
     }, 300);
   }
 
-  function renderTemps() {
-    const totalSecs = parseInt(localStorage.getItem('sl_temps_etude') || '0');
-    const h = Math.floor(totalSecs / 3600);
-    const m = Math.floor((totalSecs % 3600) / 60);
+  function renderTemps(totalSecs = null) {
+    const fallback = Math.max(
+      Number(localStorage.getItem("sl_temps_etude") || 0),
+      Number(chargerDonnees().totalTemps || 0),
+    );
+    const secs = Math.max(0, Number(totalSecs == null ? fallback : totalSecs));
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
     let aff;
-    if (totalSecs === 0)  aff = '—';
+    if (secs === 0)       aff = '—';
     else if (h === 0)     aff = m + '<span style="font-size:18px">min</span>';
     else if (m === 0)     aff = h + '<span style="font-size:18px">h</span>';
     else                  aff = h + '<span style="font-size:18px">h</span>' + m + '<span style="font-size:14px">min</span>';
@@ -175,14 +214,14 @@
   }
 
   function renderStats(data) {
-    const totalQuiz = data.chapitres.reduce((a, c) => a + (c.quiz || 0), 0);
     document.getElementById('statChapitres').textContent = data.chapitres.length;
-    document.getElementById('statQuiz').textContent = totalQuiz;
-    renderTemps();
+    document.getElementById('statQuiz').textContent = Number(data.quizCompleted || 0);
+    renderTemps(Number(data.totalTemps || 0));
   }
 
   function resetDonnees() {
     if (confirm('Réinitialiser toutes les données de progression ?')) {
+      localStorage.removeItem(PROGRESS_KEY);
       localStorage.removeItem('sl_progression');
       localStorage.removeItem('sl_temps_etude');
       init();
@@ -207,20 +246,23 @@
   /* ── API publique appelée depuis model.php ── */
   window.ajouterResultat = function(nomChapitre, matiere, score) {
     const data = chargerDonnees();
-    const existant = data.chapitres.find(c => c.nom === nomChapitre);
+    const titre = String(nomChapitre || "Chapitre");
+    const existant = data.chapitres.find(c => c.titre.toLowerCase() === titre.toLowerCase());
     if (existant) {
-      existant.score     = Math.round((existant.score + score) / 2);
-      existant.quiz      = (existant.quiz || 0) + 1;
-      existant.timestamp = Date.now();
+      existant.score = Math.round((Number(existant.score || 0) + Number(score || 0)) / 2);
+      existant.date = new Date().toISOString();
     } else {
       data.chapitres.unshift({
-        nom: nomChapitre,
-        matiere: matiere || 'Général',
-        score,
-        quiz: 1,
-        timestamp: Date.now()
+        titre,
+        score: Math.max(0, Math.min(100, Number(score || 0))),
+        date: new Date().toISOString(),
       });
     }
+    data.quizCompleted = Number(data.quizCompleted || 0) + 1;
+    data.totalTemps = Math.max(
+      Number(data.totalTemps || 0),
+      Number(localStorage.getItem("sl_temps_etude") || 0),
+    );
     sauvegarder(data);
   };
 
@@ -284,14 +326,18 @@
 
   function timerStop() {
     // Sauvegarder le temps écoulé si c'était une session focus en cours
-    if (timerState.running && !timerState.isBreak) {
-      const ecouleSecs = timerState.totalSecs - timerState.remaining;
-      if (ecouleSecs > 5) { // ignorer les arrêts accidentels < 5s
-        const actuel = parseInt(localStorage.getItem('sl_temps_etude') || '0');
-        localStorage.setItem('sl_temps_etude', actuel + ecouleSecs);
-        renderTemps(); // mettre à jour l'affichage immédiatement
+      if (timerState.running && !timerState.isBreak) {
+        const ecouleSecs = timerState.totalSecs - timerState.remaining;
+        if (ecouleSecs > 5) { // ignorer les arrêts accidentels < 5s
+          const actuel = parseInt(localStorage.getItem('sl_temps_etude') || '0');
+          const total = actuel + ecouleSecs;
+          localStorage.setItem('sl_temps_etude', total);
+          const data = chargerDonnees();
+          data.totalTemps = Math.max(Number(data.totalTemps || 0), total);
+          sauvegarder(data);
+          renderTemps(data.totalTemps); // mettre à jour l'affichage immédiatement
+        }
       }
-    }
     timerState.running = false;
     clearInterval(timerState.interval);
     timerState.interval = null;

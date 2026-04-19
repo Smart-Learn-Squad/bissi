@@ -73,7 +73,7 @@ class Sidebar(QWidget):
             f"font-size:12px;color:{self.theme.C['purple']};font-weight:500;"
             f"font-family:{self.theme.FONT_UI};border:none;background:transparent;"
         )
-        self.rag_lbl = QLabel("RAG · 0 chunks")
+        self.rag_lbl = QLabel("Documents · 0")
         self.rag_lbl.setStyleSheet(
             f"font-size:11px;color:{self.theme.C['text_dim']};font-family:{self.theme.FONT_UI};"
             f"border:none;background:transparent;"
@@ -113,5 +113,5 @@ class Sidebar(QWidget):
         self.mem_count.setText(f"{n} souvenirs")
 
     def set_rag(self, n: int):
-        """Update RAG chunks display."""
-        self.rag_lbl.setText(f"RAG · {n} chunks")
+        """Update knowledge base count display."""
+        self.rag_lbl.setText(f"Documents · {n}")

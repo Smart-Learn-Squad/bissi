@@ -169,12 +169,11 @@ def _strip_latex(text: str) -> str:
 _INLINE_RE = re.compile(
     r"(`[^`\n]+`)"                              # 1: `code`
     r"|(\*\*(?:[^*]|\*(?!\*))+\*\*)"           # 2: **bold**
-    r"|(__ (?:[^_]|_(?!_))+ __)"               # 3: __bold__  (spaces stripped)
+    r"|(__(?:[^_]|_(?!_))+__)"                 # 3: __bold__
     r"|(\*(?:[^*\n])+\*)"                      # 4: *italic*
     r"|(_(?:[^_\n])+_)"                        # 5: _italic_
     r"|(~~(?:[^~]|~(?!~))+~~)"                # 6: ~~strike~~
     r"|(\[([^\]]+)\]\((https?://[^\)]+)\))",   # 7: [label](url)
-    re.VERBOSE,
 )
 
 
@@ -351,7 +350,8 @@ def parse(text: str) -> ParseResult:
     if not text:
         return ParseResult(blocks=[])
 
-    text = _strip_latex(text)
+    # Keep LaTeX delimiters for frontend KaTeX rendering; only unescape \$.
+    text = text.replace(r"\$", "$")
     text = re.sub(r"\n{3,}", "\n\n", text)   # collapse excessive blank lines
 
     blocks:    list[Block] = []

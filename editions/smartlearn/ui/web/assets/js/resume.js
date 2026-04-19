@@ -3,12 +3,40 @@
 
   let fichierImporte = null; // { type, base64, mediaType, nom }
   let bridge = null;
+  const PROGRESS_KEY = "bissi_smartlearn_progress";
 
   const $ = (sel) => document.querySelector(sel);
   const esc = (s) => String(s ?? "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
+
+  function updateProgressAfterAnalysis(titre) {
+    const chapterTitle = String(titre || "Chapitre").trim();
+    if (!chapterTitle) return;
+    let progress = { chapitres: [], quizCompleted: 0, totalTemps: 0 };
+    try {
+      const raw = localStorage.getItem(PROGRESS_KEY);
+      if (raw) progress = JSON.parse(raw);
+    } catch (_) {}
+    if (!Array.isArray(progress.chapitres)) progress.chapitres = [];
+    const exists = progress.chapitres.some((c) =>
+      String(c?.titre || "").trim().toLowerCase() === chapterTitle.toLowerCase()
+    );
+    if (!exists) {
+      progress.chapitres.unshift({
+        titre: chapterTitle,
+        score: Number(0),
+        date: new Date().toISOString(),
+      });
+    }
+    progress.quizCompleted = Number(progress.quizCompleted || 0);
+    progress.totalTemps = Math.max(
+      Number(progress.totalTemps || 0),
+      Number(localStorage.getItem("sl_temps_etude") || 0),
+    );
+    localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress));
+  }
 
   function setEtat(etat) {
     $("#loadingState")?.classList.toggle("show", etat === "loading");
@@ -199,6 +227,7 @@
     sessionStorage.setItem("sl_concepts_cours", (d.concepts || []).join(", "));
     sessionStorage.setItem("sl_points_cours", (d.points_cles || []).join("\n"));
     sessionStorage.setItem("sl_matiere_cours", d.matiere || "General");
+    updateProgressAfterAnalysis(d.titre || "Chapitre");
 
     setEtat("results");
   }

@@ -66,6 +66,24 @@ class ConversationStore:
             )
             conn.commit()
             return cursor.lastrowid
+
+    def update_conversation_title(self, conversation_id: int, title: str) -> bool:
+        """Update conversation title.
+        
+        Args:
+            conversation_id: Conversation to update
+            title: New title
+            
+        Returns:
+            True if updated successfully
+        """
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute(
+                "UPDATE conversations SET title = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                (title, conversation_id)
+            )
+            conn.commit()
+            return cursor.rowcount > 0
     
     def save_message(self, 
                      conversation_id: int,

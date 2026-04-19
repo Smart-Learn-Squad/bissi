@@ -43,7 +43,7 @@ class StatusBar(QWidget):
         self._model_lbl = stat(f"Ollama · {DEFAULT_CONFIG.OLLAMA_MODEL}")
         self._mem_lbl = stat("Mémoire · 0 souvenirs")
         self._session_lbl = stat("Session · 00:00")
-        self._rag_lbl = stat("RAG · ChromaDB")
+        self._rag_lbl = stat("Mémoire contextuelle")
 
         layout.addWidget(self._dot)
         layout.addWidget(self._model_lbl)
@@ -78,8 +78,8 @@ class StatusBar(QWidget):
         self._mem_lbl.setText(f"Mémoire · {n} souvenirs")
 
     def set_rag(self, n: int):
-        """Update RAG chunks display."""
-        self._rag_lbl.setText(f"RAG · {n} chunks")
+        """Update knowledge base count display."""
+        self._rag_lbl.setText(f"Documents · {n}")
 
     def set_routing(self, model: str, score: float):
         """Affiche le modèle actif (gemma4:e2b)."""

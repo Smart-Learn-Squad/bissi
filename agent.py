@@ -125,6 +125,38 @@ FORBIDDEN:
         self.current_conversation_id = self.conversation_store.create_conversation(title)
         return self.current_conversation_id
 
+    def _generate_conversation_title(self, first_message: str) -> str:
+        """Generate a concise title from the first user message.
+        
+        Takes first 5-7 meaningful words, max 40 chars.
+        """
+        # Clean up the message
+        clean = first_message.strip().replace('\n', ' ')
+        # Remove common prefixes
+        prefixes = ['analyse ', 'crée ', 'créer ', 'génère ', 'générer ', 
+                    'résume ', 'résumer ', 'explique ', 'expliquer ', 
+                    'liste ', 'lister ', 'trouve ', 'trouver ', 
+                    'montre ', 'montrer ', 'fais ', 'faire ', 'aide ', 'aider ']
+        lower = clean.lower()
+        for p in prefixes:
+            if lower.startswith(p):
+                clean = clean[len(p):].strip()
+                break
+        # Take first words, max 40 chars
+        words = clean.split()
+        title_words = []
+        length = 0
+        for w in words[:7]:
+            if length + len(w) + 1 <= 40:
+                title_words.append(w)
+                length += len(w) + 1
+            else:
+                break
+        title = ' '.join(title_words)
+        if len(title) > 40:
+            title = title[:37] + '...'
+        return title if title else 'Nouvelle conversation'
+
     def load_conversation(self, conversation_id: int) -> bool:
         """Load existing conversation."""
         history = self.conversation_store.get_history(conversation_id)
@@ -188,6 +220,14 @@ FORBIDDEN:
         self.conversation_store.save_message(
             self.current_conversation_id, 'user', user_input
         )
+
+        # Auto-generate title on first user message
+        history_check = self.conversation_store.get_history(self.current_conversation_id)
+        if len(history_check) == 1:  # First message just saved
+            auto_title = self._generate_conversation_title(user_input)
+            self.conversation_store.update_conversation_title(
+                self.current_conversation_id, auto_title
+            )
 
         history = self.conversation_store.get_history(
             self.current_conversation_id, limit=15

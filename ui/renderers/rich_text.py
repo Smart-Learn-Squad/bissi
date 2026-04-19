@@ -5,9 +5,17 @@ Rich renderables (Text, Markdown, Table) for use with RichLog.write().
 """
 from __future__ import annotations
 
+import re
+
 from rich.text import Text
 from rich.table import Table
 from rich import box as rich_box
+from markdown_it import MarkdownIt
+
+try:
+    from mdit_py_plugins.dollarmath import dollarmath_plugin
+except Exception:  # optional dependency
+    dollarmath_plugin = None
 
 from ui.parser import (
     ParseResult, Block,
@@ -35,13 +43,94 @@ def configure(colors: dict) -> None:
     _C.update(colors)
 
 
+_MD_VALIDATOR = MarkdownIt("commonmark")
+if dollarmath_plugin is not None:
+    _MD_VALIDATOR.use(dollarmath_plugin)
+
+_MATH_RE = re.compile(r"\$\$([^$]+)\$\$|\$([^$\n]+)\$")
+_SUPERSCRIPTS = str.maketrans(
+    "0123456789+-=()abcdefghijklmnoprstuvwxyz",
+    "⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁼⁽⁾ᵃᵇᶜᵈᵉᶠᵍʰⁱʲᵏˡᵐⁿᵒᵖʳˢᵗᵘᵛʷˣʸᶻ",
+)
+_SUBSCRIPTS = str.maketrans(
+    "0123456789aehijklmnoprstuvx",
+    "₀₁₂₃₄₅₆₇₈₉ₐₑₕᵢⱼₖₗₘₙₒₚᵣₛₜᵤᵥₓ",
+)
+_LATEX_SYMBOLS = {
+    r"\omega": "ω",
+    r"\Omega": "Ω",
+    r"\infty": "∞",
+    r"\pi": "π",
+    r"\theta": "θ",
+    r"\alpha": "α",
+    r"\beta": "β",
+    r"\gamma": "γ",
+    r"\Delta": "Δ",
+    r"\sqrt{-1}": "√-1",
+    r"\cdot": "·",
+    r"\times": "×",
+    r"\int": "∫",
+    r"\sum": "∑",
+}
+
+
+def _clean_markdown(text: str) -> str:
+    """Light markdown normalization for terminal rendering stability."""
+    cleaned = (text or "").replace("\r\n", "\n").replace(r"\$", "$")
+    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+    cleaned = re.sub(r"^(#{1,6})(\S)", r"\1 \2", cleaned, flags=re.MULTILINE)
+    cleaned = re.sub(r"^([*+-]|\d+\.)([^\s])", r"\1 \2", cleaned, flags=re.MULTILINE)
+    # Force tokenization once with markdown-it + math plugin so malformed blocks
+    # are handled consistently before our AST parser transforms to Rich renderables.
+    _MD_VALIDATOR.parse(cleaned)
+    return cleaned
+
+
 # ── Inline → Rich Text ───────────────────────────────────────────────────────
+
+def _apply_scripts(text: str) -> str:
+    text = re.sub(
+        r"\^\{([^}]*)\}|\^([^\s{])",
+        lambda m: (m.group(1) if m.group(1) is not None else m.group(2)).translate(_SUPERSCRIPTS),
+        text,
+    )
+    text = re.sub(
+        r"_\{([^}]*)\}|_([^\s{_])",
+        lambda m: (m.group(1) if m.group(1) is not None else m.group(2)).translate(_SUBSCRIPTS),
+        text,
+    )
+    return text
+
+
+def _latex_to_unicode(expr: str) -> str:
+    out = expr.strip()
+    out = out.replace("\\\\", "\\")
+    out = re.sub(r"\\frac\{([^}]*)\}\{([^}]*)\}", r"(\1)/(\2)", out)
+    out = out.replace(r"\mathcal{F}", "ℱ")
+    out = out.replace(r"\{", "{").replace(r"\}", "}")
+    for src, dst in _LATEX_SYMBOLS.items():
+        out = out.replace(src, dst)
+    out = _apply_scripts(out)
+    return out
+
+
+def _append_with_math(target: Text, raw: str, base_style: str) -> None:
+    raw = raw.replace(r"\$", "$")
+    last = 0
+    for m in _MATH_RE.finditer(raw):
+        if m.start() > last:
+            target.append(raw[last:m.start()], style=base_style)
+        expr = m.group(1) if m.group(1) is not None else m.group(2)
+        target.append(_latex_to_unicode(expr), style=f"bold {_C['yellow']}")
+        last = m.end()
+    if last < len(raw):
+        target.append(raw[last:], style=base_style)
 
 def _inline_to_text(nodes, base_style: str = "white") -> Text:
     result = Text()
     for node in nodes:
         if isinstance(node, TextNode):
-            result.append(node.text, style=base_style)
+            _append_with_math(result, node.text, base_style)
         elif isinstance(node, BoldNode):
             result.append(node.text, style=f"bold {base_style}")
         elif isinstance(node, ItalicNode):
@@ -145,7 +234,7 @@ def render(text: str) -> list:
         from ui.renderers.rich_text import render
         renderables = render(response)
     """
-    result = parse(text)
+    result = parse(_clean_markdown(text))
     out: list = []
     for block in result.blocks:
         out.extend(_render_block(block))

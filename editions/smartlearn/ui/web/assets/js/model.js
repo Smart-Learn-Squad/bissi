@@ -776,8 +776,9 @@
     // Persist comprehension signal for home.js dashboard
     try {
       const titre = sessionStorage.getItem("sl_titre_cours") || "Chapitre";
-      const key = "sl_compris_" + titre.toLowerCase().replace(/\s+/g, "_");
-      localStorage.setItem(key, JSON.stringify({
+      // Sanitize key: only alphanumeric + underscore
+      const safeKey = titre.toLowerCase().replace(/[^a-z0-9]+/g, "_").slice(0, 64);
+      localStorage.setItem("sl_compris_" + safeKey, JSON.stringify({
         compris,
         titre,
         date: new Date().toISOString(),

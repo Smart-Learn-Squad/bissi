@@ -169,6 +169,27 @@ Screen {
 """
 
 
+def _copy_to_clipboard(text: str) -> bool:
+    """Try to copy text to the system clipboard.
+
+    Attempts xclip then xsel. Returns True on success, False if unavailable.
+    """
+    import subprocess
+    for cmd in (
+        ["xclip", "-selection", "clipboard"],
+        ["xsel", "--clipboard", "--input"],
+    ):
+        try:
+            result = subprocess.run(cmd, input=text.encode(), capture_output=True)
+            if result.returncode == 0:
+                return True
+        except FileNotFoundError:
+            continue
+        except Exception:
+            continue
+    return False
+
+
 # ─── App ──────────────────────────────────────────────────────────────────────
 class BissiApp(App):
     CSS = APP_CSS
@@ -338,7 +359,8 @@ class BissiApp(App):
             return 64
 
     def _print_splash(self, log: RichLog) -> None:
-        W = min(120, max(76, self.size.width - 4))
+        splash_width = min(120, max(76, self.size.width - 4))
+        W = splash_width  # alias kept for local readability
 
         # ── Panel 1: Logo ─────────────────────────────────────────────────────
         log.write(Text("┌" + "─" * (W - 2) + "┐", style=f"dim {C_BLUE}"))
@@ -646,8 +668,9 @@ class BissiApp(App):
                     is_last = j == len(items) - 1
                     branch = "  └ " if is_last else "  ├ "
                     role = str(item.get("role", "?")).capitalize()
-                    content = str(item.get("content", "")).replace("\n", " ")[:160]
-                    if len(str(item.get("content", ""))) > 160:
+                    raw_content = str(item.get("content", ""))
+                    content = raw_content.replace("\n", " ")[:160]
+                    if len(raw_content) > 160:
                         content += "…"
                     log.write(
                         Text(branch, style=C_DIM) +
@@ -657,43 +680,22 @@ class BissiApp(App):
 
         elif cmd_lower == "/copy":
             if self._last_response:
-                try:
-                    import subprocess
-                    proc = subprocess.run(
-                        ["xclip", "-selection", "clipboard"],
-                        input=self._last_response.encode(),
-                        capture_output=True,
-                    )
-                    if proc.returncode != 0:
-                        raise OSError("xclip failed")
+                if _copy_to_clipboard(self._last_response):
                     log.write(
                         Text("  └ ", style=C_DIM) +
                         Text("Copié dans le presse-papier.", style=f"dim {C_GREEN}")
                     )
-                except Exception:
-                    try:
-                        import subprocess
-                        subprocess.run(
-                            ["xsel", "--clipboard", "--input"],
-                            input=self._last_response.encode(),
-                            capture_output=True,
-                            check=True,
-                        )
-                        log.write(
-                            Text("  └ ", style=C_DIM) +
-                            Text("Copié dans le presse-papier.", style=f"dim {C_GREEN}")
-                        )
-                    except Exception:
-                        log.write(
-                            Text("  ├ ", style=C_DIM) +
-                            Text("Presse-papier non disponible.", style=C_YELLOW)
-                        )
-                        # Display the response so the user can copy manually
-                        preview = self._last_response[:400]
-                        for line in preview.splitlines()[:10]:
-                            log.write(Text(f"  │  {line}", style=C_DIM))
-                        if len(self._last_response) > 400:
-                            log.write(Text("  └  …", style=C_DIM))
+                else:
+                    log.write(
+                        Text("  ├ ", style=C_DIM) +
+                        Text("Presse-papier non disponible.", style=C_YELLOW)
+                    )
+                    # Display the response so the user can copy manually
+                    preview = self._last_response[:400]
+                    for line in preview.splitlines()[:10]:
+                        log.write(Text(f"  │  {line}", style=C_DIM))
+                    if len(self._last_response) > 400:
+                        log.write(Text("  └  …", style=C_DIM))
             else:
                 log.write(
                     Text("  └ ", style=C_DIM) +

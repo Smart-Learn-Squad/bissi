@@ -743,9 +743,8 @@ function loadDir(path) {
       const data = JSON.parse(raw);
       if (!data.success) return;
       S.curPath = target;
-      // Show ~-relative path when inside home directory
-      const homeDir = '/home/' + (location.hostname || 'user');
-      const displayPath = target.replace(/^\/home\/[^/]+/, '~');
+      // Replace leading /home/<user> or /Users/<user> with ~ for a friendlier path display.
+      const displayPath = target.replace(/^\/(home|Users)\/[^/]+/, '~');
       el('#explorer-path').textContent = displayPath;
       buildTree(data.items, target);
     } catch { /* ignore */ }

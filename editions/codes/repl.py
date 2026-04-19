@@ -209,13 +209,13 @@ class BissiApp(App):
         self._last_response = ""
 
     COMMANDS = [
-        ("/new",     "Start a new conversation"),
-        ("/cd",      "Change the working directory"),
-        ("/model",   "Show active model info"),
-        ("/history", "Show recent history"),
-        ("/copy",    "Copy last response"),
-        ("/help",    "Show help"),
-        ("/exit",    "Quit Bissi Codes"),
+        ("/new",     "Nouvelle conversation"),
+        ("/cd",      "Changer le répertoire courant"),
+        ("/model",   "Afficher le modèle actif"),
+        ("/history", "Afficher l'historique récent"),
+        ("/copy",    "Copier la dernière réponse"),
+        ("/help",    "Afficher l'aide"),
+        ("/exit",    "Quitter Bissi Codes"),
     ]
 
     # ── Layout ────────────────────────────────────────────────────────────────
@@ -225,7 +225,7 @@ class BissiApp(App):
         with Horizontal(id="input-row"):
             yield Static(self._prompt_text(), id="prompt-label")
             yield Input(placeholder="", id="user-input")
-            yield Static("⠋ thinking", id="loading")
+            yield Static("⠋ réflexion", id="loading")
 
     def _prompt_text(self) -> str:
         cwd = os.getcwd().replace(os.path.expanduser("~"), "~")
@@ -395,11 +395,11 @@ class BissiApp(App):
 
         # ── Panel 2: Tips + Recent activity (side by side) ────────────────────
         tips = [
-            ("/new",     "New conversation"),
-            ("/model",   "Show model info"),
-            ("/history", "View history"),
-            ("/help",    "Show help"),
-            ("/exit",    "Quit"),
+            ("/new",     "Nouvelle conversation"),
+            ("/model",   "Modèle actif"),
+            ("/history", "Voir l'historique"),
+            ("/help",    "Afficher l'aide"),
+            ("/exit",    "Quitter"),
         ]
 
         # recent activity from conversation store (last 3 sessions)
@@ -415,14 +415,14 @@ class BissiApp(App):
             pass
 
         if not recent_lines:
-            recent_lines = [Text("  No recent activity", style=f"dim {C_GREEN}")]
+            recent_lines = [Text("  Aucune activité récente", style=f"dim {C_GREEN}")]
 
         INNER = W - 2  # 74 chars inside the frame
         COL_W = INNER // 2  # 37 chars per column
 
         log.write(Text("┌" + "─" * INNER + "┐", style=f"dim {C_BLUE}"))
-        left_hdr  = "Tips for getting started"
-        right_hdr = "Recent activity"
+        left_hdr  = "Conseils pour démarrer"
+        right_hdr = "Activité récente"
         log.write(
             Text("│ ", style=f"dim {C_BLUE}") +
             Text(left_hdr.ljust(COL_W - 1), style=f"bold {C_BLUE}") +
@@ -590,7 +590,7 @@ class BissiApp(App):
         log.write(Text(""))
         log.write(
             Text("● ", style=f"bold {C_RED}") +
-            Text("Error", style=f"bold {C_RED}")
+            Text("Erreur", style=f"bold {C_RED}")
         )
         log.write(
             Text("  └ ", style=C_DIM) +
@@ -616,7 +616,7 @@ class BissiApp(App):
         if cmd_lower in ("/exit", "/quit"):
             log.write(
                 Text("  └ ", style=C_DIM) +
-                Text("Catch you later!", style=C_DIM)
+                Text("À bientôt !", style=C_DIM)
             )
             _save_history(self._history)
             self.exit()
@@ -626,7 +626,7 @@ class BissiApp(App):
             self.agent.start_conversation()
             log.write(
                 Text("  └ ", style=C_DIM) +
-                Text("New conversation started.", style=f"dim {C_GREEN}")
+                Text("Nouvelle conversation démarrée.", style=f"dim {C_GREEN}")
             )
 
         elif cmd_lower == "/cd":
@@ -636,7 +636,7 @@ class BissiApp(App):
             if not os.path.isdir(target):
                 log.write(
                     Text("  └ ", style=C_DIM) +
-                    Text(f"Directory not found: {target}", style=C_RED)
+                    Text(f"Répertoire introuvable : {target}", style=C_RED)
                 )
             else:
                 os.chdir(target)
@@ -651,7 +651,7 @@ class BissiApp(App):
         elif cmd_lower == "/model":
             log.write(
                 Text("  └ ", style=C_DIM) +
-                Text("Active model: ", style=C_DIM) +
+                Text("Modèle actif : ", style=C_DIM) +
                 Text(self.agent.model, style=f"bold {C_BLUE}")
             )
 
@@ -660,7 +660,7 @@ class BissiApp(App):
             if not history:
                 log.write(
                     Text("  └ ", style=C_DIM) +
-                    Text("No history for this conversation.", style=C_DIM)
+                    Text("Aucun historique pour cette conversation.", style=C_DIM)
                 )
             else:
                 items = history[-20:]
@@ -683,12 +683,12 @@ class BissiApp(App):
                 if _copy_to_clipboard(self._last_response):
                     log.write(
                         Text("  └ ", style=C_DIM) +
-                        Text("Copied to clipboard.", style=f"dim {C_GREEN}")
+                        Text("Copié dans le presse-papiers.", style=f"dim {C_GREEN}")
                     )
                 else:
                     log.write(
                         Text("  ├ ", style=C_DIM) +
-                        Text("Clipboard not available.", style=C_YELLOW)
+                        Text("Presse-papiers non disponible.", style=C_YELLOW)
                     )
                     # Display the response so the user can copy manually
                     preview = self._last_response[:400]
@@ -699,18 +699,18 @@ class BissiApp(App):
             else:
                 log.write(
                     Text("  └ ", style=C_DIM) +
-                    Text("No response to copy.", style=C_DIM)
+                    Text("Aucune réponse à copier.", style=C_DIM)
                 )
 
         elif cmd_lower in ("/help", "/?", "/h"):
             tips = [
-                ("/new",     "Start a new conversation"),
-                ("/cd",      "Change the working directory"),
-                ("/model",   "Show active model info"),
-                ("/history", "Show recent history (last 20)"),
-                ("/copy",    "Copy last response"),
-                ("/help",    "Show this help"),
-                ("/exit",    "Quit Bissi Codes"),
+                ("/new",     "Démarrer une nouvelle conversation"),
+                ("/cd",      "Changer le répertoire courant"),
+                ("/model",   "Afficher le modèle actif"),
+                ("/history", "Afficher l'historique (20 derniers)"),
+                ("/copy",    "Copier la dernière réponse"),
+                ("/help",    "Afficher cette aide"),
+                ("/exit",    "Quitter Bissi Codes"),
             ]
             for j, (c, d) in enumerate(tips):
                 is_last = j == len(tips) - 1
@@ -728,15 +728,15 @@ class BissiApp(App):
             if matches:
                 log.write(
                     Text("  └ ", style=C_DIM) +
-                    Text(f"Unknown command: {parts[0]}  ", style=C_YELLOW) +
-                    Text(f"— did you mean ", style=C_DIM) +
+                    Text(f"Commande inconnue : {parts[0]}  ", style=C_YELLOW) +
+                    Text(f"— vouliez-vous dire ", style=C_DIM) +
                     Text(matches[0], style="cyan") +
                     Text(" ?", style=C_DIM)
                 )
             else:
                 log.write(
                     Text("  └ ", style=C_DIM) +
-                    Text(f"Unknown command: {parts[0]}  (type /help)", style=C_YELLOW)
+                    Text(f"Commande inconnue : {parts[0]}  (tapez /help)", style=C_YELLOW)
                 )
 
         log.write(Text(""))

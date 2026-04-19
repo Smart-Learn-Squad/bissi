@@ -12,7 +12,7 @@
     .replace(/>/g, "&gt;");
 
   function updateProgressAfterAnalysis(titre) {
-    const chapterTitle = String(titre || "Chapter").trim();
+    const chapterTitle = String(titre || "Chapitre").trim();
     if (!chapterTitle) return;
     let progress = { chapitres: [], quizCompleted: 0, totalTemps: 0 };
     try {
@@ -60,14 +60,14 @@
   function updateCount() {
     const text = $("#courseText")?.value || "";
     const node = $("#charCount");
-    if (node) node.textContent = `${text.length.toLocaleString("en")} characters`;
+    if (node) node.textContent = `${text.length.toLocaleString("fr")} caractère${text.length > 1 ? 's' : ''}`;
   }
 
   function importerFichier(input, type) {
     const file = input?.files?.[0];
     if (!file) return;
     if (file.size > 10 * 1024 * 1024) {
-      alert("File too large (max 10 MB).");
+      alert("Fichier trop grand (max 10 Mo).");
       input.value = "";
       return;
     }
@@ -87,7 +87,7 @@
       const ta = $("#courseText");
       if (ta) {
         ta.value = "";
-        ta.placeholder = `Imported file: ${file.name}\nAdd optional instructions here, or leave blank.`;
+        ta.placeholder = `Fichier importé : ${file.name}\nAjoute des instructions ici (facultatif).`;
       }
       updateCount();
     };
@@ -100,7 +100,7 @@
     $("#uploadBadge")?.remove();
     const ta = $("#courseText");
     if (ta) {
-      ta.placeholder = "Paste your lesson text here (minimum 80 characters)…";
+      ta.placeholder = "Colle ici le texte de ton cours (minimum 80 caractères)…";
       ta.value = "";
     }
     updateCount();
@@ -142,12 +142,12 @@
   async function analyser() {
     const texte = ($("#courseText")?.value || "").trim();
     if (!texte && !fichierImporte) {
-      afficherErreur("Paste text or import a file.");
+      afficherErreur("Colle du texte ou importe un fichier.");
       return;
     }
     if (!fichierImporte && texte.length < 80) {
       const manque = 80 - texte.length;
-      afficherErreur(`Text too short (${texte.length}/80 characters). Add ${manque} more character${manque > 1 ? 's' : ''} or import a file.`);
+      afficherErreur(`Texte trop court (${texte.length}/80 caractères). Ajoute ${manque} caractère${manque > 1 ? 's' : ''} ou importe un fichier.`);
       return;
     }
     setEtat("loading");
@@ -178,7 +178,7 @@
       const parsed = JSON.parse(normalizeJsonChunk(raw));
       afficherResultats(parsed);
     } catch (e) {
-      afficherErreur("Analysis failed via local engine.");
+      afficherErreur("Analyse impossible via le moteur local.");
     }
   }
 
@@ -186,7 +186,7 @@
     fichierImporte = null;
     $("#uploadBadge")?.remove();
 
-    $("#resultTitle").textContent = d.titre || "Analysed chapter";
+    $("#resultTitle").textContent = d.titre || "Chapitre analysé";
     $("#resultResume").textContent = d.resume || "—";
 
     const concepts = $("#resultConcepts");
@@ -223,12 +223,12 @@
     }
 
     sessionStorage.setItem("sl_texte_cours", $("#courseText")?.value || "");
-    sessionStorage.setItem("sl_titre_cours", d.titre || "Chapter");
+    sessionStorage.setItem("sl_titre_cours", d.titre || "Chapitre");
     sessionStorage.setItem("sl_resume_cours", d.resume || "");
     sessionStorage.setItem("sl_concepts_cours", (d.concepts || []).join(", "));
     sessionStorage.setItem("sl_points_cours", (d.points_cles || []).join("\n"));
-    sessionStorage.setItem("sl_matiere_cours", d.matiere || "General");
-    updateProgressAfterAnalysis(d.titre || "Chapter");
+    sessionStorage.setItem("sl_matiere_cours", d.matiere || "Général");
+    updateProgressAfterAnalysis(d.titre || "Chapitre");
 
     setEtat("results");
   }
@@ -241,7 +241,7 @@
       ta.focus();
     }
     const c = $("#charCount");
-    if (c) c.textContent = "0 characters";
+    if (c) c.textContent = "0 caractère";
   }
 
   function copierTout() {
@@ -255,7 +255,7 @@
       return `${t} : ${v}`;
     }).join("\n");
     navigator.clipboard.writeText(
-      `SMARTLEARN — ${titre}\n\nSUMMARY\n${resume}\n\nKEY CONCEPTS\n${concepts}\n\nESSENTIAL POINTS\n${points}\n\nDEFINITIONS\n${defs}`
+      `SMARTLEARN — ${titre}\n\nRÉSUMÉ\n${resume}\n\nCONCEPTS CLÉS\n${concepts}\n\nPOINTS ESSENTIELS\n${points}\n\nDÉFINITIONS\n${defs}`
     );
   }
 
@@ -276,7 +276,7 @@
   function initSidebarUser() {
     if (!window.SmartLearnShell) return;
     const user = window.SmartLearnShell.readStoredUser?.() || {
-      prenom: "Student",
+      prenom: "Étudiant",
       filiere: "SmartLearn",
       email: "local@bissi",
     };

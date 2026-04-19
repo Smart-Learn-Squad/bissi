@@ -70,7 +70,7 @@ function loadInitial() {
       updateProfile(data.profile);
       const convs = Array.isArray(data.conversations) ? data.conversations : [];
       renderSessions(convs);
-      sysMsg(`Bissi ready · ${data.model} · type a message`, 'dim');
+      sysMsg(`Bissi prêt · ${data.model} · tape un message`, 'dim');
       loadDir(null);
     } catch (e) {
       console.error('[bissi] loadInitial error:', e);
@@ -411,7 +411,7 @@ function setSendBtnState(sending) {
   const btn = el('#send-btn');
   if (!btn) return;
   if (sending) {
-    btn.title = 'Stop';
+    btn.title = 'Arrêter';
     btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>';
     btn.onclick = interrupt;
     btn.disabled = false;
@@ -461,9 +461,9 @@ function submit() {
     S.bissi.sendMessage(txt);
   } else {
     // Demo stub
-    setTimeout(() => onToken('**Bissi** in demo mode.'), 300);
+    setTimeout(() => onToken('**Bissi** en mode démo.'), 300);
     setTimeout(() => onFinished(JSON.stringify({
-      full: '**Bissi** in demo mode.',
+      full: '**Bissi** en mode démo.',
       turns: 1,
       profile: { total: 1 },
       model: 'demo',

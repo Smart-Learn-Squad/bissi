@@ -25,7 +25,7 @@ class Sidebar(QWidget):
         layout.setSpacing(0)
 
         # Header
-        hdr = QLabel("Sessions")
+        hdr = QLabel("Sessions")  # section label
         hdr.setStyleSheet(f"""
             padding: 12px 14px 8px;
             font-size: 11px;
@@ -47,9 +47,9 @@ class Sidebar(QWidget):
         sessions_w.setStyleSheet(f"background: {self.theme.C['bg_sidebar']};")
         layout.addWidget(sessions_w)
 
-        self._add_session("Active session", "Now", active=True)
-        self._add_session("IFRI Budget", "Yesterday")
-        self._add_session("Python Course", "Monday")
+        self._add_session("Session active", "Maintenant", active=True)
+        self._add_session("IFRI Budget", "Hier")
+        self._add_session("Cours Python", "Lundi")
 
         layout.addStretch()
 
@@ -63,12 +63,12 @@ class Sidebar(QWidget):
         fl.setContentsMargins(14, 10, 14, 12)
         fl.setSpacing(4)
 
-        mem_lbl = QLabel("Memory")
+        mem_lbl = QLabel("Mémoire")
         mem_lbl.setStyleSheet(
             f"font-size:11px;color:{self.theme.C['text_dim']};font-family:{self.theme.FONT_UI};"
             f"border:none;background:transparent;"
         )
-        self.mem_count = QLabel("0 memories")
+        self.mem_count = QLabel("0 souvenir")
         self.mem_count.setStyleSheet(
             f"font-size:12px;color:{self.theme.C['purple']};font-weight:500;"
             f"font-family:{self.theme.FONT_UI};border:none;background:transparent;"
@@ -110,7 +110,7 @@ class Sidebar(QWidget):
 
     def set_memory(self, n: int):
         """Update memory count display."""
-        self.mem_count.setText(f"{n} memories")
+        self.mem_count.setText(f"{n} souvenir{'s' if n > 1 else ''}")
 
     def set_rag(self, n: int):
         """Update knowledge base count display."""

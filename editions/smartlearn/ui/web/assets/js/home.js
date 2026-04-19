@@ -2,13 +2,13 @@
      REAL DATA — localStorage only
   ══════════════════════════════════════════ */
 
-  const MOIS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const MOIS = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
   const PROGRESS_KEY = "bissi_smartlearn_progress";
 
   function normalizeProgress(parsed) {
     return {
       chapitres: Array.isArray(parsed?.chapitres) ? parsed.chapitres.map((c) => ({
-        titre: String(c?.titre || c?.nom || "Chapter"),
+        titre: String(c?.titre || c?.nom || "Chapitre"),
         score: Math.max(0, Math.min(100, Number(c?.score || 0))),
         date: c?.date || (c?.timestamp ? new Date(c.timestamp).toISOString() : new Date().toISOString()),
       })) : [],
@@ -62,9 +62,9 @@
       const d = new Date(today);
       d.setDate(today.getDate() + i + (ch.score >= 80 ? 3 : 1));
       let urgency, duration;
-      if (ch.score < 50)      { urgency = 'urgent'; duration = '25 min · Intense focus'; }
-      else if (ch.score < 70) { urgency = 'normal'; duration = '25 min · Active review'; }
-      else                    { urgency = 'ok';     duration = '15 min · Maintenance'; }
+      if (ch.score < 50)      { urgency = 'urgent'; duration = '25 min · Focus intensif'; }
+      else if (ch.score < 70) { urgency = 'normal'; duration = '25 min · Révision active'; }
+      else                    { urgency = 'ok';     duration = '15 min · Maintien'; }
       planning.push({
         jour: String(d.getDate()).padStart(2, '0'),
         mois: MOIS[d.getMonth()],
@@ -82,24 +82,24 @@
     const base = new Date(ts).getTime();
     if (!Number.isFinite(base)) return "";
     const diff = Math.floor((Date.now() - base) / 86400000);
-    if (diff === 0) return "Today";
-    if (diff === 1) return 'Yesterday';
-    if (diff < 7)  return `${diff}d ago`;
-    return new Date(ts).toLocaleDateString('en-US', { day:'numeric', month:'short' });
+    if (diff === 0) return "Aujourd'hui";
+    if (diff === 1) return 'Hier';
+    if (diff < 7)  return `Il y a ${diff}j`;
+    return new Date(ts).toLocaleDateString('fr-FR', { day:'numeric', month:'short' });
   }
 
   /* ── RENDER ── */
   function renderChapitres(data) {
     const liste = document.getElementById('chaptersList');
     liste.innerHTML = '';
-    document.getElementById('chapterBadge').textContent = data.chapitres.length + ' chapter' + (data.chapitres.length > 1 ? 's' : '');
+    document.getElementById('chapterBadge').textContent = data.chapitres.length + ' chapitre' + (data.chapitres.length > 1 ? 's' : '');
 
     if (data.chapitres.length === 0) {
       liste.innerHTML = `
         <div style="text-align:center;padding:40px 16px;color:var(--text-dim)">
           <div style="font-size:36px;margin-bottom:12px">📚</div>
-          <div style="font-size:14px;font-weight:500;color:var(--text);margin-bottom:6px">No activity yet</div>
-          <div style="font-size:12px">Complete your first quiz on <a href="index.html" style="color:var(--blue)">SmartLearn Chat</a> to see your progress here.</div>
+          <div style="font-size:14px;font-weight:500;color:var(--text);margin-bottom:6px">Aucune activité encore</div>
+          <div style="font-size:12px">Complète ton premier quiz sur <a href="index.html" style="color:var(--blue)">SmartLearn Chat</a> pour voir ta progression ici.</div>
         </div>`;
       return;
     }
@@ -118,8 +118,8 @@
           <div class="prog-bar ${cls}" id="bar${i}" style="width:0%"></div>
         </div>
         <div class="chapter-meta">
-          <span class="chapter-tag">Chapter</span>
-          <span>${dateAff ? dateAff : 'Recent'}</span>
+          <span class="chapter-tag">Chapitre</span>
+          <span>${dateAff ? dateAff : 'Récent'}</span>
         </div>`;
       liste.appendChild(item);
       setTimeout(() => {
@@ -132,12 +132,12 @@
   function renderPointsFaibles(data) {
     const liste = document.getElementById('weakList');
     if (data.chapitres.length === 0) {
-      liste.innerHTML = `<div style="text-align:center;padding:16px;color:var(--text-faint);font-size:12px">Start a quiz to identify your weak points.</div>`;
+      liste.innerHTML = `<div style="text-align:center;padding:16px;color:var(--text-faint);font-size:12px">Lance un quiz pour identifier tes points faibles.</div>`;
       return;
     }
     const faibles = data.chapitres.filter(ch => ch.score < 70).sort((a, b) => a.score - b.score);
     if (faibles.length === 0) {
-      liste.innerHTML = `<div style="text-align:center;padding:16px;color:var(--green);font-size:13px">✓ No weak points — keep it up!</div>`;
+      liste.innerHTML = `<div style="text-align:center;padding:16px;color:var(--green);font-size:13px">✓ Aucun point faible — continue ainsi !</div>`;
       return;
     }
     liste.innerHTML = '';
@@ -153,11 +153,11 @@
     const liste = document.getElementById('planList');
     const planning = genererPlanning(data.chapitres);
     if (planning.length === 0) {
-      liste.innerHTML = `<div style="text-align:center;padding:16px;color:var(--text-faint);font-size:12px">The schedule is automatically generated after your first quizzes.</div>`;
+      liste.innerHTML = `<div style="text-align:center;padding:16px;color:var(--text-faint);font-size:12px">Le planning se génère automatiquement après tes premiers quiz.</div>`;
       return;
     }
     liste.innerHTML = '';
-    const labels = { urgent:'Priority', normal:'Scheduled', ok:'Maintenance' };
+    const labels = { urgent:'Prioritaire', normal:'Planifié', ok:'Maintien' };
     planning.forEach(p => {
       const item = document.createElement('div');
       item.className = 'plan-item';
@@ -176,14 +176,14 @@
   }
 
   function renderAnneau(data) {
-    let moyenne = 0, label = 'No data', sub = 'Start your first quiz!';
+    let moyenne = 0, label = 'Aucune donnée', sub = 'Lance ton premier quiz !';
     if (data.chapitres.length > 0) {
       const scores = data.chapitres.map(c => c.score);
       moyenne = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
-      if (moyenne >= 80)      { label = 'Advanced level';       sub = 'Excellent work — keep it up!'; }
-      else if (moyenne >= 65) { label = 'Intermediate level';   sub = 'You are making great progress!'; }
-      else if (moyenne >= 50) { label = 'In progress';          sub = 'A few chapters still to review.'; }
-      else                    { label = 'Early stage';          sub = 'Prioritise reviewing the basics.'; }
+      if (moyenne >= 80)      { label = 'Niveau avancé';         sub = 'Excellent travail — continue ainsi !'; }
+      else if (moyenne >= 65) { label = 'Niveau intermédiaire';  sub = 'Tu progresses très bien !'; }
+      else if (moyenne >= 50) { label = 'En cours';              sub = 'Quelques chapitres encore à revoir.'; }
+      else                    { label = 'Débutant';              sub = 'Priorise la révision des bases.'; }
     }
     document.getElementById('ringPct').textContent = moyenne ? moyenne + '%' : '—';
     document.getElementById('statMoyenne').innerHTML = moyenne ? moyenne + '<span style="font-size:18px">%</span>' : '—';
@@ -220,7 +220,7 @@
   }
 
   function resetDonnees() {
-    if (confirm('Reset all progress data?')) {
+    if (confirm('Réinitialiser toutes les données de progression ?')) {
       localStorage.removeItem(PROGRESS_KEY);
       localStorage.removeItem('sl_progression');
       localStorage.removeItem('sl_temps_etude');
@@ -246,7 +246,7 @@
   /* ── Public API called from model.js ── */
   window.ajouterResultat = function(nomChapitre, matiere, score) {
     const data = chargerDonnees();
-    const titre = String(nomChapitre || "Chapter");
+    const titre = String(nomChapitre || "Chapitre");
     const existant = data.chapitres.find(c => c.titre.toLowerCase() === titre.toLowerCase());
     if (existant) {
       existant.score = Math.round((Number(existant.score || 0) + Number(score || 0)) / 2);
@@ -364,20 +364,20 @@
       // End of a focus session: advance session count
       timerState.session = Math.min(timerState.session + 1, timerState.maxSessions);
       timerRenderDots();
-      if (!skipped) flash('🎉 Focus complete! Take a break.');
+      if (!skipped) flash('🎉 Focus terminé ! Prends une pause.');
       // Automatically switch to short break
       const isLong = timerState.session >= timerState.maxSessions;
       if (isLong) {
-        flash('🏆 4 sessions! Well-deserved long break.');
+        flash('🏆 4 sessions ! Longue pause méritée.');
         timerState.session = 0;
         timerRenderDots();
-        setTimerMode('long', 15, 'Long break');
+        setTimerMode('long', 15, 'Longue pause');
       } else {
-        setTimerMode('short', 5, 'Short break');
+        setTimerMode('short', 5, 'Pause courte');
       }
     } else {
       // End of a break: back to focus
-      if (!skipped) flash('▶ Break over. Let\'s go!');
+      if (!skipped) flash('▶ Pause terminée. C\'est parti !');
       setTimerMode('focus', 25, 'Focus');
     }
   }

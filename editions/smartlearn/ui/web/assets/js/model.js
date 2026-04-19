@@ -147,7 +147,7 @@
       const q = quiz.questions[index];
       qNode.textContent = `Q${index + 1}/${total} — ${q.q}`;
       oNode.innerHTML = "";
-      mNode.textContent = "Choose an answer.";
+      mNode.textContent = "Choisir une réponse.";
       q.options.forEach((opt, optIndex) => {
         const btn = document.createElement("button");
         btn.type = "button";
@@ -156,7 +156,7 @@
         btn.onclick = () => {
           const ok = optIndex === answerIndex(q);
           if (ok) score += 1;
-          mNode.textContent = ok ? "✅ Correct" : "❌ Wrong";
+          mNode.textContent = ok ? "✅ Correct" : "❌ Incorrect";
           [...oNode.querySelectorAll("button")].forEach((b) => { b.disabled = true; b.style.opacity = "0.75"; });
           setTimeout(() => {
             index += 1;
@@ -165,9 +165,9 @@
               return;
             }
             const pct = Math.round((score / total) * 100);
-            qNode.textContent = `Score final: ${score}/${total} (${pct}%)`;
+            qNode.textContent = `Score final : ${score}/${total} (${pct}%)`;
             oNode.innerHTML = "";
-            mNode.textContent = "Result saved to your progress.";
+            mNode.textContent = "Résultat sauvegardé dans ta progression.";
             recordQuizResult(pct);
           }, 500);
         };
@@ -189,7 +189,7 @@
   function hydrateSidebarUser() {
     if (!window.SmartLearnShell) return;
     const user = window.SmartLearnShell.readStoredUser?.() || {
-      prenom: "Student",
+      prenom: "Étudiant",
       filiere: "SmartLearn",
       email: "local@bissi",
     };
@@ -200,7 +200,7 @@
     const params = new URLSearchParams(window.location.search);
     if (params.get("flow") !== "resume") return;
 
-    const title = sessionStorage.getItem("sl_titre_cours") || "this chapter";
+    const title = sessionStorage.getItem("sl_titre_cours") || "ce chapitre";
     const resume = sessionStorage.getItem("sl_resume_cours") || "";
     const points = sessionStorage.getItem("sl_points_cours") || "";
     const matiere = sessionStorage.getItem("sl_matiere_cours") || "General";
@@ -240,7 +240,7 @@
       setTimeout(() => connectBridge(tries + 1), 100);
       return;
     }
-    pushSystem("Local mode: QWebChannel unavailable.");
+    pushSystem("Mode local : QWebChannel indisponible.");
   }
 
   function wireSignals() {
@@ -587,7 +587,7 @@
 
   function onInterrupted() {
     if (S.quizRequestActive) return;
-    pushSystem("Generation interrupted.");
+    pushSystem("Génération interrompue.");
     S.activeAiNode = null;
     S.activeAiRaw = "";
     S.parserFrameQueued = false;
@@ -651,7 +651,7 @@
             S.activeAiRaw = "";
 
             if (!hasMessages) {
-              pushSystem("Conversation ready");
+              pushSystem("Conversation prête");
               return;
             }
 
@@ -746,8 +746,8 @@
       return;
     }
 
-    setTimeout(() => onToken("SmartLearn in local demo mode."), 200);
-    setTimeout(() => onFinished(JSON.stringify({ full: "SmartLearn in local demo mode." })), 500);
+    setTimeout(() => onToken("SmartLearn en mode démo local."), 200);
+    setTimeout(() => onFinished(JSON.stringify({ full: "SmartLearn en mode démo local." })), 500);
   }
 
   function useSuggestion(text) {
@@ -775,7 +775,7 @@
     bar?.classList.remove("show");
     // Persist comprehension signal for home.js dashboard
     try {
-      const titre = sessionStorage.getItem("sl_titre_cours") || "Chapter";
+      const titre = sessionStorage.getItem("sl_titre_cours") || "Chapitre";
       // Sanitize key: only alphanumeric + underscore
       const safeKey = titre.toLowerCase().replace(/[^a-z0-9]+/g, "_").slice(0, 64);
       localStorage.setItem("sl_compris_" + safeKey, JSON.stringify({
@@ -786,8 +786,8 @@
     } catch (_) {}
     useSuggestion(
       compris
-        ? "Great. Now give me 3 progressive practice exercises."
-        : "Re-explain this chapter more simply, with analogies and concrete examples."
+        ? "Parfait. Donne-moi maintenant 3 exercices d'entraînement progressifs."
+        : "Réexplique-moi ce chapitre plus simplement, avec des analogies et des exemples concrets."
     );
   }
 

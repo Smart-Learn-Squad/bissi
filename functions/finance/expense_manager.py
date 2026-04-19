@@ -22,9 +22,9 @@ class ExpenseManager:
     """Expense tracker integration."""
     
     CATEGORIES = [
-        'Food', 'Transport', 'Housing', 'Health',
-        'Leisure', 'Shopping', 'Education', 'Work',
-        'Taxes', 'General'
+        'Alimentation', 'Transport', 'Logement', 'Santé',
+        'Loisirs', 'Shopping', 'Éducation', 'Travail',
+        'Taxes', 'Général'
     ]
     
     def __init__(self, data_path: Optional[Union[str, Path]] = None):
@@ -78,7 +78,7 @@ class ExpenseManager:
     def add_expense(self, libelle: str, montant: float, categorie: str, date: Optional[str] = None) -> Expense:
         """Add new expense."""
         if categorie not in self.CATEGORIES:
-            categorie = 'General'
+            categorie = 'Général'
         
         if date is None:
             date = datetime.now().strftime('%d/%m/%Y')
@@ -117,15 +117,15 @@ class ExpenseManager:
         status = self.get_budget_status()
         
         lines = [
-            "📊 EXPENSE REPORT",
-            f"User: {status['user']}",
+            "📊 RAPPORT DE DÉPENSES",
+            f"Utilisateur : {status['user']}",
             "",
             "💰 BUDGET",
-            f"  Budget: {status['budget']:,.0f}",
-            f"  Spent: {status['spent']:,.0f} ({status['percentage_used']:.1f}%)",
-            f"  Remaining: {status['remaining']:,.0f}",
+            f"  Budget : {status['budget']:,.0f}",
+            f"  Dépensé : {status['spent']:,.0f} ({status['percentage_used']:.1f}%)",
+            f"  Restant : {status['remaining']:,.0f}",
             "",
-            f"Number of expenses: {status['expense_count']}"
+            f"Nombre de dépenses : {status['expense_count']}"
         ]
         
         return '\n'.join(lines)

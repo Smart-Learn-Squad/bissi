@@ -50,7 +50,7 @@ class TitleBar(QWidget):
         layout.addWidget(title)
         layout.addStretch()
 
-        self.status_badge = QLabel(f"● {DEFAULT_CONFIG.OLLAMA_MODEL} · online")
+        self.status_badge = QLabel(f"● {DEFAULT_CONFIG.OLLAMA_MODEL} · en ligne")
         self.status_badge.setStyleSheet(f"""
             font-size:11px;color:{self.theme.C['teal_text']};
             background:{self.theme.C['teal_lt']};
@@ -75,7 +75,7 @@ class TitleBar(QWidget):
     def set_model(self, model: str):
         """Update the badge with the active model selected by the router."""
         short = model.split(":")[-1]
-        self.status_badge.setText(f"● {model} · online")
+        self.status_badge.setText(f"● {model} · en ligne")
         self.status_badge.setStyleSheet(f"""
             font-size:11px;color:{self.theme.C['teal_text']};
             background:{self.theme.C['teal_lt']};
@@ -87,7 +87,7 @@ class TitleBar(QWidget):
     def set_busy(self, busy: bool):
         """Update status badge for busy/idle state."""
         if busy:
-            self.status_badge.setText(f"⟳ {DEFAULT_CONFIG.OLLAMA_MODEL} · thinking…")
+            self.status_badge.setText(f"⟳ {DEFAULT_CONFIG.OLLAMA_MODEL} · réflexion…")
             self.status_badge.setStyleSheet(f"""
                 font-size:11px;color:{self.theme.C['amber']};
                 background:#FAEEDA;border:0.5px solid #FAC775;
@@ -95,7 +95,7 @@ class TitleBar(QWidget):
                 font-family:{self.theme.FONT_UI};
             """)
         else:
-            self.status_badge.setText(f"● {DEFAULT_CONFIG.OLLAMA_MODEL} · online")
+            self.status_badge.setText(f"● {DEFAULT_CONFIG.OLLAMA_MODEL} · en ligne")
             self.status_badge.setStyleSheet(f"""
                 font-size:11px;color:{self.theme.C['teal_text']};
                 background:{self.theme.C['teal_lt']};

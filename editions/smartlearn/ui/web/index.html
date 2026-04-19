@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>SmartLearn — AI Tutor</title>
+  <title>SmartLearn — Tuteur IA</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 44 28'><path d='M22 14C22 14 17 4 10 4C3 4 3 24 10 24C17 24 22 14 22 14C22 14 27 4 34 4C41 4 41 24 34 24C27 24 22 14 22 14Z' stroke='%2360a5fa' stroke-width='2.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
   <link rel="stylesheet" href="assets/vendor/katex/katex.min.css">
   <script defer src="assets/vendor/katex/katex.min.js"></script>
@@ -73,11 +73,11 @@
       </a>
       <a class="sb-nav-link" href="resume.html">
         <svg class="nl-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="9" y1="7" x2="15" y2="7"/><line x1="9" y1="11" x2="15" y2="11"/><line x1="9" y1="15" x2="12" y2="15"/></svg>
-        <span class="nl-label">Summary</span>
+        <span class="nl-label">Résumé</span>
       </a>
       <a class="sb-nav-link" href="home.html">
         <svg class="nl-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-        <span class="nl-label">Progress</span>
+        <span class="nl-label">Progression</span>
       </a>
     </div>
 
@@ -85,7 +85,7 @@
 
     <button class="new-btn" onclick="nouvelleConversation()">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      <span class="btn-label">New session</span>
+      <span class="btn-label">Nouvelle session</span>
     </button>
 
     <div class="section-lbl">Conversations</div>
@@ -94,12 +94,12 @@
     <div class="sb-bottom">
       <div class="hackathon-badge">
         <span class="hb-icon">🏆</span>
-        <div class="hb-text"><div style="font-weight:600">Hack by IFRI 2026</div><span>Official demo</span></div>
+        <div class="hb-text"><div style="font-weight:600">Hack by IFRI 2026</div><span>Démo officielle</span></div>
       </div>
       <div class="user-row" id="sidebarUserRow">
         <div class="avatar" id="sidebarAvatar">S</div>
         <div class="user-info">
-          <div class="user-name" id="sidebarName">Student</div>
+          <div class="user-name" id="sidebarName">Étudiant</div>
           <div class="user-role" id="sidebarRole">SmartLearn</div>
         </div>
       </div>
@@ -124,26 +124,26 @@
             <use href="assets/images/logo.svg#logo-path" />
           </svg>
         </div>
-        <h1>Learn with <em>SmartLearn</em></h1>
-        <p>Ask questions, explore concepts, prepare for exams with AI assistance.</p>
+        <h1>Apprends avec <em>SmartLearn</em></h1>
+        <p>Pose tes questions, explore les concepts, prépare tes examens avec l'aide de l'IA.</p>
         <div class="pedagogy-row">
-          <span class="ped-chip gold">✦ Step by step</span>
-          <span class="ped-chip blue">◆ Concrete analogies</span>
-          <span class="ped-chip gold">✦ Check understanding</span>
-          <span class="ped-chip blue">◆ Practical examples</span>
+          <span class="ped-chip gold">✦ Pas à pas</span>
+          <span class="ped-chip blue">◆ Analogies concrètes</span>
+          <span class="ped-chip gold">✦ Vérifie ta compréhension</span>
+          <span class="ped-chip blue">◆ Exemples pratiques</span>
         </div>
         <div class="suggestions">
-          <div class="sug-card" onclick="useSuggestion('Explain integrals as if I were 15 years old')">
-            <strong>📐 Maths</strong>Explain integrals as if I were 15 years old
+          <div class="sug-card" onclick="useSuggestion('Explique-moi les intégrales comme si j\'avais 15 ans')">
+            <strong>📐 Maths</strong>Explique-moi les intégrales comme si j'avais 15 ans
           </div>
-          <div class="sug-card" onclick="useSuggestion('What is the difference between ionic and covalent bonds?')">
-            <strong>⚗️ Chemistry</strong>Difference between ionic and covalent bonds?
+          <div class="sug-card" onclick="useSuggestion('Quelle est la différence entre les liaisons ioniques et covalentes ?')">
+            <strong>⚗️ Chimie</strong>Différence entre liaisons ioniques et covalentes ?
           </div>
-          <div class="sug-card" onclick="useSuggestion('Explain recursion with a simple example')">
-            <strong>💻 Algo</strong>Explain recursion with a simple example
+          <div class="sug-card" onclick="useSuggestion('Explique la récursivité avec un exemple simple')">
+            <strong>💻 Algo</strong>Explique la récursivité avec un exemple simple
           </div>
-          <div class="sug-card" onclick="useSuggestion('How to memorize a lesson the night before an exam?')">
-            <strong>📚 Revision</strong>How to memorize a lesson the night before an exam?
+          <div class="sug-card" onclick="useSuggestion('Comment mémoriser un cours la veille d\'un examen ?')">
+            <strong>📚 Révision</strong>Comment mémoriser un cours la veille d'un examen ?
           </div>
         </div>
       </div>
@@ -152,26 +152,26 @@
     <!-- Comprehension bar (activated from resume.html) -->
     <div class="comprehension-bar" id="comprehensionBar">
       <div class="comprehension-label">
-        <strong id="compChapterTitle">Chapter</strong>
-        Did you understand this chapter?
+        <strong id="compChapterTitle">Chapitre</strong>
+        Tu as compris ce chapitre ?
       </div>
       <div class="comprehension-btns">
-        <button class="comp-btn yes" onclick="repondreCompris(true)">✅ Got it!</button>
-        <button class="comp-btn no"  onclick="repondreCompris(false)">🤔 Not really...</button>
+        <button class="comp-btn yes" onclick="repondreCompris(true)">✅ Oui, j'ai compris !</button>
+        <button class="comp-btn no"  onclick="repondreCompris(false)">🤔 Pas vraiment...</button>
       </div>
     </div>
 
     <div class="input-area" id="inputArea">
       <!-- Quick suggestion chips (shown after welcome disappears) -->
       <div class="quick-suggestions" id="quickSuggestions">
-        <button class="qs-chip" onclick="useSuggestion('Explain integrals as if I were 15 years old')">📐 Integrals</button>
-        <button class="qs-chip" onclick="useSuggestion('What is the difference between ionic and covalent bonds?')">⚗️ Chemical bonds</button>
-        <button class="qs-chip" onclick="useSuggestion('Explain recursion with a simple example')">💻 Recursion</button>
-        <button class="qs-chip" onclick="useSuggestion('How to memorize a lesson the night before an exam?')">📚 Memorization</button>
+        <button class="qs-chip" onclick="useSuggestion('Explique-moi les intégrales comme si j\'avais 15 ans')">📐 Intégrales</button>
+        <button class="qs-chip" onclick="useSuggestion('Quelle est la différence entre les liaisons ioniques et covalentes ?')">⚗️ Liaisons chimiques</button>
+        <button class="qs-chip" onclick="useSuggestion('Explique la récursivité avec un exemple simple')">💻 Récursivité</button>
+        <button class="qs-chip" onclick="useSuggestion('Comment mémoriser un cours la veille d\'un examen ?')">📚 Mémorisation</button>
       </div>
       <div class="input-wrap">
         <div class="input-row">
-          <textarea class="textarea" id="messageInput" placeholder="Ask SmartLearn a question..." rows="1" onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendMessage();}" oninput="autoResize(this)"></textarea>
+          <textarea class="textarea" id="messageInput" placeholder="Pose ta question à SmartLearn..." rows="1" onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendMessage();}" oninput="autoResize(this)"></textarea>
           <button class="send-btn" onclick="sendMessage()" title="Send">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
               <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>

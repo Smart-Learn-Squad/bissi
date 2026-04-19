@@ -232,7 +232,7 @@ class BissiWindow(QMainWindow):
 
         # Welcome message
         self.chat.add_system_msg(
-            f"Bissi ready · {DEFAULT_CONFIG.OLLAMA_MODEL} · type a message to start",
+            f"Bissi prêt · {DEFAULT_CONFIG.OLLAMA_MODEL} · tape un message pour démarrer",
             color=self.theme.C['text_dim']
         )
 
@@ -304,7 +304,7 @@ class BissiWindow(QMainWindow):
         self._unlock()
 
     def _on_interrupted(self):
-        self.chat.add_system_msg("⊘ interrupted", color=self.theme.C['amber'])
+        self.chat.add_system_msg("⊘ interrompu", color=self.theme.C['amber'])
         self._unlock()
 
     def _on_interrupt(self):

@@ -235,7 +235,7 @@ FORBIDDEN:
         messages = self._build_messages(history)
 
         if on_thinking:
-            on_thinking("Connecting to Ollama…")
+            on_thinking("Connexion à Ollama…")
 
         for iteration in range(max_iterations):
             if _stopped():
@@ -243,7 +243,7 @@ FORBIDDEN:
 
             if on_thinking:
                 on_thinking(
-                    f"Iteration {iteration + 1} / {max_iterations}…"
+                    f"Itération {iteration + 1} / {max_iterations}…"
                     if iteration > 0 else ""
                 )
 
@@ -311,8 +311,8 @@ FORBIDDEN:
 
         # Max iterations exhausted without a clean final answer
         limit_msg = (
-            f"⚠ Limit of {max_iterations} iterations reached "
-            "without a final answer."
+            f"⚠ Limite de {max_iterations} itérations atteinte "
+            "sans réponse finale."
         )
         if on_thinking:
             on_thinking("")

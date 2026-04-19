@@ -99,7 +99,7 @@
         <div style="text-align:center;padding:40px 16px;color:var(--text-dim)">
           <div style="font-size:36px;margin-bottom:12px">📚</div>
           <div style="font-size:14px;font-weight:500;color:var(--text);margin-bottom:6px">Aucune activité encore</div>
-          <div style="font-size:12px">Fais ton premier quiz sur <a href="model.html" style="color:var(--blue)">SmartLearn Chat</a> pour voir ta progression ici.</div>
+          <div style="font-size:12px">Fais ton premier quiz sur <a href="index.html" style="color:var(--blue)">SmartLearn Chat</a> pour voir ta progression ici.</div>
         </div>`;
       return;
     }

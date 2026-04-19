@@ -8,6 +8,16 @@
   <link rel="stylesheet" href="assets/css/common.css">
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#4285f4">
+  <script>
+    const DEMO_MODE = false;
+    document.documentElement.dataset.demoMode = DEMO_MODE ? "on" : "off";
+  </script>
+  <style>
+    html[data-demo-mode="off"] .hackathon-badge,
+    html[data-demo-mode="off"] .disclaimer {
+      display: none !important;
+    }
+  </style>
   <link rel="stylesheet" href="assets/css/resume.css">
   <style>
     html, body { height: 100%; overflow: hidden; }
@@ -174,7 +184,7 @@
     <div class="sb-divider"></div>
 
     <div class="sb-nav">
-      <a class="sb-nav-link" href="model.html">
+      <a class="sb-nav-link" href="index.html">
         <svg class="nl-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
         <span class="nl-label">Chat</span>
       </a>

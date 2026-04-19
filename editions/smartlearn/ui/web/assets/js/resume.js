@@ -259,7 +259,7 @@
   }
 
   function versQuiz() {
-    window.location.href = "model.html?flow=resume";
+    window.location.href = "index.html?flow=resume";
   }
 
   function connectBridge(tries) {

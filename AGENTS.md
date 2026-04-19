@@ -3,58 +3,42 @@ Local AI agent — PyQt6 WebEngine + Ollama + office suite + RAG.
 
 ```bash
 cd ~/Dev/OFFMODE/bissi
-source venv/bin/activate
+source .venv/bin/activate
 python main.py                        # Bissi Master (WebEngine)
-python main.py --edition codes        # Bissi Codes (CLI riche)
-python main.py --edition smartlearn   # Bissi Smartlearn (WebEngine, pédago)
+python main.py --edition codes        # Bissi Codes (TUI)
+python main.py --edition smartlearn   # Bissi SmartLearn (WebEngine, pédago)
 python main.py --legacy               # Ancien UI PyQt6 widgets
 ```
 
-#### Plan 3 éditions — à implémenter
-
-**Architecture cible (monorepo) :**
+## Architecture (état actuel)
 ```
 bissi/
 ├── editions/
-│   ├── master/          ← WebEngine actuel (ui/web/ déplacé ici)
-│   │   ├── __main__.py
-│   │   └── ui/web/
-│   ├── codes/           ← CLI rich (pas de PyQt6)
-│   │   ├── __main__.py
-│   │   └── repl.py
-│   └── smartlearn/      ← WebEngine reskin pédago
-│       ├── __main__.py
-│       └── ui/web/
-├── core/        (partagé — inchangé)
-├── functions/   (partagé — inchangé)
-├── workflows/   (partagé — inchangé)
-├── configs/     (partagé — prompt override par édition)
-├── agent.py     (partagé — inchangé)
-└── main.py      ← dispatcher --edition [master|codes|smartlearn]
+│   ├── master/
+│   ├── codes/
+│   └── smartlearn/
+├── core/        (partagé)
+├── functions/   (partagé)
+├── workflows/   (partagé)
+├── configs/     (prompts/configs par édition)
+├── agent.py     (partagé)
+└── main.py      (dispatcher --edition)
 ```
 
-**Décisions :**
-| Question | Réponse |
-|----------|---------|
-| Mémoire | Séparée par édition (SQLite + ChromaDB distincts) |
-| Smartlearn tools | Tous les tools (accès complet étudiant) |
-| Smartlearn vs Master | Master = pro pur ; Smartlearn = pages éducatives + prompt pédago |
-| Bissi Codes | Interface `rich` full-custom (tool cards, tables, status bar, prompt `bissi @ ~/path ›`) |
+## Points critiques (priorité produit)
+1. **UX cross-éditions**: cohérence visuelle et comportementale incomplète (feedback, onboarding, états vides).
+2. **BISSI Codes (TUI)**: manque de features dev-clés (multiline, persistance historique, `/cd`, résultats tools, ergonomie commande).
+3. **Master**: trop de jargon exposé (RAG/mémoire/modèle), redondances UI, chemins sensibles en contexte démo.
+4. **SmartLearn**: finaliser polish pédagogique (persistences fines, réutilisation suggestions, suppression branding démo par flag).
+5. **Robustesse front**: flux asynchrones JS/bridge complexes, risque de régressions sans tests de parcours UI.
 
-**Bissi Codes (CLI) — stack :**
-- `rich.live` streaming tokens, `rich.table` tableaux, `rich.console` couleurs
-- `prompt_toolkit` prompt avec historique
-- Commandes : `/new`, `/exit`, `/history`, `/model`, `/help`
+## Garde-fous d’implémentation
+- Pas de réécriture massive: patches ciblés et réversibles.
+- Préserver la séparation par édition (ne pas mutualiser trop tôt).
+- Conserver mode offline par défaut.
+- Prioriser fiabilité UX sur nouvelles features.
 
-**Bissi Smartlearn — différences vs Master :**
-- Logo SmartLearn (infinity animé), palette CSS distincte
-- Pages éducatives dans welcome screen (absentes de Master)
-- Prompt système pédago (résumé, quiz, plan d'étude)
-
-**Étapes :**
-1. `main.py` — ajouter dispatcher `--edition`
-2. `ui/web_window.py` — paramètre `web_dir` pour pointer vers le bon `ui/web/`
-3. `editions/master/__main__.py` — déplace logique WebWindow actuelle
-4. `editions/codes/repl.py` — REPL rich (~150 lignes)
-5. `editions/smartlearn/ui/web/` — fork `ui/web/` + reskin CSS + prompt override
-6. `configs/prompts.py` — prompts par édition
+## Typographie (directive)
+- **Master + SmartLearn**: `Roboto` recommandé pour le texte UI (lisibilité, neutralité produit).
+- **Code/terminal/snippets**: conserver une police monospace (`JetBrains Mono`/équivalent).
+- **BISSI Codes (TUI)**: rester 100% monospace (cohérence terminal).

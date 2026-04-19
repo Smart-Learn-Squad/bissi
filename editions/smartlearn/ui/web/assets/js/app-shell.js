@@ -243,7 +243,7 @@
         backdrop-filter: blur(14px);
         border: 1px solid rgba(96,165,250,0.2);
         border-radius: 40px; padding: 9px 18px;
-        cursor: pointer; font-family: 'Plus Jakarta Sans', sans-serif;
+        cursor: pointer; font-family: 'Roboto', 'Inter', 'Segoe UI', Arial, sans-serif;
         font-size: 13px; font-weight: 500; color: var(--text, #e8f0fe);
         box-shadow: 0 4px 24px rgba(0,0,0,0.35);
         transition: transform 0.2s, box-shadow 0.2s;

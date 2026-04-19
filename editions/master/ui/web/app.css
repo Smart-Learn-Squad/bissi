@@ -6,7 +6,8 @@
 
 /* ── TOKENS ─────────────────────────────────────────────────── */
 :root {
-  --font: 'JetBrains Mono', 'Fira Code', monospace;
+  --font: 'Roboto', 'Inter', 'Segoe UI', Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --panel-width: 420px;
 
   --bg:        #141414;
@@ -285,14 +286,17 @@ html, body {
   background: var(--bg3); color: var(--blue-text);
   padding: 1px 5px; border-radius: 4px; font-size: 12px;
   border: 0.5px solid var(--border);
+  font-family: var(--font-mono);
 }
 .bubble-content pre.code-block {
   background: var(--bg3); border: 0.5px solid var(--border2);
   border-radius: var(--radius); padding: 12px 14px; margin: 10px 0;
   overflow-x: auto; font-size: 12px; line-height: 1.55;
+  font-family: var(--font-mono);
 }
 .bubble-content pre.code-block code {
   background: none; color: var(--text); padding: 0; border: none;
+  font-family: var(--font-mono);
 }
 .bubble-content del { color: var(--text3); text-decoration: line-through; }
 
@@ -458,7 +462,7 @@ html, body {
 /* Editor */
 .code-editor {
   flex: 1; overflow: auto; margin: 0;
-  padding: 14px; font-family: var(--font); font-size: 12px;
+  padding: 14px; font-family: var(--font-mono); font-size: 12px;
   line-height: 1.65; background: var(--bg); color: var(--text2);
   white-space: pre; border: none;
 }

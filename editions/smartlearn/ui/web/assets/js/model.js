@@ -103,7 +103,7 @@
       };
       const onErr = (msg) => {
         cleanup();
-        reject(new Error(String(msg || "Quiz error")));
+        reject(new Error(String(msg || "Erreur quiz")));
       };
       const cleanup = () => {
         S.quizRequestActive = false;
@@ -801,7 +801,7 @@
       ].join("\n");
       const raw = await requestQuizFromAgent(prompt);
       const quiz = parseStrictQuizJson(raw);
-      if (!quiz.questions.length) throw new Error("Empty quiz");
+      if (!quiz.questions.length) throw new Error("Quiz vide");
       renderQuizCard(quiz);
     } catch (e) {
       pushSystem(`Impossible de générer le quiz : ${e?.message || "erreur"}`);

@@ -60,7 +60,7 @@
   function updateCount() {
     const text = $("#courseText")?.value || "";
     const node = $("#charCount");
-    if (node) node.textContent = `${text.length.toLocaleString("fr")} caractère${text.length > 1 ? 's' : ''}`;
+    if (node) node.textContent = `${text.length.toLocaleString("fr")} caractère${text.length !== 1 ? "s" : ""}`;
   }
 
   function importerFichier(input, type) {

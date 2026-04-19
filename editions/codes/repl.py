@@ -44,8 +44,9 @@ def _load_history() -> list[str]:
         if _HISTORY_FILE.exists():
             lines = _HISTORY_FILE.read_text(encoding="utf-8").splitlines()
             return [l for l in reversed(lines) if l.strip()][:500]
-    except Exception:
-        pass
+    except Exception as exc:
+        import sys
+        print(f"Warning: failed to load history from {_HISTORY_FILE}: {exc}", file=sys.stderr)
     return []
 
 
@@ -56,8 +57,9 @@ def _save_history(history: list[str]) -> None:
         # Keep at most 500 entries, oldest first on disk
         entries = list(reversed(history[:500]))
         _HISTORY_FILE.write_text("\n".join(entries) + "\n", encoding="utf-8")
-    except Exception:
-        pass
+    except Exception as exc:
+        import sys
+        print(f"Warning: failed to save history to {_HISTORY_FILE}: {exc}", file=sys.stderr)
 
 
 # ─── Palette ──────────────────────────────────────────────────────────────────

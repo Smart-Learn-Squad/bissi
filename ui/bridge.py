@@ -13,7 +13,11 @@ from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
 
 from agent import BissiAgent, get_agent
 from core.config import DEFAULT_CONFIG
-from ui.parser import configure as _configure_parser, parse as _parse_markdown, parse_streaming as _parse_streaming
+from ui.renderers.html import (
+    configure as _configure_html_renderer,
+    render as _render_markdown,
+    render_streaming as _render_streaming,
+)
 from ui.themes import get_engine
 
 
@@ -39,7 +43,7 @@ class BissiBridge(QObject):
         self._worker = None
 
         # Keep parser colors aligned with current theme for realtime rendering.
-        _configure_parser(self._engine.parser_colors())
+        _configure_html_renderer(self._engine.parser_colors())
 
         # Forward theme changes to JS
         self._engine.theme_changed.connect(
@@ -127,8 +131,8 @@ class BissiBridge(QObject):
 
     @pyqtSlot(str, result=str)
     def parseMarkdown(self, text: str) -> str:
-        """Parse final markdown to themed HTML via ui/parser.py."""
-        result = _parse_markdown(text)
+        """Parse final markdown to themed HTML via the HTML renderer."""
+        result = _render_markdown(text)
         return json.dumps({
             "html": result.html,
             "has_code": result.has_code,
@@ -139,7 +143,7 @@ class BissiBridge(QObject):
     @pyqtSlot(str, result=str)
     def parseStreaming(self, accumulated: str) -> str:
         """Parse streaming markdown token-by-token to themed HTML."""
-        result = _parse_streaming(accumulated)
+        result = _render_streaming(accumulated)
         return json.dumps({
             "html": result.html,
             "has_code": result.has_code,
@@ -209,5 +213,5 @@ class BissiBridge(QObject):
         self.conversationUpdated.emit(json.dumps(convs))
 
     def _on_theme_changed(self, name: str) -> None:
-        _configure_parser(self._engine.parser_colors())
+        _configure_html_renderer(self._engine.parser_colors())
         self.themeChanged.emit(name)

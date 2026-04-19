@@ -11,7 +11,7 @@ from PyQt6.QtGui import QPalette, QColor
 from core.config import DEFAULT_CONFIG
 from ui.styles.theme import Theme
 from ui.themes import ThemeEngine, get_engine
-from ui.parser import configure as _configure_parser
+from ui.renderers.html import configure as _configure_html_renderer
 from ui.components import (
     Sidebar,
     ChatPanel,
@@ -179,7 +179,7 @@ class BissiWindow(QMainWindow):
         self.setMinimumSize(DEFAULT_CONFIG.ui.min_width, DEFAULT_CONFIG.ui.min_height)
 
         # Synchro parser avec le thème courant
-        _configure_parser(self._engine.parser_colors())
+        _configure_html_renderer(self._engine.parser_colors())
         self._engine.theme_changed.connect(self._on_theme_changed)
 
         # Agent
@@ -313,7 +313,7 @@ class BissiWindow(QMainWindow):
 
     def _on_theme_changed(self, name: str):
         """Resync parser colors when theme switches."""
-        _configure_parser(self._engine.parser_colors())
+        _configure_html_renderer(self._engine.parser_colors())
         self.title_bar.set_theme_label(name)
 
     def _unlock(self):

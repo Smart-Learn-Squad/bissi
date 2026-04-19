@@ -1,275 +1,600 @@
-"""Bissi Codes REPL — Rich CLI interface for developers."""
+"""Bissi Codes REPL
 
-import sys
+Layout:
+  ┌─────────────────────────────────────┐
+  │  [Scrollable RichLog — messages]     │
+  │  ● You › message                     │
+  │  ● Bissi                             │
+  │    └ response...                     │
+  ├─────────────────────────────────────┤
+  │  bissi @ ~/path ›  [input]           │  ← fixed bottom
+  └─────────────────────────────────────┘
+"""
+
 import os
 import re
 from pathlib import Path
 
-from rich.console import Console, Group
-from rich.live import Live
-from rich.panel import Panel
-from rich.markdown import Markdown
+from textual.app import App, ComposeResult
+from textual.widgets import RichLog, Input, Static, LoadingIndicator, ListView, ListItem
+from textual.containers import Horizontal, Vertical
+from textual.binding import Binding
+from textual import work, on
+
 from rich.text import Text
+from rich.markdown import Markdown
+from rich.console import Group
 from rich.table import Table
 from rich import box
-from rich.align import Align
-from prompt_toolkit import PromptSession
-from prompt_toolkit.history import FileHistory
-from prompt_toolkit.styles import Style as PromptStyle
 
 from agent import BissiAgent
+from ui.renderers.rich_text import render as _render_rich
 
-class BissiREPL:
+
+# ─── Palette ──────────────────────────────────────────────────────────────────
+C_BLUE    = "#1E90FF"
+C_PURPLE  = "#534AB7"
+C_GREEN   = "#1DB854"
+C_YELLOW  = "#F5A623"
+C_RED     = "#FF5555"
+C_DIM     = "dim"
+C_WHITE   = "white"
+
+
+BISSI_LOGO = (
+    "██████╗ ██╗███████╗███████╗██╗\n"
+    "██╔══██╗██║██╔════╝██╔════╝██║\n"
+    "██████╔╝██║███████╗███████╗██║\n"
+    "██╔══██╗██║╚════██║╚════██║██║\n"
+    "██████╔╝██║███████║███████║██║\n"
+    "╚═════╝ ╚═╝╚══════╝╚══════╝╚═╝"
+)
+
+
+# ─── CSS ──────────────────────────────────────────────────────────────────────
+APP_CSS = """
+Screen {
+    layout: vertical;
+    background: #0d0d0d;
+}
+
+#log-area {
+    height: 1fr;
+    border: solid #1E3A5F;
+    padding: 0 1;
+    scrollbar-color: #1E90FF #1a1a2e;
+    scrollbar-size: 1 1;
+}
+
+#status-bar {
+    height: 1;
+    background: #111111;
+    padding: 0 2;
+    color: #888888;
+}
+
+#input-row {
+    height: 3;
+    border-top: solid #534AB7;
+    background: #0d0d0d;
+    padding: 0 1;
+    align: left middle;
+}
+
+#prompt-label {
+    width: auto;
+    height: 1;
+    padding: 0 0;
+    content-align: left middle;
+}
+
+#user-input {
+    border: none;
+    height: 1;
+    padding: 0 0;
+    background: transparent;
+    color: #ffffff;
+}
+
+#user-input:focus {
+    border: none;
+}
+
+#loading {
+    width: auto;
+    height: 1;
+    display: none;
+    color: #1DB854;
+    padding: 0 1;
+}
+
+#loading.active {
+    display: block;
+}
+
+#suggest-box {
+    display: none;
+    height: auto;
+    max-height: 8;
+    background: #1a1a2e;
+    border: solid #534AB7;
+    border-bottom: none;
+    padding: 0 1;
+}
+
+#suggest-box.active {
+    display: block;
+}
+
+.suggest-item {
+    height: 1;
+    padding: 0 1;
+    color: #888888;
+}
+
+.suggest-item.-selected {
+    background: #2a2a4e;
+    color: #ffffff;
+}
+"""
+
+
+# ─── App ──────────────────────────────────────────────────────────────────────
+class BissiApp(App):
+    CSS = APP_CSS
+
+    BINDINGS = [
+        Binding("ctrl+c", "app.quit", "Quit", show=False),
+        Binding("ctrl+l", "clear_log",  "Clear", show=False),
+    ]
+
     def __init__(self, agent: BissiAgent):
+        super().__init__()
         self.agent = agent
-        self.console = Console()
-        self.session = PromptSession(
-            history=FileHistory(os.path.expanduser("~/.bissi/codes_history"))
-        )
-        self.style = PromptStyle.from_dict({
-            'prompt': 'bold #534AB7',
-            'path': '#888888',
-        })
+        self._busy = False
+        self._history: list[str] = []
+        self._hist_idx = -1
 
-    def _get_prompt(self):
+    COMMANDS = [
+        ("/new",     "Démarrer une nouvelle conversation"),
+        ("/model",   "Afficher les infos du modèle actif"),
+        ("/history", "Afficher l'historique récent"),
+        ("/help",    "Afficher l'aide"),
+        ("/exit",    "Quitter Bissi Codes"),
+    ]
+
+    # ── Layout ────────────────────────────────────────────────────────────────
+    def compose(self) -> ComposeResult:
+        yield RichLog(id="log-area", highlight=True, markup=False, wrap=True)
+        yield Vertical(id="suggest-box")
+        with Horizontal(id="input-row"):
+            yield Static(self._prompt_text(), id="prompt-label")
+            yield Input(placeholder="", id="user-input")
+            yield Static("⠋ thinking", id="loading")
+
+    def _prompt_text(self) -> str:
         cwd = os.getcwd().replace(os.path.expanduser("~"), "~")
-        return [
-            ('class:prompt', 'bissi '),
-            ('class:path', f'@ {cwd} › '),
+        return f"[bold {C_PURPLE}]bissi[/] [dim]@ {cwd} ›[/] "
+
+    # ── Mount ─────────────────────────────────────────────────────────────────
+    def on_mount(self) -> None:
+        log = self.query_one(RichLog)
+        self._print_splash(log)
+        log.scroll_home(animate=False)
+        self.query_one("#user-input", Input).focus()
+        self._suggest_idx = -1
+
+    # ── Suggestion box ────────────────────────────────────────────────────────
+    @on(Input.Changed, "#user-input")
+    def on_input_changed(self, event: Input.Changed) -> None:
+        val = event.value
+        box = self.query_one("#suggest-box", Vertical)
+        if val.startswith("/") and not self._busy:
+            matches = [(cmd, desc) for cmd, desc in self.COMMANDS if cmd.startswith(val.lower())]
+            box.remove_children()
+            if matches:
+                for cmd, desc in matches:
+                    item = Static(
+                        Text(f" {cmd:<12}", style="cyan") + Text(f"  {desc}", style=C_DIM),
+                        classes="suggest-item"
+                    )
+                    item._cmd = cmd
+                    box.mount(item)
+                box.add_class("active")
+                self._suggest_idx = -1
+                self._update_suggest_highlight()
+            else:
+                box.remove_class("active")
+        else:
+            box.remove_class("active")
+            box.remove_children()
+            self._suggest_idx = -1
+
+    def _suggest_items(self) -> list:
+        return list(self.query(".suggest-item"))
+
+    def _update_suggest_highlight(self) -> None:
+        items = self._suggest_items()
+        for i, item in enumerate(items):
+            if i == self._suggest_idx:
+                item.add_class("-selected")
+            else:
+                item.remove_class("-selected")
+
+    def _accept_suggestion(self) -> None:
+        items = self._suggest_items()
+        if not items:
+            return
+        idx = self._suggest_idx if self._suggest_idx >= 0 else 0
+        if idx < len(items):
+            cmd = items[idx]._cmd
+            inp = self.query_one("#user-input", Input)
+            inp.value = cmd
+            inp.cursor_position = len(cmd)
+        box = self.query_one("#suggest-box", Vertical)
+        box.remove_class("active")
+        box.remove_children()
+        self._suggest_idx = -1
+
+    def on_key(self, event) -> None:
+        box = self.query_one("#suggest-box", Vertical)
+        if "active" not in box.classes:
+            return
+        items = self._suggest_items()
+        if not items:
+            return
+        if event.key == "up":
+            event.prevent_default()
+            self._suggest_idx = max(0, self._suggest_idx - 1)
+            self._update_suggest_highlight()
+        elif event.key == "down":
+            event.prevent_default()
+            self._suggest_idx = min(len(items) - 1, self._suggest_idx + 1)
+            self._update_suggest_highlight()
+        elif event.key in ("tab", "enter"):
+            if self._suggest_idx >= 0:
+                event.prevent_default()
+                self._accept_suggestion()
+        elif event.key == "escape":
+            box.remove_class("active")
+            box.remove_children()
+            self._suggest_idx = -1
+
+    def _print_splash(self, log: RichLog) -> None:
+        W = 76  # total panel width (chars)
+
+        # ── Panel 1: Logo ─────────────────────────────────────────────────────
+        log.write(Text("┌" + "─" * (W - 2) + "┐", style=f"dim {C_BLUE}"))
+        log.write(Text("│" + " " * (W - 2) + "│", style=f"dim {C_BLUE}"))
+
+        logo_lines = BISSI_LOGO.split("\n")
+        for line in logo_lines:
+            pad_left  = (W - 2 - len(line)) // 2
+            pad_right = (W - 2 - len(line)) - pad_left
+            log.write(
+                Text("│", style=f"dim {C_BLUE}") +
+                Text(" " * pad_left) +
+                Text(line, style=f"bold {C_BLUE}") +
+                Text(" " * pad_right) +
+                Text("│", style=f"dim {C_BLUE}")
+            )
+
+        subtitle = "Codes v1.0.0"
+        s_pad_l = (W - 2 - len(subtitle)) // 2
+        s_pad_r = (W - 2 - len(subtitle)) - s_pad_l
+        log.write(Text("│" + " " * (W - 2) + "│", style=f"dim {C_BLUE}"))
+        log.write(
+            Text("│", style=f"dim {C_BLUE}") +
+            Text(" " * s_pad_l) +
+            Text(subtitle, style=f"bold {C_WHITE}") +
+            Text(" " * s_pad_r) +
+            Text("│", style=f"dim {C_BLUE}")
+        )
+        log.write(Text("│" + " " * (W - 2) + "│", style=f"dim {C_BLUE}"))
+        log.write(Text("└" + "─" * (W - 2) + "┘", style=f"dim {C_BLUE}"))
+        log.write(Text(""))
+
+        # ── Panel 2: Tips + Recent activity (side by side) ────────────────────
+        tips = [
+            ("/new",     "New conversation"),
+            ("/model",   "Show model info"),
+            ("/history", "View history"),
+            ("/help",    "Show help"),
+            ("/exit",    "Quit"),
         ]
 
-    def _render_header(self):
-        """Render the fixed header with logo and title."""
-        # Build the title line: "Bi" (blue) + "Bissi Codes" (Codes in violet)
-        logo = Text("Bi", style="bold #1E90FF")
-        bissi_text = Text("Bissi ", style="white")
-        codes_text = Text("Codes", style="bold #A855F7")
-        
-        # Combine with proper spacing
-        title_line = logo + Text("  ") + bissi_text + codes_text
-        
-        return Panel(
-            Align.left(title_line),
-            border_style="#1DB854",
-            expand=True,
-            padding=(0, 1)
+        # recent activity from conversation store (last 3 sessions)
+        recent_lines: list[Text] = []
+        try:
+            history = self.agent.conversation_store.list_conversations(limit=3)
+            if history:
+                for conv in history:
+                    title = str(conv.get("title", "") or conv.get("first_message", "") or conv.get("id", ""))
+                    title = (title[:26] + "…") if len(title) > 27 else title
+                    recent_lines.append(Text(f"  {title}", style=f"dim {C_GREEN}"))
+        except Exception:
+            pass
+
+        if not recent_lines:
+            recent_lines = [Text("  No recent activity", style=f"dim {C_GREEN}")]
+
+        INNER = W - 2  # 74 chars inside the frame
+        COL_W = INNER // 2  # 37 chars per column
+
+        log.write(Text("┌" + "─" * INNER + "┐", style=f"dim {C_BLUE}"))
+        left_hdr  = "Tips for getting started"
+        right_hdr = "Recent activity"
+        log.write(
+            Text("│ ", style=f"dim {C_BLUE}") +
+            Text(left_hdr.ljust(COL_W - 1), style=f"bold {C_BLUE}") +
+            Text(right_hdr.ljust(COL_W), style=f"bold {C_BLUE}") +
+            Text("│", style=f"dim {C_BLUE}")
+        )
+        log.write(
+            Text("│", style=f"dim {C_BLUE}") +
+            Text(" " * INNER) +
+            Text("│", style=f"dim {C_BLUE}")
         )
 
-    def _render_status_bar(self):
-        """Render the status bar with model and token info."""
-        model_info = Text(f"Model: {self.agent.model}", style="cyan")
-        tokens_info = Text("(21%)", style="dim")
-        spacer = Text(" " * 40)
-        
-        # Right-align tokens
-        line = Group(model_info, spacer, tokens_info)
-        return line
+        max_rows = max(len(tips), len(recent_lines))
+        for i in range(max_rows):
+            # Left column (tips)
+            if i < len(tips):
+                cmd, desc = tips[i]
+                left_text = f"  {cmd:<10}— {desc}"
+                left_pad = COL_W - len(left_text)
+                left_line = Text(left_text, style="cyan") + Text(" " * left_pad)
+            else:
+                left_line = Text(" " * COL_W)
 
-    def _render_footer(self):
-        """Render the bottom footer with commands."""
-        left = Text("/ commands · ? help", style="dim")
-        right = Text("Claude Haiku 4.5", style="dim")
-        
-        # Create a simple footer with spacing
-        return Group(
-            Text("─" * 80, style="#1DB854"),
-            left
+            # Right column (recent activity)
+            if i < len(recent_lines):
+                right_text = recent_lines[i].plain
+                right_pad = COL_W - len(right_text)
+                right_line = Text(right_text, style=f"dim {C_GREEN}") + Text(" " * right_pad)
+            else:
+                right_line = Text(" " * COL_W)
+
+            log.write(
+                Text("│", style=f"dim {C_BLUE}") +
+                left_line +
+                right_line +
+                Text("│", style=f"dim {C_BLUE}")
+            )
+
+        log.write(
+            Text("│", style=f"dim {C_BLUE}") +
+            Text(" " * (W - 2)) +
+            Text("│", style=f"dim {C_BLUE}")
+        )
+        log.write(Text("└" + "─" * (W - 2) + "┘", style=f"dim {C_BLUE}"))
+        log.write(Text(""))
+
+    # ── Input handling ────────────────────────────────────────────────────────
+    @on(Input.Submitted, "#user-input")
+    def handle_submit(self, event: Input.Submitted) -> None:
+        if self._busy:
+            return
+        text = event.value.strip()
+        event.input.clear()
+        if not text:
+            return
+
+        self._history.append(text)
+        self._hist_idx = -1
+
+        log = self.query_one(RichLog)
+
+        if text.startswith("/"):
+            self._handle_command(text, log)
+            return
+
+        # ── User bubble (Claude Code style) ───────────────────────────────
+        log.write(Text(""))
+        log.write(
+            Text("● ", style=f"bold {C_GREEN}") +
+            Text(text, style=C_WHITE)
         )
 
-    def run(self):
-        """Main REPL loop with polished UI."""
-        # Render header
-        self.console.print(self._render_header())
-        self.console.print()
+        self._set_busy(True)
+        self._run_agent(text)
 
-        while True:
-            try:
-                user_input = self.session.prompt(self._get_prompt(), style=self.style)
-                if not user_input.strip():
-                    continue
-                
-                if user_input.startswith('/'):
-                    if self._handle_command(user_input):
-                        break
-                    continue
+    # ── Agent worker ──────────────────────────────────────────────────────────
+    @work(thread=True)
+    def _run_agent(self, text: str) -> None:
+        full_response = ""
+        tool_events: list[str] = []
 
-                self._process_input(user_input)
+        try:
+            def on_chunk(chunk: str):
+                nonlocal full_response
+                full_response += chunk
 
-            except KeyboardInterrupt:
-                continue
-            except EOFError:
-                break
-        
-        # Print footer on exit
-        self.console.print()
-        self.console.print(self._render_footer())
+            def on_tool_start(name: str, args):
+                tool_events.append(name)
+                self.call_from_thread(
+                    self.query_one(RichLog).write,
+                    Text("  ├ ", style=f"dim {C_BLUE}") +
+                    Text(f"⚙  {name}", style=f"bold {C_YELLOW}")
+                )
 
-    def _handle_command(self, cmd: str) -> bool:
-        cmd = cmd.strip().lower()
-        if cmd in ['/exit', '/quit', 'exit', 'quit']:
-            return True
-        elif cmd == '/new':
+            def on_tool_done(name: str, result):
+                pass
+
+            def on_thinking(msg: str):
+                pass
+
+            self.agent.process_request(
+                text,
+                on_chunk=on_chunk,
+                on_tool_start=on_tool_start,
+                on_tool_done=on_tool_done,
+                on_thinking=on_thinking,
+            )
+
+        except Exception as exc:
+            self.call_from_thread(self._write_error, str(exc))
+            self.call_from_thread(self._set_busy, False)
+            return
+
+        self.call_from_thread(self._write_response, full_response)
+        self.call_from_thread(self._set_busy, False)
+
+    # ── Response rendering ────────────────────────────────────────────────────
+    def _write_response(self, response: str) -> None:
+        log = self.query_one(RichLog)
+        log.write(Text(""))
+        log.write(
+            Text("● ", style=f"bold {C_BLUE}") +
+            Text("Bissi", style=f"bold {C_BLUE}")
+        )
+
+        renderables = _render_rich(response.strip())
+        lines_total = len(renderables)
+
+        for i, item in enumerate(renderables):
+            is_last = i == lines_total - 1
+            branch = "  └ " if is_last else "  │ "
+            branch_style = f"dim {C_BLUE}"
+
+            if isinstance(item, Text):
+                if not item.plain.strip():
+                    log.write(Text("  │", style=branch_style))
+                else:
+                    log.write(Text(branch, style=branch_style) + item)
+            elif isinstance(item, Table):
+                log.write(Text(branch, style=branch_style))
+                log.write(item)
+            else:
+                log.write(Text(branch, style=branch_style))
+                log.write(item)
+
+        log.write(Text(""))
+        log.write(Text("─" * 64, style=C_DIM))
+        log.write(Text(""))
+
+    def _write_error(self, error: str) -> None:
+        log = self.query_one(RichLog)
+        log.write(Text(""))
+        log.write(
+            Text("● ", style=f"bold {C_RED}") +
+            Text("Error", style=f"bold {C_RED}")
+        )
+        log.write(
+            Text("  └ ", style=C_DIM) +
+            Text(error, style=C_RED)
+        )
+        log.write(Text(""))
+        log.write(Text("─" * 64, style=C_DIM))
+        log.write(Text(""))
+
+
+    # ── Commands ──────────────────────────────────────────────────────────────
+    def _handle_command(self, cmd: str, log: RichLog) -> None:
+        cmd_lower = cmd.strip().lower()
+
+        log.write(Text(""))
+        log.write(
+            Text("● ", style=f"bold cyan") +
+            Text(cmd, style="cyan")
+        )
+
+        if cmd_lower in ("/exit", "/quit"):
+            log.write(
+                Text("  └ ", style=C_DIM) +
+                Text("Catch you later!", style=C_DIM)
+            )
+            self.exit()
+            return
+
+        elif cmd_lower == "/new":
             self.agent.start_conversation()
-            self.console.print("[dim]Nouvelle conversation démarrée.[/dim]")
-            self.console.print()
-        elif cmd == '/model':
-            self.console.print(f"[bold]Modèle actif:[/bold] [cyan]{self.agent.model}[/cyan]")
-            self.console.print()
-        elif cmd == '/history':
+            log.write(
+                Text("  └ ", style=C_DIM) +
+                Text("Nouvelle conversation démarrée.", style=f"dim {C_GREEN}")
+            )
+
+        elif cmd_lower == "/model":
+            log.write(
+                Text("  └ ", style=C_DIM) +
+                Text("Modèle actif: ", style=C_DIM) +
+                Text(self.agent.model, style=f"bold {C_BLUE}")
+            )
+
+        elif cmd_lower == "/history":
             history = self.agent.get_conversation_history()
             if not history:
-                self.console.print("[dim]Aucun historique pour cette conversation.[/dim]")
-                self.console.print()
-                return False
-
-            self.console.print("[bold]Historique (derniers 10 messages):[/bold]")
-            self.console.print()
-            table = Table(box=box.SIMPLE_HEAVY, show_lines=False, header_style="bold #A855F7")
-            table.add_column("Rôle", style="cyan", no_wrap=True)
-            table.add_column("Message", overflow="fold")
-            for item in history[-10:]:
-                role = str(item.get("role", "?")).capitalize()
-                content = str(item.get("content", ""))
-                preview = content.replace("\n", " ")
-                if len(preview) > 180:
-                    preview = preview[:180] + "…"
-                table.add_row(role, preview)
-            self.console.print(table)
-            self.console.print()
-        elif cmd in ['/help', '?', '/h']:
-            self.console.print()
-            self.console.print("[bold #1DB854]Commandes disponibles:[/bold #1DB854]")
-            self.console.print()
-            
-            commands_table = Table(box=box.SIMPLE, show_header=False)
-            commands_table.add_column(style="cyan")
-            commands_table.add_column(style="dim")
-            
-            commands_table.add_row("/new", "Démarrer une nouvelle conversation")
-            commands_table.add_row("/model", "Afficher les infos du modèle actif")
-            commands_table.add_row("/history", "Afficher l'historique récent (10 derniers)")
-            commands_table.add_row("/help, ?", "Afficher cette aide")
-            commands_table.add_row("/exit", "Quitter Bissi Codes")
-            
-            self.console.print(commands_table)
-            self.console.print()
-        else:
-            self.console.print(f"[yellow]Commande inconnue: {cmd}[/yellow]")
-            self.console.print("[dim]Tape /help ou ? pour l'aide.[/dim]")
-            self.console.print()
-        return False
-
-    def _process_input(self, text: str):
-        """Process user input and stream response with live rendering."""
-        full_response = ""
-        current_markdown = ""
-        
-        # Show thinking indicator
-        with self.console.status("[bold #1DB854]Thinking...[/bold #1DB854]", spinner="dots"):
-            try:
-                # Collect response
-                def on_chunk(chunk: str):
-                    nonlocal full_response, current_markdown
-                    full_response += chunk
-                    current_markdown += chunk
-
-                def on_tool_start(name: str, args: any):
-                    pass  # Silent tool execution
-
-                def on_tool_done(name: str, result: any):
-                    pass
-
-                def on_thinking(msg: str):
-                    pass
-
-                self.agent.process_request(
-                    text,
-                    on_chunk=on_chunk,
-                    on_tool_start=on_tool_start,
-                    on_tool_done=on_tool_done,
-                    on_thinking=on_thinking
+                log.write(
+                    Text("  └ ", style=C_DIM) +
+                    Text("Aucun historique pour cette conversation.", style=C_DIM)
                 )
-            except Exception as e:
-                self.console.print(f"[bold red]✗ Erreur:[/bold red] {e}")
-                self.console.print()
-                return
+            else:
+                items = history[-10:]
+                for j, item in enumerate(items):
+                    is_last = j == len(items) - 1
+                    branch = "  └ " if is_last else "  ├ "
+                    role = str(item.get("role", "?")).capitalize()
+                    content = str(item.get("content", "")).replace("\n", " ")[:120]
+                    if len(content) == 120:
+                        content += "…"
+                    log.write(
+                        Text(branch, style=C_DIM) +
+                        Text(f"[{role}] ", style="cyan") +
+                        Text(content, style=C_DIM)
+                    )
 
-        # Render full response with live update
-        with Live(console=self.console, refresh_per_second=12, vertical_overflow="visible") as live:
-            rendered = self._render_markdown(full_response)
-            live.update(rendered)
+        elif cmd_lower in ("/help", "/?", "/h"):
+            tips = [
+                ("/new",     "Démarrer une nouvelle conversation"),
+                ("/model",   "Afficher les infos du modèle actif"),
+                ("/history", "Afficher l'historique récent (10 derniers)"),
+                ("/help",    "Afficher cette aide"),
+                ("/exit",    "Quitter Bissi Codes"),
+            ]
+            for j, (c, d) in enumerate(tips):
+                is_last = j == len(tips) - 1
+                branch = "  └ " if is_last else "  ├ "
+                log.write(
+                    Text(branch, style=C_DIM) +
+                    Text(f"{c:<12}", style="cyan") +
+                    Text(f"— {d}", style=C_DIM)
+                )
 
-        self.console.print()
-        self.console.print(Text("─" * 80, style="#1DB854"))
-        self.console.print()
+        else:
+            log.write(
+                Text("  └ ", style=C_DIM) +
+                Text(f"Commande inconnue: {cmd}  (tape /help)", style=C_YELLOW)
+            )
 
-    _TABLE_SEP_RE = re.compile(r'^\s*\|?(?:\s*:?-{3,}:?\s*\|)+\s*:?-{3,}:?\s*\|?\s*$')
+        log.write(Text(""))
+        log.write(Text("─" * 64, style=C_DIM))
+        log.write(Text(""))
 
-    @staticmethod
-    def _split_table_row(line: str) -> list[str]:
-        row = line.strip()
-        if row.startswith("|"):
-            row = row[1:]
-        if row.endswith("|"):
-            row = row[:-1]
-        return [cell.strip() for cell in row.split("|")]
+    # ── Helpers ───────────────────────────────────────────────────────────────
+    def _set_busy(self, busy: bool) -> None:
+        self._busy = busy
+        loader = self.query_one("#loading", Static)
+        if busy:
+            loader.add_class("active")
+        else:
+            loader.remove_class("active")
+        inp = self.query_one("#user-input", Input)
+        inp.disabled = busy
+        if not busy:
+            inp.focus()
 
-    def _is_table_separator(self, line: str) -> bool:
-        return bool(self._TABLE_SEP_RE.match(line))
+    def action_clear_log(self) -> None:
+        self.query_one(RichLog).clear()
+        self._print_splash(self.query_one(RichLog))
 
-    def _render_table(self, headers: list[str], rows: list[list[str]]) -> Table:
-        width = max([len(headers)] + [len(r) for r in rows] + [1])
-        padded_headers = headers + [""] * (width - len(headers))
-        padded_rows = [row + [""] * (width - len(row)) for row in rows]
 
-        table = Table(box=box.SIMPLE_HEAVY, show_lines=False, header_style="bold magenta")
-        for header in padded_headers:
-            table.add_column(header or " ", overflow="fold")
-        for row in padded_rows:
-            table.add_row(*[cell or "" for cell in row])
-        return table
+# ─── Public interface (unchanged from original) ────────────────────────────
+class BissiREPL:
+    """Drop-in replacement — same interface as before."""
 
-    def _render_markdown(self, text: str):
-        blocks = []
-        lines = text.splitlines()
-        buffer: list[str] = []
-        in_code = False
-        i = 0
+    def __init__(self, agent: BissiAgent):
+        self.agent = agent
 
-        while i < len(lines):
-            line = lines[i]
-            stripped = line.strip()
-
-            if stripped.startswith("```"):
-                in_code = not in_code
-                buffer.append(line)
-                i += 1
-                continue
-
-            if not in_code and i + 1 < len(lines) and "|" in line and self._is_table_separator(lines[i + 1]):
-                if buffer:
-                    blocks.append(Markdown("\n".join(buffer)))
-                    buffer = []
-                headers = self._split_table_row(line)
-                i += 2
-                rows: list[list[str]] = []
-                while i < len(lines):
-                    row_line = lines[i]
-                    if not row_line.strip() or "|" not in row_line:
-                        break
-                    rows.append(self._split_table_row(row_line))
-                    i += 1
-                blocks.append(self._render_table(headers, rows))
-                continue
-
-            buffer.append(line)
-            i += 1
-
-        if buffer:
-            blocks.append(Markdown("\n".join(buffer)))
-
-        if not blocks:
-            return Text("")
-        if len(blocks) == 1:
-            return blocks[0]
-        return Group(*blocks)
+    def run(self) -> None:
+        app = BissiApp(self.agent)
+        app.run()

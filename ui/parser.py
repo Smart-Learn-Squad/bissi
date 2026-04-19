@@ -1,9 +1,9 @@
-"""BissiParser — Markdown → PyQt6 RichText HTML.
+"""ui/parser.py — BissiParser core.
 
-Converts LLM responses from BISSI to HTML that QLabel can render
-natively via Qt.TextFormat.RichText.
+Parses LLM output into a language-agnostic AST.
+Renderers (html.py, rich_text.py) turn that AST into their target format.
 
-Supported syntax:
+Supported syntax
   ``` fenced code blocks (with optional language)
   `  inline code
   **bold**, *italic*, ~~strikethrough~~
@@ -12,489 +12,369 @@ Supported syntax:
   1.     ordered lists
   ---    horizontal rule
   [label](url) links
-  Plain paragraphs with preserved line breaks
+  | table | rows |
+  $$...$$ / $...$ LaTeX → Unicode math (super/subscripts)
+  Plain paragraphs
 
-Streaming-safe: handles unclosed code blocks with a live cursor ▌.
+Streaming-safe: unclosed fences are flagged with is_partial=True.
 No external dependencies.
 """
 from __future__ import annotations
 
-import html as _html
 import re
 from dataclasses import dataclass, field
+from typing import Any
 
 
-# ── Palette (injectée depuis le thème) ────────────────────────
-_C: dict[str, str] = {
-    "code_bg":    "#f8f8f6",
-    "code_text":  "#222219",
-    "code_border":"#e8e8e8",
-    "inline_bg":  "#EEEDFE",
-    "inline_text":"#3C3489",
-    "h1":         "#55e326",
-    "h2":         "#1BE2D5F8",
-    "h3":         "#534AB7",
-    "hr":         "#fffafa",
-    "link":       "#258EC7",
-    "mono":       "JetBrains Mono,Fira Code,Consolas,Monospace",
-    "ui":         "Inter,Segoe UI,Helvetica Neue,Arial,sans-serif",
-}
+# ── AST node types ────────────────────────────────────────────────────────────
+
+@dataclass
+class TextNode:
+    """A run of plain text with optional inline formatting."""
+    text: str
+
+@dataclass
+class BoldNode:
+    text: str
+
+@dataclass
+class ItalicNode:
+    text: str
+
+@dataclass
+class StrikeNode:
+    text: str
+
+@dataclass
+class InlineCodeNode:
+    text: str
+
+@dataclass
+class LinkNode:
+    label: str
+    url: str
+
+# Inline = one of the above
+Inline = TextNode | BoldNode | ItalicNode | StrikeNode | InlineCodeNode | LinkNode
 
 
-def configure(colors: dict) -> None:
-    """Injecte la palette du thème BISSI dans le parser."""
-    _C.update(colors)
+@dataclass
+class ParagraphNode:
+    inlines: list[Inline]
 
+@dataclass
+class HeadingNode:
+    level: int          # 1-4
+    inlines: list[Inline]
 
-# ── Résultat ──────────────────────────────────────────────────
+@dataclass
+class HRNode:
+    pass
+
+@dataclass
+class CodeBlockNode:
+    lang: str           # normalised (e.g. "python"), "" if none
+    raw_lang: str       # original label
+    code: str
+    is_partial: bool = False
+
+@dataclass
+class UListNode:
+    items: list[list[Inline]]
+
+@dataclass
+class OListNode:
+    items: list[list[Inline]]
+
+@dataclass
+class TableNode:
+    headers: list[list[Inline]]
+    rows: list[list[list[Inline]]]
+
+@dataclass
+class SpacerNode:
+    pass
+
+Block = (ParagraphNode | HeadingNode | HRNode | CodeBlockNode
+         | UListNode | OListNode | TableNode | SpacerNode)
+
 
 @dataclass
 class ParseResult:
-    html:       str
-    has_code:   bool       = False
-    languages:  list[str]  = field(default_factory=list)
-    is_partial: bool       = False
+    blocks:     list[Block]
+    has_code:   bool      = False
+    languages:  list[str] = field(default_factory=list)
+    is_partial: bool      = False
 
 
-# ── Inline parser ─────────────────────────────────────────────
-#
-# Principe : on parcourt le texte une seule fois avec un pattern combiné.
-# Les parties qui ne matchent pas sont HTML-échappées.
-# Les parties qui matchent sont traitées individuellement (sans ré-échapper).
+# ── Language aliases ──────────────────────────────────────────────────────────
 
-_INLINE_RE = re.compile(
-    r'(`[^`\n]+`)'                              # groupe 1 : inline code
-    r'|(\*\*(?:[^*]|\*(?!\*))+\*\*)'           # groupe 2 : **bold**
-    r'|(__(?:[^_]|_(?!_))+__)'                 # groupe 3 : __bold__
-    r'|(\*(?:[^*\n])+\*)'                      # groupe 4 : *italic*
-    r'|(_(?:[^_\n])+_)'                        # groupe 5 : _italic_
-    r'|(~~(?:[^~]|~(?!~))+~~)'                 # groupe 6 : ~~strike~~
-    r'|(\[([^\]]+)\]\((https?://[^\)]+)\))',   # groupe 7 : [label](url)
-)
-
-
-def _inline(raw: str) -> str:
-    """Convertit le texte brut (non-échappé) en HTML inline."""
-    result: list[str] = []
-    last = 0
-
-    for m in _INLINE_RE.finditer(raw):
-        # Texte avant le match → échapper
-        result.append(_html.escape(raw[last:m.start()], quote=False))
-
-        g = m.group(0)
-
-        if m.group(1):                          # `code`
-            code = g[1:-1]
-            result.append(
-                f'<code style="background:{_C["inline_bg"]};'
-                f'color:{_C["inline_text"]};'
-                f'font-family:{_C["mono"]};'
-                f'font-size:12px;padding:1px 5px;border-radius:3px;">'
-                f'{_html.escape(code, quote=False)}</code>'
-            )
-
-        elif m.group(2) or m.group(3):          # **bold** / __bold__
-            inner = g[2:-2]
-            result.append(f'<b>{_html.escape(inner, quote=False)}</b>')
-
-        elif m.group(4) or m.group(5):          # *italic* / _italic_
-            inner = g[1:-1]
-            result.append(f'<i>{_html.escape(inner, quote=False)}</i>')
-
-        elif m.group(6):                        # ~~strike~~
-            inner = g[2:-2]
-            result.append(f'<s>{_html.escape(inner, quote=False)}</s>')
-
-        elif m.group(7):                        # [label](url)
-            label = _html.escape(m.group(8), quote=False)
-            url   = _html.escape(m.group(9), quote=False)
-            result.append(
-                f'<a href="{url}" style="color:{_C["link"]};'
-                f'text-decoration:none;">{label}</a>'
-            )
-
-        last = m.end()
-
-    result.append(_html.escape(raw[last:], quote=False))
-    return "".join(result)
-
-
-# ── Rendu d'un bloc de code ───────────────────────────────────
-
-def _code_block(code: str, lang: str = "") -> str:
-    norm_lang = _normalize_lang(lang)
-    if norm_lang in {"latex", "tex", "math"}:
-        return _latex_block(code)
-
-    lines = code.split("\n")
-    # Supprimer lignes vides en début/fin
-    while lines and not lines[0].strip():
-        lines.pop(0)
-    while lines and not lines[-1].strip():
-        lines.pop()
-
-    html_lines: list[str] = []
-    for line in lines:
-        spaces = len(line) - len(line.lstrip(" "))
-        body   = _html.escape(line.lstrip(" "), quote=False)
-        html_lines.append("&nbsp;" * spaces + body)
-
-    body_html = "<br>".join(html_lines)
-
-    ui = _C["ui"]
-    badge = (
-        f'<span style="float:right;font-size:10px;color:#aaa;'
-        f'font-family:{ui};">{_html.escape(norm_lang or lang)}</span>'
-        if (norm_lang or lang) else ""
-    )
-    code_tag = (
-        f'<pre style="margin:0;white-space:pre-wrap;">'
-        f'<code class="language-{_html.escape(norm_lang)}">{body_html}</code>'
-        f'</pre>'
-        if norm_lang
-        else f'<pre style="margin:0;white-space:pre-wrap;"><code>{body_html}</code></pre>'
-    )
-
-    return (
-        f'<table width="100%" cellpadding="0" cellspacing="0"'
-        f' style="margin:6px 0;">'
-        f'<tr><td style="'
-        f'background:{_C["code_bg"]};'
-        f'border:1px solid {_C["code_border"]};'
-        f'border-radius:6px;'
-        f'padding:10px 12px;'
-        f'font-family:{_C["mono"]};'
-        f'font-size:12px;'
-        f'color:{_C["code_text"]};'
-        f'line-height:1.6;">'
-        f'{badge}{code_tag}</td></tr></table>'
-    )
-
-
-def _latex_block(code: str) -> str:
-    expr = code.strip()
-    if not expr:
-        expr = r"\text{ }"
-    safe = _html.escape(expr, quote=False)
-    return (
-        f'<div class="bissi-latex-block" style="margin:8px 0;'
-        f'padding:8px 10px;border:1px solid {_C["code_border"]};'
-        f'border-radius:6px;background:{_C["code_bg"]};">'
-        f'$$\n{safe}\n$$'
-        f'</div>'
-    )
-
-
-_LANG_ALIASES = {
-    "py": "python",
+_LANG_ALIASES: dict[str, str] = {
+    "py":      "python",
     "python3": "python",
-    "rs": "rust",
-    "js": "javascript",
-    "ts": "typescript",
-    "sh": "bash",
-    "shell": "bash",
-    "yml": "yaml",
-    "md": "markdown",
-    "c++": "cpp",
-    "c#": "csharp",
+    "rs":      "rust",
+    "js":      "javascript",
+    "ts":      "typescript",
+    "sh":      "bash",
+    "shell":   "bash",
+    "yml":     "yaml",
+    "md":      "markdown",
+    "c++":     "cpp",
+    "c#":      "csharp",
 }
 
 
 def _normalize_lang(lang: str) -> str:
     raw = (lang or "").strip().lower()
-    if not raw:
-        return ""
     return _LANG_ALIASES.get(raw, raw)
 
 
-# ── Parser de bloc (hors code) ────────────────────────────────
+# ── Math: super/subscript conversion ─────────────────────────────────────────
 
-_RE_H3 = re.compile(r'^###\s+(.*)')
-_RE_H4 = re.compile(r'^####\s+(.*)')
-_RE_H2 = re.compile(r'^##\s+(.*)')
-_RE_H1 = re.compile(r'^#\s+(.*)')
-_RE_HR = re.compile(r'^-{3,}\s*$')
-_RE_UL = re.compile(r'^[-*•]\s+(.*)')
-_RE_OL = re.compile(r'^\d+\.\s+(.*)')
-_TABLE_SEP_RE = re.compile(r'^\s*\|?(?:\s*:?-{3,}:?\s*\|)+\s*:?-{3,}:?\s*\|?\s*$')
-
-
-def _split_table_row(line: str) -> list[str]:
-    row = line.strip()
-    if row.startswith("|"):
-        row = row[1:]
-    if row.endswith("|"):
-        row = row[:-1]
-    return [cell.strip() for cell in row.split("|")]
-
-
-def _looks_like_table_start(lines: list[str], index: int) -> bool:
-    if index + 1 >= len(lines):
-        return False
-    header = lines[index]
-    separator = lines[index + 1]
-    return "|" in header and _TABLE_SEP_RE.match(separator) is not None
-
-
-def _render_table(headers: list[str], rows: list[list[str]]) -> str:
-    width = len(headers)
-    for row in rows:
-        width = max(width, len(row))
-    if width == 0:
-        return ""
-
-    padded_headers = headers + [""] * (width - len(headers))
-    padded_rows = [row + [""] * (width - len(row)) for row in rows]
-    th_style = (
-        f'padding:7px 9px;border-bottom:1px solid {_C["code_border"]};'
-        f'background:#f4f4f7;text-align:left;font-weight:600;'
-        f'color:{_C["h2"]};vertical-align:top;'
-    )
-    td_style = (
-        f'padding:7px 9px;border-top:1px solid {_C["code_border"]};'
-        f'vertical-align:top;'
-    )
-    table_style = (
-        f'width:100%;border-collapse:collapse;border:1px solid {_C["code_border"]};'
-        f'border-radius:6px;overflow:hidden;margin:8px 0;'
-        f'font-family:{_C["ui"]};font-size:12px;line-height:1.5;'
-    )
-
-    head_html = "".join(
-        f'<th style="{th_style}">{_inline(cell)}</th>' for cell in padded_headers
-    )
-    body_html = "".join(
-        "<tr>"
-        + "".join(f'<td style="{td_style}">{_inline(cell)}</td>' for cell in row)
-        + "</tr>"
-        for row in padded_rows
-    )
-
-    return (
-        f'<table style="{table_style}">'
-        f'<thead><tr>{head_html}</tr></thead>'
-        f'<tbody>{body_html}</tbody>'
-        f'</table>'
-    )
-
-
-def _render_block(text: str) -> str:
-    """Convertit un segment de texte (sans bloc code) en HTML."""
-    lines = text.split("\n")
-    out:  list[str] = []
-    ul_buf: list[str] = []
-    ol_buf: list[str] = []
-    para_buf: list[str] = []
-    i = 0
-    just_spaced = False
-
-    def _flush_ul():
-        if ul_buf:
-            items = "".join(
-                f'<li style="margin:2px 0;">{x}</li>' for x in ul_buf
-            )
-            out.append(
-                f'<ul style="margin:3px 0 3px 16px;padding:0;">{items}</ul>'
-            )
-            ul_buf.clear()
-
-    def _flush_ol():
-        if ol_buf:
-            items = "".join(
-                f'<li style="margin:2px 0;">{x}</li>' for x in ol_buf
-            )
-            out.append(
-                f'<ol style="margin:3px 0 3px 16px;padding:0;">{items}</ol>'
-            )
-            ol_buf.clear()
-
-    def _flush_para():
-        if para_buf:
-            merged = " ".join(x.strip() for x in para_buf if x.strip())
-            if merged:
-                out.append(
-                    f'<p style="margin:3px 0;line-height:1.6;">'
-                    f'{_inline(merged)}</p>'
-                )
-            para_buf.clear()
-
-    while i < len(lines):
-        line = lines[i]
-
-        if _looks_like_table_start(lines, i):
-            _flush_ul(); _flush_ol(); _flush_para()
-            headers = _split_table_row(line)
-            i += 2
-            rows: list[list[str]] = []
-            while i < len(lines):
-                row_line = lines[i]
-                if not row_line.strip() or "|" not in row_line:
-                    break
-                rows.append(_split_table_row(row_line))
-                i += 1
-            table_html = _render_table(headers, rows)
-            if table_html:
-                out.append(table_html)
-            just_spaced = False
-            continue
-
-        # Horizontal rule
-        if _RE_HR.match(line):
-            _flush_ul(); _flush_ol(); _flush_para()
-            out.append(
-                f'<hr style="border:none;border-top:1px solid'
-                f' {_C["hr"]};margin:6px 0;">'
-            )
-            just_spaced = False
-            i += 1
-            continue
-
-        # #### H4
-        m = _RE_H4.match(line)
-        if m:
-            _flush_ul(); _flush_ol(); _flush_para()
-            out.append(
-                f'<p style="font-size:12px;font-weight:600;'
-                f'color:{_C["h3"]};margin:6px 0 2px;">'
-                f'{_inline(m.group(1))}</p>'
-            )
-            just_spaced = False
-            i += 1
-            continue
-
-        # ### H3
-        m = _RE_H3.match(line)
-        if m:
-            _flush_ul(); _flush_ol(); _flush_para()
-            out.append(
-                f'<p style="font-size:13px;font-weight:600;'
-                f'color:{_C["h3"]};margin:7px 0 2px;">'
-                f'{_inline(m.group(1))}</p>'
-            )
-            just_spaced = False
-            i += 1
-            continue
-
-        # ## H2
-        m = _RE_H2.match(line)
-        if m:
-            _flush_ul(); _flush_ol(); _flush_para()
-            out.append(
-                f'<p style="font-size:15px;font-weight:600;'
-                f'color:{_C["h2"]};margin:8px 0 2px;">'
-                f'{_inline(m.group(1))}</p>'
-            )
-            just_spaced = False
-            i += 1
-            continue
-
-        # # H1
-        m = _RE_H1.match(line)
-        if m:
-            _flush_ul(); _flush_ol(); _flush_para()
-            out.append(
-                f'<p style="font-size:17px;font-weight:700;'
-                f'color:{_C["h1"]};margin:8px 0 3px;">'
-                f'{_inline(m.group(1))}</p>'
-            )
-            just_spaced = False
-            i += 1
-            continue
-
-        # Unordered list
-        m = _RE_UL.match(line)
-        if m:
-            _flush_ol(); _flush_para()
-            ul_buf.append(_inline(m.group(1)))
-            just_spaced = False
-            i += 1
-            continue
-
-        # Ordered list
-        m = _RE_OL.match(line)
-        if m:
-            _flush_ul(); _flush_para()
-            ol_buf.append(_inline(m.group(1)))
-            just_spaced = False
-            i += 1
-            continue
-
-        # Ligne vide -> un seul espacement visuel entre blocs
-        if not line.strip():
-            _flush_ul(); _flush_ol(); _flush_para()
-            if not just_spaced:
-                out.append('<div style="height:4px;"></div>')
-                just_spaced = True
-            i += 1
-            continue
-
-        # Ligne normale : accumuler en paragraphe compact
-        _flush_ul(); _flush_ol()
-        para_buf.append(line)
-        just_spaced = False
-        i += 1
-
-    _flush_ul()
-    _flush_ol()
-    _flush_para()
-
-    spacer = '<div style="height:4px;"></div>'
-    while out and out[-1] == spacer:
-        out.pop()
-    while out and out[0] == spacer:
-        out.pop(0)
-
-    return "".join(out)
-
-
-# ── Parser principal ──────────────────────────────────────────
-
-_FENCE_RE = re.compile(
-    r'```([A-Za-z0-9_+\-#.]*)\n(.*?)(?:\n```|(?=```))',
-    re.DOTALL,
+_SUPERSCRIPTS = str.maketrans(
+    "0123456789+-=()abcdefghijklmnoprstuvwxyz",
+    "⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁼⁽⁾ᵃᵇᶜᵈᵉᶠᵍʰⁱʲᵏˡᵐⁿᵒᵖʳˢᵗᵘᵛʷˣʸᶻ"
+)
+_SUBSCRIPTS = str.maketrans(
+    "0123456789aehijklmnoprstuvx",
+    "₀₁₂₃₄₅₆₇₈₉ₐₑₕᵢⱼₖₗₘₙₒₚᵣₛₜᵤᵥₓ"
 )
 
 
-def parse(text: str) -> ParseResult:
-    """Parse un message complet ou partiel de Bissi.
+def _apply_scripts(text: str) -> str:
+    """Convert ^{...}/^x and _{...}/_x to Unicode super/subscripts."""
+    def _rep(m: re.Match, table: dict) -> str:
+        body = m.group(1) if m.group(1) else m.group(2)
+        return body.translate(table)
+    text = re.sub(r"\^\{([^}]*)\}|\^([^\s{])",  lambda m: _rep(m, _SUPERSCRIPTS), text)
+    text = re.sub(r"_\{([^}]*)\}|_([^\s{_])",   lambda m: _rep(m, _SUBSCRIPTS),   text)
+    return text
 
-    Args:
-        text: Texte brut sorti par le LLM (Markdown).
 
-    Returns:
-        ParseResult avec le HTML final prêt pour QLabel.
-    """
-    if not text:
-        return ParseResult(html="")
+_LATEX_BLOCK_RE  = re.compile(r"\$\$[^$]*?\$\$", re.DOTALL)
+_LATEX_INLINE_RE = re.compile(r"\$[^$\n]+?\$")
 
-    # LLM output frequently escapes math delimiters as \$...\$.
-    # Normalize before markdown parsing so KaTeX can render formulas.
+
+def _strip_latex(text: str) -> str:
+    """Strip LaTeX delimiters and apply Unicode math conversion."""
     text = text.replace(r"\$", "$")
-    # Avoid giant visual gaps from excessive blank lines.
-    text = re.sub(r"\n{3,}", "\n\n", text)
+    text = _LATEX_BLOCK_RE.sub(lambda m: _apply_scripts(m.group(0)[2:-2].strip()), text)
+    text = _LATEX_INLINE_RE.sub(lambda m: _apply_scripts(m.group(0)[1:-1]), text)
+    text = _apply_scripts(text)
+    return text
 
-    parts:     list[str] = []
+
+# ── Inline parser ─────────────────────────────────────────────────────────────
+
+_INLINE_RE = re.compile(
+    r"(`[^`\n]+`)"                              # 1: `code`
+    r"|(\*\*(?:[^*]|\*(?!\*))+\*\*)"           # 2: **bold**
+    r"|(__ (?:[^_]|_(?!_))+ __)"               # 3: __bold__  (spaces stripped)
+    r"|(\*(?:[^*\n])+\*)"                      # 4: *italic*
+    r"|(_(?:[^_\n])+_)"                        # 5: _italic_
+    r"|(~~(?:[^~]|~(?!~))+~~)"                # 6: ~~strike~~
+    r"|(\[([^\]]+)\]\((https?://[^\)]+)\))",   # 7: [label](url)
+    re.VERBOSE,
+)
+
+
+def _parse_inline(raw: str) -> list[Inline]:
+    nodes: list[Inline] = []
+    last = 0
+    for m in _INLINE_RE.finditer(raw):
+        before = raw[last:m.start()]
+        if before:
+            nodes.append(TextNode(before))
+        g = m.group(0)
+        if m.group(1):
+            nodes.append(InlineCodeNode(g[1:-1]))
+        elif m.group(2) or m.group(3):
+            nodes.append(BoldNode(g[2:-2]))
+        elif m.group(4) or m.group(5):
+            nodes.append(ItalicNode(g[1:-1]))
+        elif m.group(6):
+            nodes.append(StrikeNode(g[2:-2]))
+        elif m.group(7):
+            nodes.append(LinkNode(label=m.group(8), url=m.group(9)))
+        last = m.end()
+    tail = raw[last:]
+    if tail:
+        nodes.append(TextNode(tail))
+    return nodes
+
+
+# ── Block-level regexes ───────────────────────────────────────────────────────
+
+_RE_H4        = re.compile(r"^####\s+(.*)")
+_RE_H3        = re.compile(r"^###\s+(.*)")
+_RE_H2        = re.compile(r"^##\s+(.*)")
+_RE_H1        = re.compile(r"^#\s+(.*)")
+_RE_HR        = re.compile(r"^-{3,}\s*$")
+_RE_UL        = re.compile(r"^[-*•]\s+(.*)")
+_RE_OL        = re.compile(r"^\d+\.\s+(.*)")
+_TABLE_SEP_RE = re.compile(r"^\s*\|?(?:\s*:?-{3,}:?\s*\|)+\s*:?-{3,}:?\s*\|?\s*$")
+_FENCE_RE     = re.compile(r"```([A-Za-z0-9_+\-#.]*)\n(.*?)(?:\n```|(?=```))", re.DOTALL)
+
+
+def _split_table_row(line: str) -> list[str]:
+    row = line.strip().lstrip("|").rstrip("|")
+    return [c.strip() for c in row.split("|")]
+
+
+def _looks_like_table(lines: list[str], i: int) -> bool:
+    return (i + 1 < len(lines)
+            and "|" in lines[i]
+            and bool(_TABLE_SEP_RE.match(lines[i + 1])))
+
+
+# ── Block parser (non-code segments) ─────────────────────────────────────────
+
+def _parse_block_segment(text: str) -> list[Block]:
+    """Parse a segment of text that contains no fenced code blocks."""
+    lines = text.split("\n")
+    blocks: list[Block] = []
+    ul_items: list[list[Inline]] = []
+    ol_items: list[list[Inline]] = []
+    para_lines: list[str] = []
+    just_spaced = False
+
+    def flush_ul():
+        if ul_items:
+            blocks.append(UListNode(items=list(ul_items)))
+            ul_items.clear()
+
+    def flush_ol():
+        if ol_items:
+            blocks.append(OListNode(items=list(ol_items)))
+            ol_items.clear()
+
+    def flush_para():
+        if para_lines:
+            merged = " ".join(l.strip() for l in para_lines if l.strip())
+            if merged:
+                blocks.append(ParagraphNode(inlines=_parse_inline(merged)))
+            para_lines.clear()
+
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+
+        # Table
+        if _looks_like_table(lines, i):
+            flush_ul(); flush_ol(); flush_para()
+            headers_raw = _split_table_row(line)
+            i += 2
+            rows_raw: list[list[str]] = []
+            while i < len(lines):
+                if not lines[i].strip() or "|" not in lines[i]:
+                    break
+                rows_raw.append(_split_table_row(lines[i]))
+                i += 1
+            blocks.append(TableNode(
+                headers=[_parse_inline(h) for h in headers_raw],
+                rows=[[_parse_inline(c) for c in row] for row in rows_raw],
+            ))
+            just_spaced = False
+            continue
+
+        # HR
+        if _RE_HR.match(line):
+            flush_ul(); flush_ol(); flush_para()
+            blocks.append(HRNode())
+            just_spaced = False
+            i += 1
+            continue
+
+        # Headings (check H4 before H3 before H2 before H1)
+        for level, regex in ((4, _RE_H4), (3, _RE_H3), (2, _RE_H2), (1, _RE_H1)):
+            m = regex.match(line)
+            if m:
+                flush_ul(); flush_ol(); flush_para()
+                blocks.append(HeadingNode(level=level, inlines=_parse_inline(m.group(1))))
+                just_spaced = False
+                i += 1
+                break
+        else:
+            # Unordered list
+            m = _RE_UL.match(line)
+            if m:
+                flush_ol(); flush_para()
+                ul_items.append(_parse_inline(m.group(1)))
+                just_spaced = False
+                i += 1
+                continue
+
+            # Ordered list
+            m = _RE_OL.match(line)
+            if m:
+                flush_ul(); flush_para()
+                ol_items.append(_parse_inline(m.group(1)))
+                just_spaced = False
+                i += 1
+                continue
+
+            # Blank line
+            if not line.strip():
+                flush_ul(); flush_ol(); flush_para()
+                if not just_spaced:
+                    blocks.append(SpacerNode())
+                    just_spaced = True
+                i += 1
+                continue
+
+            # Normal line → accumulate paragraph
+            flush_ul(); flush_ol()
+            para_lines.append(line)
+            just_spaced = False
+            i += 1
+            continue
+
+        continue  # heading matched — already incremented i
+
+    flush_ul()
+    flush_ol()
+    flush_para()
+
+    # Trim leading/trailing spacers
+    while blocks and isinstance(blocks[0], SpacerNode):
+        blocks.pop(0)
+    while blocks and isinstance(blocks[-1], SpacerNode):
+        blocks.pop()
+
+    return blocks
+
+
+# ── Main parse entry point ────────────────────────────────────────────────────
+
+def parse(text: str) -> ParseResult:
+    """Parse a complete or partial LLM message into a ParseResult AST."""
+    if not text:
+        return ParseResult(blocks=[])
+
+    text = _strip_latex(text)
+    text = re.sub(r"\n{3,}", "\n\n", text)   # collapse excessive blank lines
+
+    blocks:    list[Block] = []
     has_code               = False
-    languages: list[str] = []
+    languages: list[str]  = []
     is_partial             = False
     last                   = 0
 
     for m in _FENCE_RE.finditer(text):
         before = text[last:m.start()]
         if before:
-            parts.append(_render_block(before))
+            blocks.extend(_parse_block_segment(before))
 
-        lang = _normalize_lang(m.group(1).strip())
-        code = m.group(2)
-        raw  = m.group(0)
+        raw_lang = m.group(1).strip()
+        lang     = _normalize_lang(raw_lang)
+        code     = m.group(2)
+        closed   = m.group(0).rstrip().endswith("```")
 
-        # Bloc fermé si le raw se termine par ```
-        closed = raw.rstrip().endswith("```")
         if not closed:
             is_partial = True
 
-        parts.append(_code_block(code, lang))
+        blocks.append(CodeBlockNode(lang=lang, raw_lang=raw_lang, code=code,
+                                    is_partial=not closed))
         has_code = True
         if lang and lang not in languages:
             languages.append(lang)
@@ -503,13 +383,12 @@ def parse(text: str) -> ParseResult:
 
     tail = text[last:]
     if tail:
-        # Détecter un ``` ouvert sans fermeture
         fence_count = tail.count("```")
         if fence_count % 2 == 1:
-            is_partial    = True
-            fence_pos     = tail.rfind("```")
-            before_fence  = tail[:fence_pos]
-            partial_raw   = tail[fence_pos + 3:]
+            is_partial = True
+            fence_pos  = tail.rfind("```")
+            before_fence = tail[:fence_pos]
+            partial_raw  = tail[fence_pos + 3:]
 
             first_nl = partial_raw.find("\n")
             if first_nl != -1:
@@ -520,19 +399,15 @@ def parse(text: str) -> ParseResult:
                 partial_body = ""
 
             if before_fence:
-                parts.append(_render_block(before_fence))
-            # Curseur de streaming
-            parts.append(_code_block(partial_body + "▌", partial_lang))
+                blocks.extend(_parse_block_segment(before_fence))
+            blocks.append(CodeBlockNode(lang=partial_lang, raw_lang=partial_lang,
+                                        code=partial_body + "▌", is_partial=True))
             has_code = True
         else:
-            parts.append(_render_block(tail))
+            blocks.extend(_parse_block_segment(tail))
 
-    return ParseResult(
-        html       = "".join(parts),
-        has_code   = has_code,
-        languages  = languages,
-        is_partial = is_partial,
-    )
+    return ParseResult(blocks=blocks, has_code=has_code,
+                       languages=languages, is_partial=is_partial)
 
 
 def parse_streaming(accumulated: str) -> ParseResult:

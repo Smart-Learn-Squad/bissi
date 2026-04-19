@@ -9,7 +9,7 @@ from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QSize
 from PyQt6.QtGui import QKeyEvent
 
 from ui.styles.theme import Theme
-from ui.parser import parse, configure as _configure_parser
+from ui.renderers.html import render as _render_html, configure as _configure_html_renderer
 from core.config import DEFAULT_CONFIG
 
 
@@ -22,16 +22,17 @@ class MessageBubble(QFrame):
         self.theme = theme or Theme()
         self._text = ""
         # Injecter la palette dans le parser
-        _configure_parser({
+        _configure_html_renderer({
             "code_bg":    self.theme.C["code_bg"],
             "code_text":  self.theme.C["text2"],
             "code_border":self.theme.C["border"],
             "inline_bg":  self.theme.C["purple_lt"],
             "inline_text":self.theme.C["purple_text"],
-            "h1_color":   self.theme.C["text"],
-            "h2_color":   self.theme.C["text2"],
-            "h3_color":   self.theme.C["purple"],
-            "hr_color":   self.theme.C["border2"],
+            "h1":         self.theme.C["text"],
+            "h2":         self.theme.C["text2"],
+            "h3":         self.theme.C["purple"],
+            "hr":         self.theme.C["border2"],
+            "link":       self.theme.C["purple"],
             "text":       self.theme.C["text2"],
             "mono":       self.theme.FONT_MONO,
             "ui":         self.theme.FONT_UI,
@@ -98,14 +99,14 @@ class MessageBubble(QFrame):
     def set_text(self, text: str):
         self._text = text
         if self.role == "assistant":
-            self._bubble.setText(parse(text).html)
+            self._bubble.setText(_render_html(text).html)
         else:
             self._bubble.setText(text)
 
     def append_text(self, token: str):
         self._text += token
         if self.role == "assistant":
-            self._bubble.setText(parse(self._text).html)
+            self._bubble.setText(_render_html(self._text).html)
         else:
             self._bubble.setText(self._text)
 

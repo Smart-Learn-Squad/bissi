@@ -13,43 +13,67 @@ Model = Literal["gemma4:e2b"]
 # ── Signal tables ──────────────────────────────────────────────
 
 _HEAVY: Set[str] = {
-    # Reasoning & analysis
-    "analyse", "analyze",
-    "compare", "comparison",
-    "explain",
+    # Reasoning & analysis (English + French)
+    "analyse", "analyze", "analyser", "analysez",
+    "compare", "comparison", "comparer", "comparaison",
+    "explain", "explique", "expliquer", "explique-moi",
     "summarize", "summarise", "summary", "synthesis", "resume",
-    "interpret",
-    # Document generation
+    "résume", "résumer", "résumé", "synthèse", "synthétise",
+    "interpret", "interprète", "interpréter",
+    # Document generation (English + French)
     "generate", "write", "compose",
+    "génère", "générer", "rédige", "rédiger",
     "create", "produce",
+    "crée", "créer", "écris", "écrire", "produis",
     "report", "presentation", "pptx", "docx", "document",
-    # Code
+    "rapport", "présentation",
+    # Code (English + French)
     "code", "script", "program", "implement",
+    "programme", "implémente", "implémenter",
     "debug", "optimize", "refactor",
+    "débogue", "débogage", "optimise",
     "function", "class", "algorithm", "python",
-    # Data
+    "fonction", "classe", "algorithme",
+    # Data (English + French)
     "calculate", "statistic", "statistics", "chart", "visualize",
+    "calcule", "calculer", "calcul", "statistique", "statistiques",
+    "graphique", "visualise",
     "pivot", "table", "predict", "model", "regression", "correlation",
+    "tableau", "prédis", "modèle", "régression", "corrélation",
     "dataframe", "pandas", "numpy", "average", "mean", "sum",
+    "moyenne", "somme",
     "data", "process", "transform",
-    # Multi-file / batch
+    "données", "traiter", "traitement", "transformer",
+    # Multi-file / batch (English + French)
     "batch", "convert",
+    "convertis", "traite",
 }
 
 _LIGHT: Set[str] = {
-    # Navigation & listing
+    # Navigation & listing (English + French)
     "list", "show", "display", "open", "which", "what",
+    "liste", "lister", "affiche", "montre", "ouvre", "ouvrir",
+    "quel", "quelle", "quels",
     "where", "find", "search",
-    # Simple operations
+    "où", "trouve", "cherche", "recherche",
+    # Simple operations (English + French)
     "copy", "paste", "rename", "move", "delete", "clipboard",
-    # Short factual questions
+    "copie", "coller", "colle", "renomme", "déplace",
+    "supprime", "efface", "presse-papier",
+    # Short factual questions (English + French)
     "version", "how many", "date", "time",
+    "combien", "heure",
 }
 
 _MULTISTEP: Set[str] = {
+    # English
     "then", "next", "after", "also", "finally",
     "first", "second", "third", "lastly",
     "step", "additionally", "furthermore",
+    # French
+    "puis", "ensuite", "après", "enfin",
+    "premièrement", "deuxièmement", "d'abord", "finalement",
+    "étape", "également", "de plus",
 }
 
 _DOMAIN_MAP: dict[str, str] = {
@@ -57,17 +81,24 @@ _DOMAIN_MAP: dict[str, str] = {
     "docx": "office", "xlsx": "office", "xls": "office",
     "pptx": "office", "pdf": "office", "report": "office",
     "presentation": "office", "document": "office",
+    "rapport": "office", "présentation": "office",
     # code
     "code": "code", "script": "code", "program": "code",
     "function": "code", "class": "code", "algorithm": "code",
     "debug": "code", "python": "code",
+    "programme": "code", "fonction": "code", "classe": "code",
+    "algorithme": "code", "débogue": "code",
     # data
     "analyse": "data", "analyze": "data", "statistic": "data", "chart": "data",
     "dataframe": "data", "pandas": "data", "calculate": "data",
     "data": "data", "csv": "data",
+    "statistique": "data", "graphique": "data", "calcul": "data",
+    "données": "data",
     # navigation
     "list": "navigation", "open": "navigation", "search": "navigation",
     "find": "navigation", "show": "navigation",
+    "liste": "navigation", "ouvre": "navigation", "cherche": "navigation",
+    "trouve": "navigation", "affiche": "navigation",
 }
 
 _HEAVY_EXT = {".xlsx", ".xls", ".docx", ".pptx", ".pdf"}

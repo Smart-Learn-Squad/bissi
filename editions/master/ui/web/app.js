@@ -637,14 +637,6 @@ function updateProfile(profile) {
   const total = profile.total || 0;
   const mc = el('#memory-count');
   if (mc) mc.textContent = total;
-  const sm = el('#status-memory');
-  if (sm) sm.textContent = `${total} souvenir${total === 1 ? '' : 's'}`;
-  // Show document/memory count in the input footer (only when > 0)
-  const rc = el('#rag-count');
-  if (rc) {
-    rc.textContent = total > 0 ? `${total} souvenir${total === 1 ? '' : 's'} actif${total === 1 ? '' : 's'}` : '';
-    rc.style.display = total > 0 ? '' : 'none';
-  }
 }
 
 // ── Sessions sidebar ───────────────────────────────────────────
@@ -652,7 +644,6 @@ function renderSessions(convs, autoLoad = true) {
   const list = el('#sessions-list');
   list.innerHTML = '';
   if (!convs || !convs.length) {
-    list.innerHTML = '<div class="session-empty">Aucune session</div>';
     return;
   }
   let firstItem = null;

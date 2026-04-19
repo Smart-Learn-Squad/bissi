@@ -121,9 +121,9 @@ class ExpenseManager:
             f"Utilisateur : {status['user']}",
             "",
             "💰 BUDGET",
-            f"  Budget : {status['budget']:,.0f}",
-            f"  Dépensé : {status['spent']:,.0f} ({status['percentage_used']:.1f}%)",
-            f"  Restant : {status['remaining']:,.0f}",
+            f"  Budget : {status['budget']:,.0f} FCFA",
+            f"  Dépensé : {status['spent']:,.0f} FCFA ({status['percentage_used']:.1f}%)",
+            f"  Restant : {status['remaining']:,.0f} FCFA",
             "",
             f"Nombre de dépenses : {status['expense_count']}"
         ]
@@ -131,7 +131,7 @@ class ExpenseManager:
         return '\n'.join(lines)
 
 
-def quick_add(libelle: str, montant: float, categorie: str = 'General') -> Expense:
+def quick_add(libelle: str, montant: float, categorie: str = 'Général') -> Expense:
     """Quick add expense."""
     manager = ExpenseManager()
     return manager.add_expense(libelle, montant, categorie)

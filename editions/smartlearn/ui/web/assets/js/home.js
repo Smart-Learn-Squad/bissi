@@ -423,7 +423,7 @@
   // Local desktop mode: hydrate sidebar user without redirecting.
   if (window.SmartLearnShell) {
     const u = window.SmartLearnShell.readStoredUser() || {
-      prenom: 'Student',
+      prenom: 'Étudiant',
       filiere: 'SmartLearn',
       email: 'local@bissi'
     };

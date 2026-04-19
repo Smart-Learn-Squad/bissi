@@ -42,7 +42,7 @@ class TitleBar(QWidget):
             dl.addWidget(d)
         layout.addWidget(dots_w)
 
-        title = QLabel("Bissi — Local Agent")
+        title = QLabel("Bissi — Agent Local")
         title.setStyleSheet(
             f"font-size:13px;color:{self.theme.C['text_muted']};"
             f"font-family:{self.theme.FONT_UI};margin-left:6px;"
@@ -64,7 +64,7 @@ class TitleBar(QWidget):
         self.theme_btn = QPushButton("☀")
         self.theme_btn.setObjectName("ThemeToggle")
         self.theme_btn.setFixedSize(28, 22)
-        self.theme_btn.setToolTip("Toggle light / dark theme")
+        self.theme_btn.setToolTip("Basculer thème clair / sombre")
         self.theme_btn.clicked.connect(self.theme_toggle_requested.emit)
         layout.addWidget(self.theme_btn)
 

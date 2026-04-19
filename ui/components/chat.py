@@ -181,7 +181,7 @@ class ChatPanel(QWidget):
         """)
         hl = QHBoxLayout(hdr)
         hl.setContentsMargins(16, 0, 16, 0)
-        self.chat_title = QLabel("New session")
+        self.chat_title = QLabel("Nouvelle session")
         self.chat_title.setStyleSheet(
             f"font-size:13px;font-weight:500;color:{self.theme.C['text']};"
             f"font-family:{self.theme.FONT_UI};"
@@ -230,7 +230,7 @@ class ChatPanel(QWidget):
 
         self.input = QLineEdit()
         self.input.setPlaceholderText(
-            "Ask Bissi a question…  (↑↓ history · Ctrl+C interrupt)"
+            "Pose une question à Bissi…  (↑↓ historique · Ctrl+C interrompre)"
         )
         self.input.setStyleSheet(f"""
             QLineEdit {{
@@ -306,14 +306,14 @@ class ChatPanel(QWidget):
         """Lock input while agent is processing."""
         self._locked = True
         self.input.setEnabled(False)
-        self.input.setPlaceholderText("Bissi is thinking… (Ctrl+C to interrupt)")
+        self.input.setPlaceholderText("Bissi réfléchit… (Ctrl+C pour interrompre)")
 
     def unlock(self):
         """Unlock input after processing."""
         self._locked = False
         self.input.setEnabled(True)
         self.input.setPlaceholderText(
-            "Ask Bissi a question…  (↑↓ history · Ctrl+C interrupt)"
+            "Pose une question à Bissi…  (↑↓ historique · Ctrl+C interrompre)"
         )
         self.input.setFocus()
 

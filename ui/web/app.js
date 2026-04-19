@@ -41,7 +41,7 @@ function waitForBridge(tries) {
     setTimeout(() => waitForBridge(tries + 1), 100);
   } else {
     console.warn('[bissi] QWebChannel unavailable — demo mode');
-    sysMsg('Demo mode — QWebChannel unavailable', 'warn');
+    sysMsg('Mode démo — QWebChannel non disponible', 'warn');
     el('#status-dot').className = 'status-dot amber';
   }
 }

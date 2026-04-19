@@ -64,10 +64,10 @@
     const txt = String(raw || "").replace(/```json|```/gi, "").trim();
     const start = txt.indexOf("{");
     const end = txt.lastIndexOf("}");
-    if (start < 0 || end <= start) throw new Error("Invalid quiz response");
+    if (start < 0 || end <= start) throw new Error("Réponse quiz invalide");
     const data = JSON.parse(txt.slice(start, end + 1));
     if (!Array.isArray(data?.questions) || !data.questions.length) {
-      throw new Error("No questions received");
+      throw new Error("Aucune question reçue");
     }
     return {
       questions: data.questions.slice(0, 3).map((q, i) => ({
@@ -269,7 +269,7 @@
     const btn = document.querySelector(".send-btn");
     if (!btn) return;
     if (sending) {
-      btn.title = "Stop";
+      btn.title = "Arrêter";
       btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>';
       btn.onclick = () => {
         if (S.bissi && S.bissi.stopGeneration) S.bissi.stopGeneration();
@@ -277,7 +277,7 @@
       };
       btn.disabled = false;
     } else {
-      btn.title = "Send";
+      btn.title = "Envoyer";
       btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>';
       btn.onclick = sendMessage;
       btn.disabled = false;
@@ -576,7 +576,7 @@
 
   function onError(message) {
     if (S.quizRequestActive) return;
-    pushSystem(`Error: ${message}`);
+    pushSystem(`Erreur : ${message}`);
     S.activeAiNode = null;
     S.activeAiRaw = "";
     S.parserFrameQueued = false;
@@ -611,7 +611,7 @@
     if (!conversations.length) {
       const empty = document.createElement("div");
       empty.className = "hist-item";
-      empty.innerHTML = `<span class="hi-icon">💬</span><span class="hi-text">New session</span>`;
+      empty.innerHTML = `<span class="hi-icon">💬</span><span class="hi-text">Nouvelle session</span>`;
       list.appendChild(empty);
       return;
     }
@@ -640,7 +640,7 @@
           try {
             const history = JSON.parse(raw);
             if (history.error) {
-              pushSystem(`Error: ${history.error}`);
+              pushSystem(`Erreur : ${history.error}`);
               return;
             }
 
@@ -681,7 +681,7 @@
                 // show placeholder if nothing to render
                 const wrap = document.createElement('div');
                 wrap.className = 'msg ai';
-                wrap.innerHTML = `<div class='msg-av'>∞</div><div class='msg-content'><em>(empty message)</em></div>`;
+                wrap.innerHTML = `<div class='msg-av'>∞</div><div class='msg-content'><em>(message vide)</em></div>`;
                 $('#messages')?.appendChild(wrap);
                 return;
               }
@@ -804,7 +804,7 @@
       if (!quiz.questions.length) throw new Error("Empty quiz");
       renderQuizCard(quiz);
     } catch (e) {
-      pushSystem(`Cannot generate quiz: ${e?.message || "error"}`);
+      pushSystem(`Impossible de générer le quiz : ${e?.message || "erreur"}`);
     }
   }
 

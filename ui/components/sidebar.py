@@ -68,7 +68,7 @@ class Sidebar(QWidget):
             f"font-size:11px;color:{self.theme.C['text_dim']};font-family:{self.theme.FONT_UI};"
             f"border:none;background:transparent;"
         )
-        self.mem_count = QLabel("0 souvenir")
+        self.mem_count = QLabel("0 souvenirs")
         self.mem_count.setStyleSheet(
             f"font-size:12px;color:{self.theme.C['purple']};font-weight:500;"
             f"font-family:{self.theme.FONT_UI};border:none;background:transparent;"
@@ -110,7 +110,7 @@ class Sidebar(QWidget):
 
     def set_memory(self, n: int):
         """Update memory count display."""
-        self.mem_count.setText(f"{n} souvenir{'s' if n > 1 else ''}")
+        self.mem_count.setText(f"{n} souvenir{'s' if n != 1 else ''}")
 
     def set_rag(self, n: int):
         """Update knowledge base count display."""

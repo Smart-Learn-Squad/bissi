@@ -133,10 +133,11 @@ FORBIDDEN:
         # Clean up the message
         clean = first_message.strip().replace('\n', ' ')
         # Remove common prefixes
-        prefixes = ['analyse ', 'create ', 'generate ', 
-                    'summarize ', 'summarise ', 'explain ', 
-                    'list ', 'find ', 'search ',
-                    'show ', 'read ', 'make ', 'write ', 'help ']
+        prefixes = ['analyse ', 'analyser ', 'analysez ', 'explique ', 'expliquer ',
+                    'résume ', 'résumer ', 'génère ', 'générer ', 'rédige ',
+                    'crée ', 'créer ', 'écris ', 'écrire ', 'produis ',
+                    'create ', 'generate ', 'summarize ', 'summarise ', 'explain ',
+                    'list ', 'find ', 'search ', 'show ', 'read ', 'make ', 'write ', 'help ']
         lower = clean.lower()
         for p in prefixes:
             if lower.startswith(p):
@@ -155,7 +156,7 @@ FORBIDDEN:
         title = ' '.join(title_words)
         if len(title) > 40:
             title = title[:37] + '...'
-        return title if title else 'New conversation'
+        return title if title else 'Nouvelle conversation'
 
     def load_conversation(self, conversation_id: int) -> bool:
         """Load existing conversation."""

@@ -41,7 +41,7 @@ class StatusBar(QWidget):
             return l
 
         self._model_lbl = stat(f"Ollama · {DEFAULT_CONFIG.OLLAMA_MODEL}")
-        self._mem_lbl = stat("Mémoire · 0 souvenir")
+        self._mem_lbl = stat("Mémoire · 0 souvenirs")
         self._session_lbl = stat("Session · 00:00")
         self._rag_lbl = stat("Mémoire contextuelle")
 
@@ -75,7 +75,7 @@ class StatusBar(QWidget):
 
     def set_memory(self, n: int):
         """Update memory count display."""
-        self._mem_lbl.setText(f"Mémoire · {n} souvenir{'s' if n > 1 else ''}")
+        self._mem_lbl.setText(f"Mémoire · {n} souvenir{'s' if n != 1 else ''}")
 
     def set_rag(self, n: int):
         """Update knowledge base count display."""

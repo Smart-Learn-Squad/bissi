@@ -34,7 +34,7 @@
   <aside class="sidebar" id="sidebar">
     <div class="sb-header">
       <div class="brand">
-        <div class="brand-icon" onclick="toggleSidebar()" title="Open / Close">
+        <div class="brand-icon" onclick="toggleSidebar()" title="Ouvrir / Fermer">
           <svg class="inf-logo" width="22" height="14" viewBox="0 0 44 28" fill="none">
             <defs>
               <linearGradient id="infGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -49,15 +49,15 @@
         </div>
         <div class="brand-text">
           <div class="brand-name">SmartLearn</div>
-          <div class="brand-sub">AI Tutor</div>
+          <div class="brand-sub">Tuteur IA</div>
         </div>
       </div>
-      <button class="toggle-btn desktop-only" onclick="toggleSidebar()" title="Collapse">
+      <button class="toggle-btn desktop-only" onclick="toggleSidebar()" title="Réduire">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
           <polyline points="15 18 9 12 15 6"/>
         </svg>
       </button>
-      <button class="close-btn mobile-only" onclick="closeSidebar()" title="Close">
+      <button class="close-btn mobile-only" onclick="closeSidebar()" title="Fermer">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
           <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
         </svg>
@@ -172,7 +172,7 @@
       <div class="input-wrap">
         <div class="input-row">
           <textarea class="textarea" id="messageInput" placeholder="Pose ta question à SmartLearn..." rows="1" onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendMessage();}" oninput="autoResize(this)"></textarea>
-          <button class="send-btn" onclick="sendMessage()" title="Send">
+          <button class="send-btn" onclick="sendMessage()" title="Envoyer">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
               <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
             </svg>
@@ -182,10 +182,10 @@
           <div class="tools">
             <button class="tool-btn" onclick="proposerQuiz()">🎯 Quiz</button>
           </div>
-          <span class="powered">⚡ <em>SmartLearn</em> AI</span>
+          <span class="powered">⚡ <em>SmartLearn</em> IA</span>
         </div>
       </div>
-      <p class="disclaimer">SmartLearn · Demo Hack by IFRI 2026</p>
+      <p class="disclaimer">SmartLearn · Démo Hack by IFRI 2026</p>
     </div>
   </main>
 </div>

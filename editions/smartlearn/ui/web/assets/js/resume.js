@@ -241,7 +241,7 @@
       ta.focus();
     }
     const c = $("#charCount");
-    if (c) c.textContent = "0 caractère";
+    if (c) c.textContent = "0 caractères";
   }
 
   function copierTout() {

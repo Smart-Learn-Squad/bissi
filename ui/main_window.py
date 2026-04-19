@@ -46,24 +46,24 @@ def _format_tool_result(result: str, max_len: int = 100) -> str:
             items = data["items"]
             names = [i.get("name", "?") for i in items[:6]]
             suffix = f" +{len(items)-6}" if len(items) > 6 else ""
-            return f"{len(items)} item(s): {', '.join(names)}{suffix}"
+            return f"{len(items)} élément(s) : {', '.join(names)}{suffix}"
 
-        # Search results
+        # Résultats de recherche
         if "results" in data:
             r = data["results"]
             if isinstance(r, list):
-                return f"{len(r)} result(s) found"
+                return f"{len(r)} résultat(s) trouvé(s)"
 
-        # Error
+        # Erreur
         if data.get("error"):
-            return f"Error: {data['error'][:80]}"
+            return f"Erreur : {data['error'][:80]}"
 
-        # Direct output (python_runner, safe_operator)
+        # Output direct (python_runner, safe_operator)
         if "output" in data:
             out = str(data["output"])
             lines = out.strip().splitlines()
             preview = lines[0] if lines else out
-            suffix = f" (+{len(lines)-1} lines)" if len(lines) > 1 else ""
+            suffix = f" (+{len(lines)-1} lignes)" if len(lines) > 1 else ""
             return (preview[:80] + suffix)[:max_len]
 
         # Excel / CSV columns

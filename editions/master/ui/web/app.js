@@ -55,7 +55,7 @@ function waitForBridge(tries) {
     setTimeout(() => waitForBridge(tries + 1), 100);
   } else {
     console.warn('[bissi] QWebChannel unavailable — demo mode');
-    sysMsg('Demo mode — QWebChannel unavailable', 'warn');
+    sysMsg('Mode démo — QWebChannel non disponible', 'warn');
     el('#status-dot').className = 'status-dot amber';
   }
 }
@@ -575,7 +575,7 @@ function lock() {
   el('#chat-input').disabled = true;
   el('#status-dot').className = 'status-dot amber';
   const hint = el('#routing-hint');
-  if (hint && !hint.textContent) hint.textContent = 'Generating…';
+  if (hint && !hint.textContent) hint.textContent = 'Génération…';
 }
 
 function unlock() {
@@ -586,7 +586,7 @@ function unlock() {
   inp.focus();
   el('#status-dot').className = 'status-dot teal';
   const hint = el('#routing-hint');
-  if (hint && hint.textContent === 'Generating…') hint.textContent = '';
+  if (hint && hint.textContent === 'Génération…') hint.textContent = '';
 }
 
 // ── Theme ──────────────────────────────────────────────────────
@@ -638,11 +638,11 @@ function updateProfile(profile) {
   const mc = el('#memory-count');
   if (mc) mc.textContent = total;
   const sm = el('#status-memory');
-  if (sm) sm.textContent = `${total} memories`;
+  if (sm) sm.textContent = `${total} souvenir${total === 1 ? '' : 's'}`;
   // Show document/memory count in the input footer (only when > 0)
   const rc = el('#rag-count');
   if (rc) {
-    rc.textContent = total > 0 ? `${total} active memories` : '';
+    rc.textContent = total > 0 ? `${total} souvenir${total === 1 ? '' : 's'} actif${total === 1 ? '' : 's'}` : '';
     rc.style.display = total > 0 ? '' : 'none';
   }
 }
@@ -652,7 +652,7 @@ function renderSessions(convs, autoLoad = true) {
   const list = el('#sessions-list');
   list.innerHTML = '';
   if (!convs || !convs.length) {
-    list.innerHTML = '<div class="session-empty">No sessions</div>';
+    list.innerHTML = '<div class="session-empty">Aucune session</div>';
     return;
   }
   let firstItem = null;
@@ -661,7 +661,7 @@ function renderSessions(convs, autoLoad = true) {
     d.className = 'session-item' + (i === 0 ? ' active' : '');
     d.dataset.convId = c.id;
     const title = c.title || (c.first_message || '').slice(0, 40) || `Session ${i + 1}`;
-    const date  = c.updated_at ? new Date(c.updated_at).toLocaleDateString('en') : '';
+    const date  = c.updated_at ? new Date(c.updated_at).toLocaleDateString('fr') : '';
     d.innerHTML = `
       <div class="session-title">${esc(title)}</div>
       <div class="session-date">${esc(date)}</div>`;
@@ -674,7 +674,7 @@ function renderSessions(convs, autoLoad = true) {
         try {
           const history = JSON.parse(json);
           if (history.error) {
-            sysMsg(`Error: ${history.error}`, 'error');
+            sysMsg(`Erreur : ${history.error}`, 'error');
             return;
           }
           const hasMessages = Array.isArray(history) && history.length > 0;

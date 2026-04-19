@@ -15,7 +15,6 @@ import difflib
 import os
 import re
 import signal
-import sys
 from pathlib import Path
 
 from textual.app import App, ComposeResult

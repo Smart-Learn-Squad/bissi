@@ -9,7 +9,7 @@ import json
 import os
 from pathlib import Path
 
-from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot, QProcess
+from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
 
 from agent import BissiAgent, get_agent
 from core.config import DEFAULT_CONFIG
@@ -35,9 +35,6 @@ class BissiBridge(QObject):
     conversationUpdated = pyqtSignal(str)       # JSON conversations list
     profileUpdated   = pyqtSignal(str)          # JSON user profile stats
     themeChanged     = pyqtSignal(str)          # theme name
-    # Terminal integration signals
-    terminalOutput   = pyqtSignal(str)          # streaming terminal output
-    terminalExited   = pyqtSignal(int)          # exit code
 
     def __init__(self, agent: BissiAgent | None = None, parent=None):
         super().__init__(parent)
@@ -154,43 +151,6 @@ class BissiBridge(QObject):
             "is_partial": result.is_partial,
         })
 
-    @pyqtSlot(str, result=str)
-    def openTerminal(self, command: str) -> str:
-        """Start a shell process to execute `command` and stream its output via terminalOutput signal.
-
-        Returns a session id string that can be used to correlate output. Uses QProcess.
-        """
-        try:
-            proc = QProcess(self)
-            proc.setProcessChannelMode(QProcess.ProcessChannelMode.MergedChannels)
-            proc.readyReadStandardOutput.connect(lambda p=proc: self._on_terminal_output(p))
-            proc.finished.connect(lambda code, status, p=proc: self._on_terminal_finished(p, code))
-            proc.start("/bin/bash", ["-lc", command])
-            sid = str(id(proc))
-            if not hasattr(self, "_terminal_processes"):
-                self._terminal_processes = {}
-            self._terminal_processes[sid] = proc
-            return json.dumps({"session_id": sid})
-        except Exception as ex:
-            return json.dumps({"error": str(ex)})
-
-    def _on_terminal_output(self, proc):
-        try:
-            data = proc.readAllStandardOutput()
-            # QByteArray -> bytes
-            text = bytes(data).decode("utf-8", errors="replace")
-        except Exception as ex:
-            text = str(ex)
-        self.terminalOutput.emit(text)
-
-    def _on_terminal_finished(self, proc, exit_code):
-        sid = str(id(proc))
-        if hasattr(self, "_terminal_processes") and sid in self._terminal_processes:
-            del self._terminal_processes[sid]
-        try:
-            self.terminalExited.emit(int(exit_code))
-        except Exception:
-            self.terminalExited.emit(-1)
 
     @pyqtSlot(str, result=str)
     def listDirectory(self, path: str) -> str:

@@ -41,9 +41,9 @@ class StatusBar(QWidget):
             return l
 
         self._model_lbl = stat(f"Ollama · {DEFAULT_CONFIG.OLLAMA_MODEL}")
-        self._mem_lbl = stat("Mémoire · 0 souvenirs")
+        self._mem_lbl = stat("Memory · 0 memories")
         self._session_lbl = stat("Session · 00:00")
-        self._rag_lbl = stat("Mémoire contextuelle")
+        self._rag_lbl = stat("Context memory")
 
         layout.addWidget(self._dot)
         layout.addWidget(self._model_lbl)
@@ -75,14 +75,14 @@ class StatusBar(QWidget):
 
     def set_memory(self, n: int):
         """Update memory count display."""
-        self._mem_lbl.setText(f"Mémoire · {n} souvenirs")
+        self._mem_lbl.setText(f"Memory · {n} memories")
 
     def set_rag(self, n: int):
         """Update knowledge base count display."""
         self._rag_lbl.setText(f"Documents · {n}")
 
     def set_routing(self, model: str, score: float):
-        """Affiche le modèle actif (gemma4:e2b)."""
+        """Update the active model display (gemma4:e2b)."""
         color = self.theme.C["teal"]
         self._model_lbl.setText(f"Ollama · {model}")
         self._model_lbl.setStyleSheet(

@@ -46,7 +46,7 @@ function waitForBridge(tries) {
     setTimeout(() => waitForBridge(tries + 1), 100);
   } else {
     console.warn('[bissi] QWebChannel unavailable — demo mode');
-    sysMsg('Mode démo — QWebChannel non disponible', 'warn');
+    sysMsg('Demo mode — QWebChannel unavailable', 'warn');
     el('#status-dot').className = 'status-dot amber';
   }
 }
@@ -81,7 +81,7 @@ function loadInitial() {
         startNewConversation();
       }
       
-      sysMsg(`Bissi prêt · ${data.model} · tape un message`, 'dim');
+      sysMsg(`Bissi ready · ${data.model} · type a message`, 'dim');
       loadDir(null);
     } catch (e) {
       console.error('[bissi] loadInitial error:', e);
@@ -467,9 +467,9 @@ function submit() {
     S.bissi.sendMessage(txt);
   } else {
     // Demo stub
-    setTimeout(() => onToken('**Bissi** en mode démo.'), 300);
+    setTimeout(() => onToken('**Bissi** in demo mode.'), 300);
     setTimeout(() => onFinished(JSON.stringify({
-      full: '**Bissi** en mode démo.',
+      full: '**Bissi** in demo mode.',
       turns: 1,
       profile: { total: 1 },
       model: 'demo',
@@ -594,7 +594,7 @@ function renderSessions(convs, autoLoad = true) {
           resetMessages(!hasMessages);
 
           if (!hasMessages) {
-            sysMsg('Conversation prête', 'dim');
+            sysMsg('Conversation ready', 'dim');
             return;
           }
 
@@ -607,7 +607,7 @@ function renderSessions(convs, autoLoad = true) {
             }
           });
           S.bubble = null;
-          sysMsg(`Conversation chargée (${history.length} messages)`, 'dim');
+          sysMsg(`Conversation loaded (${history.length} messages)`, 'dim');
         } catch (e) {
           console.error('[bissi] loadConversation error:', e);
         }

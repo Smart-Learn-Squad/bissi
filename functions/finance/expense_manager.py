@@ -1,7 +1,4 @@
-"""Expense manager integration for BISSI.
-
-Interfaces with the existing GestionnaireDeD-penses application.
-"""
+"""Expense manager integration for BISSI."""
 import json
 from pathlib import Path
 from typing import List, Dict, Any, Optional, Union
@@ -25,9 +22,9 @@ class ExpenseManager:
     """Expense tracker integration."""
     
     CATEGORIES = [
-        'Alimentation', 'Transport', 'Logement', 'Santé',
-        'Loisirs', 'Shopping', 'Éducation', 'Travail',
-        'Impôts', 'Général'
+        'Food', 'Transport', 'Housing', 'Health',
+        'Leisure', 'Shopping', 'Education', 'Work',
+        'Taxes', 'General'
     ]
     
     def __init__(self, data_path: Optional[Union[str, Path]] = None):
@@ -81,7 +78,7 @@ class ExpenseManager:
     def add_expense(self, libelle: str, montant: float, categorie: str, date: Optional[str] = None) -> Expense:
         """Add new expense."""
         if categorie not in self.CATEGORIES:
-            categorie = 'Général'
+            categorie = 'General'
         
         if date is None:
             date = datetime.now().strftime('%d/%m/%Y')
@@ -120,21 +117,21 @@ class ExpenseManager:
         status = self.get_budget_status()
         
         lines = [
-            "📊 RAPPORT DE DÉPENSES",
-            f"Utilisateur: {status['user']}",
+            "📊 EXPENSE REPORT",
+            f"User: {status['user']}",
             "",
             "💰 BUDGET",
-            f"  Budget: {status['budget']:,.0f} FCFA",
-            f"  Dépensé: {status['spent']:,.0f} FCFA ({status['percentage_used']:.1f}%)",
-            f"  Restant: {status['remaining']:,.0f} FCFA",
+            f"  Budget: {status['budget']:,.0f}",
+            f"  Spent: {status['spent']:,.0f} ({status['percentage_used']:.1f}%)",
+            f"  Remaining: {status['remaining']:,.0f}",
             "",
-            f"Nombre de dépenses: {status['expense_count']}"
+            f"Number of expenses: {status['expense_count']}"
         ]
         
         return '\n'.join(lines)
 
 
-def quick_add(libelle: str, montant: float, categorie: str = 'Général') -> Expense:
+def quick_add(libelle: str, montant: float, categorie: str = 'General') -> Expense:
     """Quick add expense."""
     manager = ExpenseManager()
     return manager.add_expense(libelle, montant, categorie)

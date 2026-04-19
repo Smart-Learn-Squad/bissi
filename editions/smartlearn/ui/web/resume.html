@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>SmartLearn — Résumés</title>
+  <title>SmartLearn — Summaries</title>
   <link rel="icon" type="image/svg+xml" href="assets/images/logo.svg">
   <link rel="stylesheet" href="assets/css/common.css">
   <link rel="manifest" href="/manifest.json">
@@ -151,7 +151,7 @@
   <aside class="sidebar" id="sidebar">
     <div class="sb-header">
       <div class="brand">
-        <div class="brand-icon" onclick="toggleSidebar()" title="Ouvrir / Fermer">
+        <div class="brand-icon" onclick="toggleSidebar()" title="Open / Close">
           <svg class="inf-logo" width="22" height="14" viewBox="0 0 44 28" fill="none">
             <defs>
               <linearGradient id="infGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -166,15 +166,15 @@
         </div>
         <div class="brand-text">
           <div class="brand-name">SmartLearn</div>
-          <div class="brand-sub">IA Pédagogique</div>
+          <div class="brand-sub">AI Tutor</div>
         </div>
       </div>
-      <button class="toggle-btn desktop-only" onclick="toggleSidebar()" title="Rétracter">
+      <button class="toggle-btn desktop-only" onclick="toggleSidebar()" title="Collapse">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
           <polyline points="15 18 9 12 15 6"/>
         </svg>
       </button>
-      <button class="close-btn mobile-only" onclick="closeSidebar()" title="Fermer">
+      <button class="close-btn mobile-only" onclick="closeSidebar()" title="Close">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
           <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
         </svg>
@@ -190,11 +190,11 @@
       </a>
       <a class="sb-nav-link active" href="resume.html">
         <svg class="nl-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="9" y1="7" x2="15" y2="7"/><line x1="9" y1="11" x2="15" y2="11"/><line x1="9" y1="15" x2="12" y2="15"/></svg>
-        <span class="nl-label">Résumé</span>
+        <span class="nl-label">Summary</span>
       </a>
       <a class="sb-nav-link" href="home.html">
         <svg class="nl-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-        <span class="nl-label">Progression</span>
+        <span class="nl-label">Progress</span>
       </a>
     </div>
 
@@ -203,12 +203,12 @@
     <div class="sb-bottom">
       <div class="hackathon-badge">
         <span class="hb-icon">🏆</span>
-        <div class="hb-text"><div style="font-weight:600">Hack by IFRI 2026</div><span>Démo officielle</span></div>
+        <div class="hb-text"><div style="font-weight:600">Hack by IFRI 2026</div><span>Official demo</span></div>
       </div>
       <div class="user-row" id="sidebarUserRow">
         <div class="avatar" id="sidebarAvatar">E</div>
         <div class="user-info">
-          <div class="user-name" id="sidebarName">Étudiant</div>
+          <div class="user-name" id="sidebarName">Student</div>
           <div class="user-role" id="sidebarRole">SmartLearn</div>
         </div>
       </div>
@@ -227,44 +227,44 @@
 
 <div class="page">
   <div class="page-header">
-    <div class="page-tag">Analyse de chapitre</div>
-    <h1>Transforme ton cours en<br/><em>connaissance structurée</em></h1>
-    <p>Colle le texte de ton chapitre — SmartLearn génère un résumé, les concepts clés et les définitions importantes.</p>
+    <div class="page-tag">Chapter analysis</div>
+    <h1>Transform your lesson into<br/><em>structured knowledge</em></h1>
+    <p>Paste your chapter text — SmartLearn generates a summary, key concepts, and important definitions.</p>
   </div>
 
   <div class="input-card">
     <div class="input-card-header">
       <span class="input-card-title">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-        Texte du chapitre
+        Chapter text
       </span>
       <div style="display:flex;align-items:center;gap:8px">
         <input type="file" id="uploadImage" accept="image/png,image/jpeg,image/webp" style="display:none" onchange="importerFichier(this,'image')"/>
         <input type="file" id="uploadPdf"   accept="application/pdf"                 style="display:none" onchange="importerFichier(this,'pdf')"/>
-        <button class="upload-btn" onclick="document.getElementById('uploadImage').click()" title="Importer une image">
+        <button class="upload-btn" onclick="document.getElementById('uploadImage').click()" title="Import an image">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
           Image
         </button>
-        <button class="upload-btn" onclick="document.getElementById('uploadPdf').click()" title="Importer un PDF">
+        <button class="upload-btn" onclick="document.getElementById('uploadPdf').click()" title="Import a PDF">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
           PDF
         </button>
-        <span class="char-count" id="charCount">0 caractères</span>
+        <span class="char-count" id="charCount">0 characters</span>
       </div>
     </div>
     <div class="textarea-wrap">
       <textarea id="courseText" class="course-textarea" autocomplete="off" spellcheck="false"
-        placeholder="Colle ici le texte de ton cours (minimum 80 caractères)…"
+        placeholder="Paste your lesson text here (minimum 80 characters)…"
         oninput="updateCount()"></textarea>
     </div>
     <div class="input-actions">
-      <span class="input-hint">💡 Minimum 80 caractères pour une analyse pertinente</span>
+      <span class="input-hint">💡 Minimum 80 characters for a relevant analysis</span>
       <button class="btn-analyser" id="btnAnalyser" onclick="analyser()">
         <span class="btn-icon">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         </span>
         <span class="spin"></span>
-        Analyser le chapitre
+        Analyse chapter
       </button>
     </div>
   </div>
@@ -272,49 +272,49 @@
   <div class="error-state" id="errorState"></div>
   <div class="loading-state" id="loadingState">
     <div class="loading-dots"><span></span><span></span><span></span></div>
-    <p class="loading-text">SmartLearn analyse ton chapitre…</p>
+    <p class="loading-text">SmartLearn is analysing your chapter…</p>
   </div>
 
   <div class="results" id="results">
     <div class="result-header">
       <div>
-        <div class="result-label">Chapitre analysé</div>
+        <div class="result-label">Analysed chapter</div>
         <div class="result-title" id="resultTitle">—</div>
       </div>
       <div class="result-actions">
         <button class="btn-action" onclick="copierTout()">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-          Copier
+          Copy
         </button>
-        <button class="btn-action" onclick="nouvelleAnalyse()">↺ Nouveau</button>
+        <button class="btn-action" onclick="nouvelleAnalyse()">↺ New</button>
       </div>
     </div>
 
     <div class="results-grid">
       <div class="result-card full">
-        <div class="rc-header"><span class="rc-icon">📝</span><span class="rc-title">Résumé du chapitre</span></div>
+        <div class="rc-header"><span class="rc-icon">📝</span><span class="rc-title">Chapter summary</span></div>
         <div class="rc-body"><div class="resume-text" id="resultResume">—</div></div>
       </div>
       <div class="result-card">
-        <div class="rc-header"><span class="rc-icon">🔑</span><span class="rc-title">Concepts clés</span></div>
+        <div class="rc-header"><span class="rc-icon">🔑</span><span class="rc-title">Key concepts</span></div>
         <div class="rc-body"><div class="concepts-wrap" id="resultConcepts"></div></div>
       </div>
       <div class="result-card">
-        <div class="rc-header"><span class="rc-icon">✅</span><span class="rc-title">Points essentiels</span></div>
+        <div class="rc-header"><span class="rc-icon">✅</span><span class="rc-title">Essential points</span></div>
         <div class="rc-body"><div class="points-list" id="resultPoints"></div></div>
       </div>
       <div class="result-card full">
-        <div class="rc-header"><span class="rc-icon">📖</span><span class="rc-title">Définitions importantes</span></div>
+        <div class="rc-header"><span class="rc-icon">📖</span><span class="rc-title">Important definitions</span></div>
         <div class="rc-body"><div class="def-list" id="resultDefs"></div></div>
       </div>
     </div>
 
     <div class="quiz-cta">
       <div class="quiz-cta-text">
-        <h3>🎯 Prêt à tester ta compréhension ?</h3>
-        <p>SmartLearn peut générer un quiz basé sur ce chapitre pour vérifier ce que tu as retenu.</p>
+        <h3>🎯 Ready to test your understanding?</h3>
+        <p>SmartLearn can generate a quiz based on this chapter to check what you have retained.</p>
       </div>
-      <button class="btn-action primary" onclick="versQuiz()">Générer un quiz →</button>
+      <button class="btn-action primary" onclick="versQuiz()">Generate a quiz →</button>
     </div>
   </div>
 </div>

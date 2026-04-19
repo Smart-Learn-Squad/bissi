@@ -55,7 +55,7 @@ function waitForBridge(tries) {
     setTimeout(() => waitForBridge(tries + 1), 100);
   } else {
     console.warn('[bissi] QWebChannel unavailable — demo mode');
-    sysMsg('Mode démo — QWebChannel non disponible', 'warn');
+    sysMsg('Demo mode — QWebChannel unavailable', 'warn');
     el('#status-dot').className = 'status-dot amber';
   }
 }
@@ -90,7 +90,7 @@ function loadInitial() {
         startNewConversation();
       }
       
-      sysMsg(`Bissi prêt · ${data.model} · tape un message`, 'dim');
+      sysMsg(`Bissi ready · ${data.model} · type a message`, 'dim');
       loadDir(null);
     } catch (e) {
       console.error('[bissi] loadInitial error:', e);
@@ -141,7 +141,7 @@ function onThinking(msg) {
       
       const badge = el('#model-badge');
       if (badge) {
-        badge.textContent = `● ${model} · en ligne`;
+        badge.textContent = `● ${model} · online`;
         badge.className = 'badge badge-teal';
       }
     } catch { /* malformed, ignore */ }
@@ -187,7 +187,7 @@ function onError(msg) {
 
 function onInterrupted() {
   S.bubble = null;
-  sysMsg('⊘ interrompu', 'warn');
+  sysMsg('⊘ interrupted', 'warn');
   unlock();
 }
 
@@ -496,12 +496,12 @@ function setSendBtnState(sending) {
   const btn = el('#send-btn');
   if (!btn) return;
   if (sending) {
-    btn.title = 'Arrêter';
+    btn.title = 'Stop';
     btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>';
     btn.onclick = interrupt;
     btn.disabled = false;
   } else {
-    btn.title = 'Envoyer';
+    btn.title = 'Send';
     btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>';
     btn.onclick = submit;
     btn.disabled = false;
@@ -546,9 +546,9 @@ function submit() {
     S.bissi.sendMessage(txt);
   } else {
     // Demo stub
-    setTimeout(() => onToken('**Bissi** en mode démo.'), 300);
+    setTimeout(() => onToken('**Bissi** in demo mode.'), 300);
     setTimeout(() => onFinished(JSON.stringify({
-      full: '**Bissi** en mode démo.',
+      full: '**Bissi** in demo mode.',
       turns: 1,
       profile: { total: 1 },
       model: 'demo',
@@ -575,7 +575,7 @@ function lock() {
   el('#chat-input').disabled = true;
   el('#status-dot').className = 'status-dot amber';
   const hint = el('#routing-hint');
-  if (hint && !hint.textContent) hint.textContent = 'Génération…';
+  if (hint && !hint.textContent) hint.textContent = 'Generating…';
 }
 
 function unlock() {
@@ -586,7 +586,7 @@ function unlock() {
   inp.focus();
   el('#status-dot').className = 'status-dot teal';
   const hint = el('#routing-hint');
-  if (hint && hint.textContent === 'Génération…') hint.textContent = '';
+  if (hint && hint.textContent === 'Generating…') hint.textContent = '';
 }
 
 // ── Theme ──────────────────────────────────────────────────────
@@ -638,11 +638,11 @@ function updateProfile(profile) {
   const mc = el('#memory-count');
   if (mc) mc.textContent = total;
   const sm = el('#status-memory');
-  if (sm) sm.textContent = `${total} souvenirs`;
+  if (sm) sm.textContent = `${total} memories`;
   // Show document/memory count in the input footer (only when > 0)
   const rc = el('#rag-count');
   if (rc) {
-    rc.textContent = total > 0 ? `${total} souvenirs actifs` : '';
+    rc.textContent = total > 0 ? `${total} active memories` : '';
     rc.style.display = total > 0 ? '' : 'none';
   }
 }
@@ -652,7 +652,7 @@ function renderSessions(convs, autoLoad = true) {
   const list = el('#sessions-list');
   list.innerHTML = '';
   if (!convs || !convs.length) {
-    list.innerHTML = '<div class="session-empty">Aucune session</div>';
+    list.innerHTML = '<div class="session-empty">No sessions</div>';
     return;
   }
   let firstItem = null;
@@ -661,7 +661,7 @@ function renderSessions(convs, autoLoad = true) {
     d.className = 'session-item' + (i === 0 ? ' active' : '');
     d.dataset.convId = c.id;
     const title = c.title || (c.first_message || '').slice(0, 40) || `Session ${i + 1}`;
-    const date  = c.updated_at ? new Date(c.updated_at).toLocaleDateString('fr') : '';
+    const date  = c.updated_at ? new Date(c.updated_at).toLocaleDateString('en') : '';
     d.innerHTML = `
       <div class="session-title">${esc(title)}</div>
       <div class="session-date">${esc(date)}</div>`;
@@ -674,14 +674,14 @@ function renderSessions(convs, autoLoad = true) {
         try {
           const history = JSON.parse(json);
           if (history.error) {
-            sysMsg(`Erreur: ${history.error}`, 'error');
+            sysMsg(`Error: ${history.error}`, 'error');
             return;
           }
           const hasMessages = Array.isArray(history) && history.length > 0;
           resetMessages(!hasMessages);
 
           if (!hasMessages) {
-            sysMsg('Conversation prête', 'dim');
+            sysMsg('Conversation ready', 'dim');
             return;
           }
 
@@ -694,7 +694,7 @@ function renderSessions(convs, autoLoad = true) {
             }
           });
           S.bubble = null;
-          sysMsg(`Conversation chargée (${history.length} messages)`, 'dim');
+          sysMsg(`Conversation loaded (${history.length} messages)`, 'dim');
         } catch (e) {
           console.error('[bissi] loadConversation error:', e);
         }
@@ -921,13 +921,13 @@ function updateLayoutToggleLabels() {
 
   const sbBtn = el('#sidebar-toggle');
   if (sbBtn) {
-    const title = isSidebarCollapsed ? 'Afficher la barre latérale' : 'Rétracter la barre latérale';
+    const title = isSidebarCollapsed ? 'Show sidebar' : 'Collapse sidebar';
     sbBtn.title = title;
     sbBtn.setAttribute('aria-label', title);
   }
 
   document.querySelectorAll('.workspace-toggle-btn').forEach(btn => {
-    const title = isPanelCollapsed ? "Afficher l'espace de travail" : "Rétracter l'espace de travail";
+    const title = isPanelCollapsed ? 'Show workspace' : 'Collapse workspace';
     btn.title = title;
     btn.setAttribute('aria-label', title);
   });
@@ -952,8 +952,7 @@ function startTimer() {
     const hh = String(Math.floor(ms / 3600000)).padStart(2, '0');
     const mm = String(Math.floor((ms % 3600000) / 60000)).padStart(2, '0');
     const ss = String(Math.floor((ms % 60000) / 1000)).padStart(2, '0');
-    el('#status-session').textContent = `Session · ${hh}:${mm}:${ss}`;
-  }, 1000);
+    el('#status-session').textContent = `Session · ${hh}:${mm}:${ss}`;  }, 1000);
 }
 
 // ── Utilities ──────────────────────────────────────────────────

@@ -1,14 +1,14 @@
 /* ══════════════════════════════════════════
-     DONNÉES RÉELLES — localStorage uniquement
+     REAL DATA — localStorage only
   ══════════════════════════════════════════ */
 
-  const MOIS = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+  const MOIS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const PROGRESS_KEY = "bissi_smartlearn_progress";
 
   function normalizeProgress(parsed) {
     return {
       chapitres: Array.isArray(parsed?.chapitres) ? parsed.chapitres.map((c) => ({
-        titre: String(c?.titre || c?.nom || "Chapitre"),
+        titre: String(c?.titre || c?.nom || "Chapter"),
         score: Math.max(0, Math.min(100, Number(c?.score || 0))),
         date: c?.date || (c?.timestamp ? new Date(c.timestamp).toISOString() : new Date().toISOString()),
       })) : [],
@@ -51,55 +51,55 @@
     return s >= 80 ? 'high' : s >= 60 ? 'medium' : 'low';
   }
 
-  /* Génère un planning dynamique basé sur les vrais scores */
+  /* Generates a dynamic schedule based on actual scores */
   function genererPlanning(chapitres) {
     if (chapitres.length === 0) return [];
-    const triés = [...chapitres].sort((a, b) => a.score - b.score);
+    const sorted = [...chapitres].sort((a, b) => a.score - b.score);
     const planning = [];
     const today = new Date();
 
-    triés.slice(0, 5).forEach((ch, i) => {
+    sorted.slice(0, 5).forEach((ch, i) => {
       const d = new Date(today);
       d.setDate(today.getDate() + i + (ch.score >= 80 ? 3 : 1));
-      let urgence, duree;
-      if (ch.score < 50)      { urgence = 'urgent'; duree = '25 min · Focus intensif'; }
-      else if (ch.score < 70) { urgence = 'normal'; duree = '25 min · Révision active'; }
-      else                    { urgence = 'ok';     duree = '15 min · Maintien'; }
+      let urgency, duration;
+      if (ch.score < 50)      { urgency = 'urgent'; duration = '25 min · Intense focus'; }
+      else if (ch.score < 70) { urgency = 'normal'; duration = '25 min · Active review'; }
+      else                    { urgency = 'ok';     duration = '15 min · Maintenance'; }
       planning.push({
         jour: String(d.getDate()).padStart(2, '0'),
         mois: MOIS[d.getMonth()],
         titre: ch.titre,
-        duree,
-        urgence
+        duree: duration,
+        urgence: urgency,
       });
     });
     return planning;
   }
 
-  /* Formate la date relative d'un quiz */
+  /* Formats relative date for a quiz */
   function dateRelative(ts) {
     if (!ts) return '';
     const base = new Date(ts).getTime();
     if (!Number.isFinite(base)) return "";
     const diff = Math.floor((Date.now() - base) / 86400000);
-    if (diff === 0) return "Aujourd'hui";
-    if (diff === 1) return 'Hier';
-    if (diff < 7)  return `Il y a ${diff}j`;
-    return new Date(ts).toLocaleDateString('fr-FR', { day:'numeric', month:'short' });
+    if (diff === 0) return "Today";
+    if (diff === 1) return 'Yesterday';
+    if (diff < 7)  return `${diff}d ago`;
+    return new Date(ts).toLocaleDateString('en-US', { day:'numeric', month:'short' });
   }
 
   /* ── RENDER ── */
   function renderChapitres(data) {
     const liste = document.getElementById('chaptersList');
     liste.innerHTML = '';
-    document.getElementById('chapterBadge').textContent = data.chapitres.length + ' chapitre' + (data.chapitres.length > 1 ? 's' : '');
+    document.getElementById('chapterBadge').textContent = data.chapitres.length + ' chapter' + (data.chapitres.length > 1 ? 's' : '');
 
     if (data.chapitres.length === 0) {
       liste.innerHTML = `
         <div style="text-align:center;padding:40px 16px;color:var(--text-dim)">
           <div style="font-size:36px;margin-bottom:12px">📚</div>
-          <div style="font-size:14px;font-weight:500;color:var(--text);margin-bottom:6px">Aucune activité encore</div>
-          <div style="font-size:12px">Fais ton premier quiz sur <a href="index.html" style="color:var(--blue)">SmartLearn Chat</a> pour voir ta progression ici.</div>
+          <div style="font-size:14px;font-weight:500;color:var(--text);margin-bottom:6px">No activity yet</div>
+          <div style="font-size:12px">Complete your first quiz on <a href="index.html" style="color:var(--blue)">SmartLearn Chat</a> to see your progress here.</div>
         </div>`;
       return;
     }
@@ -118,8 +118,8 @@
           <div class="prog-bar ${cls}" id="bar${i}" style="width:0%"></div>
         </div>
         <div class="chapter-meta">
-          <span class="chapter-tag">Chapitre</span>
-          <span>${dateAff ? dateAff : 'Récent'}</span>
+          <span class="chapter-tag">Chapter</span>
+          <span>${dateAff ? dateAff : 'Recent'}</span>
         </div>`;
       liste.appendChild(item);
       setTimeout(() => {
@@ -132,12 +132,12 @@
   function renderPointsFaibles(data) {
     const liste = document.getElementById('weakList');
     if (data.chapitres.length === 0) {
-      liste.innerHTML = `<div style="text-align:center;padding:16px;color:var(--text-faint);font-size:12px">Lance un quiz pour identifier tes points faibles.</div>`;
+      liste.innerHTML = `<div style="text-align:center;padding:16px;color:var(--text-faint);font-size:12px">Start a quiz to identify your weak points.</div>`;
       return;
     }
     const faibles = data.chapitres.filter(ch => ch.score < 70).sort((a, b) => a.score - b.score);
     if (faibles.length === 0) {
-      liste.innerHTML = `<div style="text-align:center;padding:16px;color:var(--green);font-size:13px">✓ Aucun point faible — continue ainsi !</div>`;
+      liste.innerHTML = `<div style="text-align:center;padding:16px;color:var(--green);font-size:13px">✓ No weak points — keep it up!</div>`;
       return;
     }
     liste.innerHTML = '';
@@ -153,11 +153,11 @@
     const liste = document.getElementById('planList');
     const planning = genererPlanning(data.chapitres);
     if (planning.length === 0) {
-      liste.innerHTML = `<div style="text-align:center;padding:16px;color:var(--text-faint);font-size:12px">Le planning se génère automatiquement après tes premiers quiz.</div>`;
+      liste.innerHTML = `<div style="text-align:center;padding:16px;color:var(--text-faint);font-size:12px">The schedule is automatically generated after your first quizzes.</div>`;
       return;
     }
     liste.innerHTML = '';
-    const labels = { urgent:'Prioritaire', normal:'Planifié', ok:'Maintien' };
+    const labels = { urgent:'Priority', normal:'Scheduled', ok:'Maintenance' };
     planning.forEach(p => {
       const item = document.createElement('div');
       item.className = 'plan-item';
@@ -176,14 +176,14 @@
   }
 
   function renderAnneau(data) {
-    let moyenne = 0, label = 'Aucune donnée', sub = 'Lance ton premier quiz !';
+    let moyenne = 0, label = 'No data', sub = 'Start your first quiz!';
     if (data.chapitres.length > 0) {
       const scores = data.chapitres.map(c => c.score);
       moyenne = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
-      if (moyenne >= 80)      { label = 'Niveau Avancé';        sub = 'Excellent travail — continuez !'; }
-      else if (moyenne >= 65) { label = 'Niveau Intermédiaire'; sub = 'Vous progressez bien !'; }
-      else if (moyenne >= 50) { label = 'En progression';       sub = 'Quelques chapitres à revoir.'; }
-      else                    { label = 'Début de parcours';    sub = 'Révisez les bases en priorité.'; }
+      if (moyenne >= 80)      { label = 'Advanced level';       sub = 'Excellent work — keep it up!'; }
+      else if (moyenne >= 65) { label = 'Intermediate level';   sub = 'You are making great progress!'; }
+      else if (moyenne >= 50) { label = 'In progress';          sub = 'A few chapters still to review.'; }
+      else                    { label = 'Early stage';          sub = 'Prioritise reviewing the basics.'; }
     }
     document.getElementById('ringPct').textContent = moyenne ? moyenne + '%' : '—';
     document.getElementById('statMoyenne').innerHTML = moyenne ? moyenne + '<span style="font-size:18px">%</span>' : '—';
@@ -220,7 +220,7 @@
   }
 
   function resetDonnees() {
-    if (confirm('Réinitialiser toutes les données de progression ?')) {
+    if (confirm('Reset all progress data?')) {
       localStorage.removeItem(PROGRESS_KEY);
       localStorage.removeItem('sl_progression');
       localStorage.removeItem('sl_temps_etude');
@@ -243,10 +243,10 @@
 
   window.addEventListener('DOMContentLoaded', init);
 
-  /* ── API publique appelée depuis model.php ── */
+  /* ── Public API called from model.js ── */
   window.ajouterResultat = function(nomChapitre, matiere, score) {
     const data = chargerDonnees();
-    const titre = String(nomChapitre || "Chapitre");
+    const titre = String(nomChapitre || "Chapter");
     const existant = data.chapitres.find(c => c.titre.toLowerCase() === titre.toLowerCase());
     if (existant) {
       existant.score = Math.round((Number(existant.score || 0) + Number(score || 0)) / 2);
@@ -267,9 +267,9 @@
   };
 
   /* ══════════════════════════════════════════
-     TIMER POMODORO
+     POMODORO TIMER
   ══════════════════════════════════════════ */
-  const CIRC = 2 * Math.PI * 65; // rayon 65
+  const CIRC = 2 * Math.PI * 65; // radius 65
 
   let timerState = {
     mode:        'focus',       // 'focus' | 'short' | 'long'
@@ -293,12 +293,12 @@
     document.getElementById('timerBadge').textContent = label;
     document.getElementById('timerLabelInner').textContent = label;
 
-    // Boutons actifs
+    // Active mode buttons
     ['focus','short','long'].forEach(m => {
       document.getElementById('modeBtn-' + m).classList.toggle('active', m === mode);
     });
 
-    // Couleur anneau
+    // Ring colour
     const prog = document.getElementById('timerProgress');
     prog.classList.toggle('break', timerState.isBreak);
 
@@ -325,17 +325,17 @@
   }
 
   function timerStop() {
-    // Sauvegarder le temps écoulé si c'était une session focus en cours
+    // Save elapsed time if a focus session was running
       if (timerState.running && !timerState.isBreak) {
-        const ecouleSecs = timerState.totalSecs - timerState.remaining;
-        if (ecouleSecs > 5) { // ignorer les arrêts accidentels < 5s
-          const actuel = parseInt(localStorage.getItem('sl_temps_etude') || '0');
-          const total = actuel + ecouleSecs;
+        const elapsed = timerState.totalSecs - timerState.remaining;
+        if (elapsed > 5) { // ignore accidental stops < 5s
+          const current = parseInt(localStorage.getItem('sl_temps_etude') || '0');
+          const total = current + elapsed;
           localStorage.setItem('sl_temps_etude', total);
           const data = chargerDonnees();
           data.totalTemps = Math.max(Number(data.totalTemps || 0), total);
           sauvegarder(data);
-          renderTemps(data.totalTemps); // mettre à jour l'affichage immédiatement
+          renderTemps(data.totalTemps); // update display immediately
         }
       }
     timerState.running = false;
@@ -361,23 +361,23 @@
     const wasBreak = timerState.isBreak;
 
     if (!wasBreak) {
-      // Fin d'un focus : avancer la session
+      // End of a focus session: advance session count
       timerState.session = Math.min(timerState.session + 1, timerState.maxSessions);
       timerRenderDots();
-      if (!skipped) flash('🎉 Focus terminé ! Prenez une pause.');
-      // Basculer automatiquement sur pause courte
+      if (!skipped) flash('🎉 Focus complete! Take a break.');
+      // Automatically switch to short break
       const isLong = timerState.session >= timerState.maxSessions;
       if (isLong) {
-        flash('🏆 4 sessions ! Longue pause méritée.');
+        flash('🏆 4 sessions! Well-deserved long break.');
         timerState.session = 0;
         timerRenderDots();
-        setTimerMode('long', 15, 'Longue pause');
+        setTimerMode('long', 15, 'Long break');
       } else {
-        setTimerMode('short', 5, 'Courte pause');
+        setTimerMode('short', 5, 'Short break');
       }
     } else {
-      // Fin d'une pause : retour focus
-      if (!skipped) flash('▶ Pause terminée. C\'est reparti !');
+      // End of a break: back to focus
+      if (!skipped) flash('▶ Break over. Let\'s go!');
       setTimerMode('focus', 25, 'Focus');
     }
   }
@@ -423,7 +423,7 @@
   // Local desktop mode: hydrate sidebar user without redirecting.
   if (window.SmartLearnShell) {
     const u = window.SmartLearnShell.readStoredUser() || {
-      prenom: 'Etudiant',
+      prenom: 'Student',
       filiere: 'SmartLearn',
       email: 'local@bissi'
     };

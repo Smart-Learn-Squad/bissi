@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>SmartLearn — Ma Progression</title>
+  <title>SmartLearn — My Progress</title>
   <link rel="icon" type="image/svg+xml" href="assets/images/logo.svg">
   <link rel="stylesheet" href="assets/css/common.css">
   <link rel="manifest" href="/manifest.json">
@@ -31,7 +31,7 @@
   <aside class="sidebar" id="sidebar">
     <div class="sb-header">
       <div class="brand">
-        <div class="brand-icon" onclick="toggleSidebar()" title="Ouvrir / Fermer">
+        <div class="brand-icon" onclick="toggleSidebar()" title="Open / Close">
           <svg class="inf-logo" width="22" height="14" viewBox="0 0 44 28" fill="none">
             <defs>
               <linearGradient id="infGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -46,15 +46,15 @@
         </div>
         <div class="brand-text">
           <div class="brand-name">SmartLearn</div>
-          <div class="brand-sub">IA Pédagogique</div>
+          <div class="brand-sub">AI Tutor</div>
         </div>
       </div>
-      <button class="toggle-btn desktop-only" onclick="toggleSidebar()" title="Rétracter">
+      <button class="toggle-btn desktop-only" onclick="toggleSidebar()" title="Collapse">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
           <polyline points="15 18 9 12 15 6"/>
         </svg>
       </button>
-      <button class="close-btn mobile-only" onclick="closeSidebar()" title="Fermer">
+      <button class="close-btn mobile-only" onclick="closeSidebar()" title="Close">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
           <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
         </svg>
@@ -70,11 +70,11 @@
       </a>
       <a class="sb-nav-link" href="resume.html">
         <svg class="nl-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="9" y1="7" x2="15" y2="7"/><line x1="9" y1="11" x2="15" y2="11"/><line x1="9" y1="15" x2="12" y2="15"/></svg>
-        <span class="nl-label">Résumé</span>
+        <span class="nl-label">Summary</span>
       </a>
       <a class="sb-nav-link active" href="home.html">
         <svg class="nl-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-        <span class="nl-label">Progression</span>
+        <span class="nl-label">Progress</span>
       </a>
     </div>
 
@@ -83,12 +83,12 @@
     <div class="sb-bottom">
       <div class="hackathon-badge">
         <span class="hb-icon">🏆</span>
-        <div class="hb-text"><div style="font-weight:600">Hack by IFRI 2026</div><span>Démo officielle</span></div>
+        <div class="hb-text"><div style="font-weight:600">Hack by IFRI 2026</div><span>Official demo</span></div>
       </div>
       <div class="user-row" id="sidebarUserRow">
         <div class="avatar" id="sidebarAvatar">E</div>
         <div class="user-info">
-          <div class="user-name" id="sidebarName">Étudiant</div>
+          <div class="user-name" id="sidebarName">Student</div>
           <div class="user-role" id="sidebarRole">SmartLearn</div>
         </div>
       </div>
@@ -106,50 +106,50 @@
     </button>
 <div class="page">
 
-  <!-- En-tête -->
+  <!-- Header -->
   <div class="page-header">
-    <div class="page-tag">Tableau de bord</div>
-    <h1>Ma <em>progression</em></h1>
-    <p>Suivez votre maîtrise par chapitre et planifiez vos révisions intelligemment.</p>
+    <div class="page-tag">Dashboard</div>
+    <h1>My <em>progress</em></h1>
+    <p>Track your chapter mastery and plan your revisions intelligently.</p>
   </div>
 
-  <!-- Stats globales -->
+  <!-- Global stats -->
   <div class="stats-grid" id="statsGrid">
     <div class="stat-card blue">
       <span class="stat-icon">📚</span>
       <div class="stat-val" id="statChapitres">0</div>
-      <div class="stat-label">Chapitres étudiés</div>
-      <div class="stat-sub">sur la session</div>
+      <div class="stat-label">Chapters studied</div>
+      <div class="stat-sub">this session</div>
     </div>
     <div class="stat-card green">
       <span class="stat-icon">🎯</span>
       <div class="stat-val" id="statQuiz">0</div>
-      <div class="stat-label">Quiz complétés</div>
-      <div class="stat-sub">cette semaine</div>
+      <div class="stat-label">Quizzes completed</div>
+      <div class="stat-sub">this week</div>
     </div>
     <div class="stat-card blue">
       <span class="stat-icon">⭐</span>
       <div class="stat-val" id="statMoyenne">—</div>
-      <div class="stat-label">Score moyen</div>
-      <div class="stat-sub">tous chapitres</div>
+      <div class="stat-label">Average score</div>
+      <div class="stat-sub">all chapters</div>
     </div>
     <div class="stat-card amber">
       <span class="stat-icon">⏱</span>
       <div class="stat-val" id="statTemps">—</div>
-      <div class="stat-label">Temps d'étude</div>
-      <div class="stat-sub">cette semaine</div>
+      <div class="stat-label">Study time</div>
+      <div class="stat-sub">this week</div>
     </div>
   </div>
 
-  <!-- Grille principale -->
+  <!-- Main grid -->
   <div class="main-grid">
 
-    <!-- Colonne gauche -->
+    <!-- Left column -->
     <div>
       <div class="card">
         <div class="card-header">
-          <span class="card-title">📖 Maîtrise par chapitre</span>
-          <span class="card-badge blue" id="chapterBadge">0 chapitre</span>
+          <span class="card-title">📖 Chapter mastery</span>
+          <span class="card-badge blue" id="chapterBadge">0 chapter</span>
         </div>
         <div class="card-body">
           <div class="chapters-list" id="chaptersList"></div>
@@ -157,31 +157,31 @@
       </div>
     </div>
 
-    <!-- Colonne droite -->
+    <!-- Right column -->
     <div class="right-col">
 
-      <!-- ═══ TIMER POMODORO ═══ -->
+      <!-- ═══ POMODORO TIMER ═══ -->
       <div class="card timer-card">
         <div class="card-header">
-          <span class="card-title">⏱ Timer Pomodoro</span>
+          <span class="card-title">⏱ Pomodoro Timer</span>
           <span class="card-badge green" id="timerBadge">Focus</span>
         </div>
         <div class="timer-body">
 
-          <!-- Sélecteur de mode -->
+          <!-- Mode selector -->
           <div class="timer-modes">
             <button class="timer-mode-btn active" onclick="setTimerMode('focus',25,'Focus')" id="modeBtn-focus">
               Focus · 25min
             </button>
-            <button class="timer-mode-btn" onclick="setTimerMode('short',5,'Courte pause')" id="modeBtn-short">
-              Pause · 5min
+            <button class="timer-mode-btn" onclick="setTimerMode('short',5,'Short break')" id="modeBtn-short">
+              Break · 5min
             </button>
-            <button class="timer-mode-btn" onclick="setTimerMode('long',15,'Longue pause')" id="modeBtn-long">
+            <button class="timer-mode-btn" onclick="setTimerMode('long',15,'Long break')" id="modeBtn-long">
               Long · 15min
             </button>
           </div>
 
-          <!-- Anneau + affichage -->
+          <!-- Ring + display -->
           <div class="timer-ring-wrap">
             <svg class="timer-svg" viewBox="0 0 150 150">
               <defs>
@@ -203,11 +203,11 @@
             </div>
           </div>
 
-          <!-- Contrôles -->
+          <!-- Controls -->
           <div class="timer-controls">
-            <button class="timer-btn timer-btn-sec" onclick="timerReset()" title="Réinitialiser">↺</button>
-            <button class="timer-btn timer-btn-main" onclick="timerToggle()" id="timerPlayBtn" title="Démarrer">▶</button>
-            <button class="timer-btn timer-btn-sec" onclick="timerSkip()" title="Passer">⏭</button>
+            <button class="timer-btn timer-btn-sec" onclick="timerReset()" title="Reset">↺</button>
+            <button class="timer-btn timer-btn-main" onclick="timerToggle()" id="timerPlayBtn" title="Start">▶</button>
+            <button class="timer-btn timer-btn-sec" onclick="timerSkip()" title="Skip">⏭</button>
           </div>
 
           <!-- Sessions -->
@@ -222,10 +222,10 @@
         </div>
       </div>
 
-      <!-- Anneau global -->
+      <!-- Global ring -->
       <div class="card">
         <div class="card-header">
-          <span class="card-title">🏆 Score global</span>
+          <span class="card-title">🏆 Overall score</span>
           <span class="card-badge blue">Session</span>
         </div>
         <div class="ring-wrap">
@@ -242,32 +242,32 @@
             </svg>
             <div class="ring-center">
               <div class="ring-pct" id="ringPct">—</div>
-              <div class="ring-lbl">Maîtrise</div>
+              <div class="ring-lbl">Mastery</div>
             </div>
           </div>
           <div class="ring-info">
-            <div class="ring-info-title">Niveau Intermédiaire</div>
-            <div class="ring-info-sub">Continuez — vous progressez bien !</div>
+            <div class="ring-info-title">Intermediate level</div>
+            <div class="ring-info-sub">Keep going — you're making progress!</div>
           </div>
         </div>
       </div>
 
-      <!-- Points faibles -->
+      <!-- Weak points -->
       <div class="card">
         <div class="card-header">
-          <span class="card-title">⚠️ Points faibles</span>
-          <span class="card-badge red">À revoir</span>
+          <span class="card-title">⚠️ Weak points</span>
+          <span class="card-badge red">To review</span>
         </div>
         <div class="card-body">
           <div class="weak-list" id="weakList"></div>
         </div>
       </div>
 
-      <!-- Planning -->
+      <!-- Schedule -->
       <div class="card">
         <div class="card-header">
-          <span class="card-title">🗓 Prochaines révisions</span>
-          <span class="card-badge blue">Planning</span>
+          <span class="card-title">🗓 Upcoming reviews</span>
+          <span class="card-badge blue">Schedule</span>
         </div>
         <div class="card-body">
           <div class="plan-list" id="planList"></div>
@@ -281,7 +281,7 @@
             <polyline points="1 4 1 10 7 10"/>
             <path d="M3.51 15a9 9 0 102.13-9.36L1 10"/>
           </svg>
-          Réinitialiser les données
+          Reset data
         </button>
       </div>
 

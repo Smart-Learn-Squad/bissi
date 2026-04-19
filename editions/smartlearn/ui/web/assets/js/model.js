@@ -64,10 +64,10 @@
     const txt = String(raw || "").replace(/```json|```/gi, "").trim();
     const start = txt.indexOf("{");
     const end = txt.lastIndexOf("}");
-    if (start < 0 || end <= start) throw new Error("Réponse quiz invalide");
+    if (start < 0 || end <= start) throw new Error("Invalid quiz response");
     const data = JSON.parse(txt.slice(start, end + 1));
     if (!Array.isArray(data?.questions) || !data.questions.length) {
-      throw new Error("Aucune question reçue");
+      throw new Error("No questions received");
     }
     return {
       questions: data.questions.slice(0, 3).map((q, i) => ({
@@ -90,7 +90,7 @@
   }
 
   function requestQuizFromAgent(prompt) {
-    if (!S.bissi?.sendMessage) return Promise.reject(new Error("Bridge indisponible"));
+    if (!S.bissi?.sendMessage) return Promise.reject(new Error("Bridge unavailable"));
     return new Promise((resolve, reject) => {
       const onDone = (raw) => {
         cleanup();
@@ -103,7 +103,7 @@
       };
       const onErr = (msg) => {
         cleanup();
-        reject(new Error(String(msg || "Erreur quiz")));
+        reject(new Error(String(msg || "Quiz error")));
       };
       const cleanup = () => {
         S.quizRequestActive = false;
@@ -147,7 +147,7 @@
       const q = quiz.questions[index];
       qNode.textContent = `Q${index + 1}/${total} — ${q.q}`;
       oNode.innerHTML = "";
-      mNode.textContent = "Choisis une réponse.";
+      mNode.textContent = "Choose an answer.";
       q.options.forEach((opt, optIndex) => {
         const btn = document.createElement("button");
         btn.type = "button";
@@ -156,7 +156,7 @@
         btn.onclick = () => {
           const ok = optIndex === answerIndex(q);
           if (ok) score += 1;
-          mNode.textContent = ok ? "✅ Bonne réponse" : "❌ Mauvaise réponse";
+          mNode.textContent = ok ? "✅ Correct" : "❌ Wrong";
           [...oNode.querySelectorAll("button")].forEach((b) => { b.disabled = true; b.style.opacity = "0.75"; });
           setTimeout(() => {
             index += 1;
@@ -167,7 +167,7 @@
             const pct = Math.round((score / total) * 100);
             qNode.textContent = `Score final: ${score}/${total} (${pct}%)`;
             oNode.innerHTML = "";
-            mNode.textContent = "Résultat sauvegardé dans ta progression.";
+            mNode.textContent = "Result saved to your progress.";
             recordQuizResult(pct);
           }, 500);
         };
@@ -189,7 +189,7 @@
   function hydrateSidebarUser() {
     if (!window.SmartLearnShell) return;
     const user = window.SmartLearnShell.readStoredUser?.() || {
-      prenom: "Etudiant",
+      prenom: "Student",
       filiere: "SmartLearn",
       email: "local@bissi",
     };
@@ -200,19 +200,19 @@
     const params = new URLSearchParams(window.location.search);
     if (params.get("flow") !== "resume") return;
 
-    const title = sessionStorage.getItem("sl_titre_cours") || "ce chapitre";
+    const title = sessionStorage.getItem("sl_titre_cours") || "this chapter";
     const resume = sessionStorage.getItem("sl_resume_cours") || "";
     const points = sessionStorage.getItem("sl_points_cours") || "";
     const matiere = sessionStorage.getItem("sl_matiere_cours") || "General";
     const prompt = [
-      `Tu es SmartLearn. Genere un quiz progressif sur "${title}" (${matiere}).`,
+      `You are SmartLearn. Generate a progressive quiz on "${title}" (${matiere}).`,
       "Format:",
-      "1) 5 questions QCM faciles",
-      "2) 3 questions intermediaires",
-      "3) 2 questions de synthese",
-      "Pour chaque question: donne la bonne reponse avec une explication courte.",
-      resume ? `Resume du chapitre: ${resume}` : "",
-      points ? `Points essentiels:\n${points}` : "",
+      "1) 5 easy MCQ questions",
+      "2) 3 intermediate questions",
+      "3) 2 synthesis questions",
+      "For each question: give the correct answer with a short explanation.",
+      resume ? `Chapter summary: ${resume}` : "",
+      points ? `Key points:\n${points}` : "",
     ].filter(Boolean).join("\n");
 
     const input = $("#messageInput");
@@ -240,7 +240,7 @@
       setTimeout(() => connectBridge(tries + 1), 100);
       return;
     }
-    pushSystem("Mode local: QWebChannel indisponible.");
+    pushSystem("Local mode: QWebChannel unavailable.");
   }
 
   function wireSignals() {
@@ -269,7 +269,7 @@
     const btn = document.querySelector(".send-btn");
     if (!btn) return;
     if (sending) {
-      btn.title = "Arrêter";
+      btn.title = "Stop";
       btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>';
       btn.onclick = () => {
         if (S.bissi && S.bissi.stopGeneration) S.bissi.stopGeneration();
@@ -277,7 +277,7 @@
       };
       btn.disabled = false;
     } else {
-      btn.title = "Envoyer";
+      btn.title = "Send";
       btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>';
       btn.onclick = sendMessage;
       btn.disabled = false;
@@ -576,7 +576,7 @@
 
   function onError(message) {
     if (S.quizRequestActive) return;
-    pushSystem(`Erreur: ${message}`);
+    pushSystem(`Error: ${message}`);
     S.activeAiNode = null;
     S.activeAiRaw = "";
     S.parserFrameQueued = false;
@@ -587,7 +587,7 @@
 
   function onInterrupted() {
     if (S.quizRequestActive) return;
-    pushSystem("Generation interrompue.");
+    pushSystem("Generation interrupted.");
     S.activeAiNode = null;
     S.activeAiRaw = "";
     S.parserFrameQueued = false;
@@ -611,7 +611,7 @@
     if (!conversations.length) {
       const empty = document.createElement("div");
       empty.className = "hist-item";
-      empty.innerHTML = `<span class="hi-icon">💬</span><span class="hi-text">Nouvelle session</span>`;
+      empty.innerHTML = `<span class="hi-icon">💬</span><span class="hi-text">New session</span>`;
       list.appendChild(empty);
       return;
     }
@@ -640,7 +640,7 @@
           try {
             const history = JSON.parse(raw);
             if (history.error) {
-              pushSystem(`Erreur: ${history.error}`);
+              pushSystem(`Error: ${history.error}`);
               return;
             }
 
@@ -651,7 +651,7 @@
             S.activeAiRaw = "";
 
             if (!hasMessages) {
-              pushSystem("Conversation prête");
+              pushSystem("Conversation ready");
               return;
             }
 
@@ -681,7 +681,7 @@
                 // show placeholder if nothing to render
                 const wrap = document.createElement('div');
                 wrap.className = 'msg ai';
-                wrap.innerHTML = `<div class='msg-av'>∞</div><div class='msg-content'><em>(message vide)</em></div>`;
+                wrap.innerHTML = `<div class='msg-av'>∞</div><div class='msg-content'><em>(empty message)</em></div>`;
                 $('#messages')?.appendChild(wrap);
                 return;
               }
@@ -746,8 +746,8 @@
       return;
     }
 
-    setTimeout(() => onToken("SmartLearn en mode demonstration locale."), 200);
-    setTimeout(() => onFinished(JSON.stringify({ full: "SmartLearn en mode demonstration locale." })), 500);
+    setTimeout(() => onToken("SmartLearn in local demo mode."), 200);
+    setTimeout(() => onFinished(JSON.stringify({ full: "SmartLearn in local demo mode." })), 500);
   }
 
   function useSuggestion(text) {
@@ -775,7 +775,7 @@
     bar?.classList.remove("show");
     // Persist comprehension signal for home.js dashboard
     try {
-      const titre = sessionStorage.getItem("sl_titre_cours") || "Chapitre";
+      const titre = sessionStorage.getItem("sl_titre_cours") || "Chapter";
       // Sanitize key: only alphanumeric + underscore
       const safeKey = titre.toLowerCase().replace(/[^a-z0-9]+/g, "_").slice(0, 64);
       localStorage.setItem("sl_compris_" + safeKey, JSON.stringify({
@@ -786,25 +786,25 @@
     } catch (_) {}
     useSuggestion(
       compris
-        ? "Super. Donne-moi maintenant 3 exercices progressifs pour m'entrainer."
-        : "Reexplique-moi ce chapitre plus simplement, avec analogies et exemples concrets."
+        ? "Great. Now give me 3 progressive practice exercises."
+        : "Re-explain this chapter more simply, with analogies and concrete examples."
     );
   }
 
   async function proposerQuiz() {
     try {
       const prompt = [
-        "Genere un quiz de 3 questions QCM sur notre conversation.",
-        "Format JSON strict uniquement:",
+        "Generate a 3-question MCQ quiz about our conversation.",
+        "Strict JSON format only:",
         '{"questions":[{"q":"...","options":["...","...","...","..."],"answer":"..."}]}',
-        "Aucun markdown, aucun texte en dehors du JSON."
+        "No markdown, no text outside the JSON."
       ].join("\n");
       const raw = await requestQuizFromAgent(prompt);
       const quiz = parseStrictQuizJson(raw);
-      if (!quiz.questions.length) throw new Error("Quiz vide");
+      if (!quiz.questions.length) throw new Error("Empty quiz");
       renderQuizCard(quiz);
     } catch (e) {
-      pushSystem(`Impossible de générer le quiz: ${e?.message || "erreur"}`);
+      pushSystem(`Cannot generate quiz: ${e?.message || "error"}`);
     }
   }
 

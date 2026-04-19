@@ -42,7 +42,7 @@ class TitleBar(QWidget):
             dl.addWidget(d)
         layout.addWidget(dots_w)
 
-        title = QLabel("Bissi — Agent Local")
+        title = QLabel("Bissi — Local Agent")
         title.setStyleSheet(
             f"font-size:13px;color:{self.theme.C['text_muted']};"
             f"font-family:{self.theme.FONT_UI};margin-left:6px;"
@@ -50,7 +50,7 @@ class TitleBar(QWidget):
         layout.addWidget(title)
         layout.addStretch()
 
-        self.status_badge = QLabel(f"● {DEFAULT_CONFIG.OLLAMA_MODEL} · en ligne")
+        self.status_badge = QLabel(f"● {DEFAULT_CONFIG.OLLAMA_MODEL} · online")
         self.status_badge.setStyleSheet(f"""
             font-size:11px;color:{self.theme.C['teal_text']};
             background:{self.theme.C['teal_lt']};
@@ -64,18 +64,18 @@ class TitleBar(QWidget):
         self.theme_btn = QPushButton("☀")
         self.theme_btn.setObjectName("ThemeToggle")
         self.theme_btn.setFixedSize(28, 22)
-        self.theme_btn.setToolTip("Basculer thème clair / sombre")
+        self.theme_btn.setToolTip("Toggle light / dark theme")
         self.theme_btn.clicked.connect(self.theme_toggle_requested.emit)
         layout.addWidget(self.theme_btn)
 
     def set_theme_label(self, name: str):
-        """Met à jour l'icône du bouton selon le thème actif."""
+        """Update the button icon based on the active theme."""
         self.theme_btn.setText("☀" if name == "dark" else "☾")
 
     def set_model(self, model: str):
-        """Met à jour le badge avec le modèle actif choisi par le router."""
+        """Update the badge with the active model selected by the router."""
         short = model.split(":")[-1]
-        self.status_badge.setText(f"● {model} · en ligne")
+        self.status_badge.setText(f"● {model} · online")
         self.status_badge.setStyleSheet(f"""
             font-size:11px;color:{self.theme.C['teal_text']};
             background:{self.theme.C['teal_lt']};
@@ -87,7 +87,7 @@ class TitleBar(QWidget):
     def set_busy(self, busy: bool):
         """Update status badge for busy/idle state."""
         if busy:
-            self.status_badge.setText(f"⟳ {DEFAULT_CONFIG.OLLAMA_MODEL} · réflexion…")
+            self.status_badge.setText(f"⟳ {DEFAULT_CONFIG.OLLAMA_MODEL} · thinking…")
             self.status_badge.setStyleSheet(f"""
                 font-size:11px;color:{self.theme.C['amber']};
                 background:#FAEEDA;border:0.5px solid #FAC775;
@@ -95,7 +95,7 @@ class TitleBar(QWidget):
                 font-family:{self.theme.FONT_UI};
             """)
         else:
-            self.status_badge.setText(f"● {DEFAULT_CONFIG.OLLAMA_MODEL} · en ligne")
+            self.status_badge.setText(f"● {DEFAULT_CONFIG.OLLAMA_MODEL} · online")
             self.status_badge.setStyleSheet(f"""
                 font-size:11px;color:{self.theme.C['teal_text']};
                 background:{self.theme.C['teal_lt']};

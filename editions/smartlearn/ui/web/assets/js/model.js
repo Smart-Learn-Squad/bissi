@@ -90,7 +90,7 @@
   }
 
   function requestQuizFromAgent(prompt) {
-    if (!S.bissi?.sendMessage) return Promise.reject(new Error("Bridge indisponible"));
+    if (!S.bissi?.sendMessage) return Promise.reject(new Error("Bridge unavailable"));
     return new Promise((resolve, reject) => {
       const onDone = (raw) => {
         cleanup();
@@ -147,7 +147,7 @@
       const q = quiz.questions[index];
       qNode.textContent = `Q${index + 1}/${total} — ${q.q}`;
       oNode.innerHTML = "";
-      mNode.textContent = "Choisis une réponse.";
+      mNode.textContent = "Choisir une réponse.";
       q.options.forEach((opt, optIndex) => {
         const btn = document.createElement("button");
         btn.type = "button";
@@ -156,7 +156,7 @@
         btn.onclick = () => {
           const ok = optIndex === answerIndex(q);
           if (ok) score += 1;
-          mNode.textContent = ok ? "✅ Bonne réponse" : "❌ Mauvaise réponse";
+          mNode.textContent = ok ? "✅ Correct" : "❌ Incorrect";
           [...oNode.querySelectorAll("button")].forEach((b) => { b.disabled = true; b.style.opacity = "0.75"; });
           setTimeout(() => {
             index += 1;
@@ -165,7 +165,7 @@
               return;
             }
             const pct = Math.round((score / total) * 100);
-            qNode.textContent = `Score final: ${score}/${total} (${pct}%)`;
+            qNode.textContent = `Score final : ${score}/${total} (${pct}%)`;
             oNode.innerHTML = "";
             mNode.textContent = "Résultat sauvegardé dans ta progression.";
             recordQuizResult(pct);
@@ -189,7 +189,7 @@
   function hydrateSidebarUser() {
     if (!window.SmartLearnShell) return;
     const user = window.SmartLearnShell.readStoredUser?.() || {
-      prenom: "Etudiant",
+      prenom: "Étudiant",
       filiere: "SmartLearn",
       email: "local@bissi",
     };
@@ -205,14 +205,14 @@
     const points = sessionStorage.getItem("sl_points_cours") || "";
     const matiere = sessionStorage.getItem("sl_matiere_cours") || "General";
     const prompt = [
-      `Tu es SmartLearn. Genere un quiz progressif sur "${title}" (${matiere}).`,
+      `You are SmartLearn. Generate a progressive quiz on "${title}" (${matiere}).`,
       "Format:",
-      "1) 5 questions QCM faciles",
-      "2) 3 questions intermediaires",
-      "3) 2 questions de synthese",
-      "Pour chaque question: donne la bonne reponse avec une explication courte.",
-      resume ? `Resume du chapitre: ${resume}` : "",
-      points ? `Points essentiels:\n${points}` : "",
+      "1) 5 easy MCQ questions",
+      "2) 3 intermediate questions",
+      "3) 2 synthesis questions",
+      "For each question: give the correct answer with a short explanation.",
+      resume ? `Chapter summary: ${resume}` : "",
+      points ? `Key points:\n${points}` : "",
     ].filter(Boolean).join("\n");
 
     const input = $("#messageInput");
@@ -240,7 +240,7 @@
       setTimeout(() => connectBridge(tries + 1), 100);
       return;
     }
-    pushSystem("Mode local: QWebChannel indisponible.");
+    pushSystem("Mode local : QWebChannel indisponible.");
   }
 
   function wireSignals() {
@@ -304,6 +304,8 @@
   function hideWelcome() {
     const w = $("#welcome");
     if (w) w.style.display = "none";
+    const qs = $("#quickSuggestions");
+    if (qs) qs.classList.add("visible");
   }
 
   function addUserMessage(text) {
@@ -574,7 +576,7 @@
 
   function onError(message) {
     if (S.quizRequestActive) return;
-    pushSystem(`Erreur: ${message}`);
+    pushSystem(`Erreur : ${message}`);
     S.activeAiNode = null;
     S.activeAiRaw = "";
     S.parserFrameQueued = false;
@@ -585,7 +587,7 @@
 
   function onInterrupted() {
     if (S.quizRequestActive) return;
-    pushSystem("Generation interrompue.");
+    pushSystem("Génération interrompue.");
     S.activeAiNode = null;
     S.activeAiRaw = "";
     S.parserFrameQueued = false;
@@ -638,7 +640,7 @@
           try {
             const history = JSON.parse(raw);
             if (history.error) {
-              pushSystem(`Erreur: ${history.error}`);
+              pushSystem(`Erreur : ${history.error}`);
               return;
             }
 
@@ -744,8 +746,8 @@
       return;
     }
 
-    setTimeout(() => onToken("SmartLearn en mode demonstration locale."), 200);
-    setTimeout(() => onFinished(JSON.stringify({ full: "SmartLearn en mode demonstration locale." })), 500);
+    setTimeout(() => onToken("SmartLearn en mode démo local."), 200);
+    setTimeout(() => onFinished(JSON.stringify({ full: "SmartLearn en mode démo local." })), 500);
   }
 
   function useSuggestion(text) {
@@ -763,32 +765,46 @@
     S.activeAiNode = null;
     S.activeAiRaw = "";
     unlockInput();
+    // Hide quick suggestions, restore welcome
+    const qs = $("#quickSuggestions");
+    if (qs) qs.classList.remove("visible");
   }
 
   function repondreCompris(compris) {
     const bar = $("#comprehensionBar");
     bar?.classList.remove("show");
+    // Persist comprehension signal for home.js dashboard
+    try {
+      const titre = sessionStorage.getItem("sl_titre_cours") || "Chapitre";
+      // Sanitize key: only alphanumeric + underscore
+      const safeKey = titre.toLowerCase().replace(/[^a-z0-9]+/g, "_").slice(0, 64);
+      localStorage.setItem("sl_compris_" + safeKey, JSON.stringify({
+        compris,
+        titre,
+        date: new Date().toISOString(),
+      }));
+    } catch (_) {}
     useSuggestion(
       compris
-        ? "Super. Donne-moi maintenant 3 exercices progressifs pour m'entrainer."
-        : "Reexplique-moi ce chapitre plus simplement, avec analogies et exemples concrets."
+        ? "Parfait. Donne-moi maintenant 3 exercices d'entraînement progressifs."
+        : "Réexplique-moi ce chapitre plus simplement, avec des analogies et des exemples concrets."
     );
   }
 
   async function proposerQuiz() {
     try {
       const prompt = [
-        "Genere un quiz de 3 questions QCM sur notre conversation.",
-        "Format JSON strict uniquement:",
+        "Generate a 3-question MCQ quiz about our conversation.",
+        "Strict JSON format only:",
         '{"questions":[{"q":"...","options":["...","...","...","..."],"answer":"..."}]}',
-        "Aucun markdown, aucun texte en dehors du JSON."
+        "No markdown, no text outside the JSON."
       ].join("\n");
       const raw = await requestQuizFromAgent(prompt);
       const quiz = parseStrictQuizJson(raw);
       if (!quiz.questions.length) throw new Error("Quiz vide");
       renderQuizCard(quiz);
     } catch (e) {
-      pushSystem(`Impossible de générer le quiz: ${e?.message || "erreur"}`);
+      pushSystem(`Impossible de générer le quiz : ${e?.message || "erreur"}`);
     }
   }
 

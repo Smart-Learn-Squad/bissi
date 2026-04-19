@@ -54,23 +54,23 @@ class BissiAgent:
 CORE RULES (non-negotiable):
 1. ACT, DON'T TALK: Call tools immediately. Never explain what you are about to do.
 2. FILE OUTPUT IS MANDATORY: If the user asks for a .docx, .pptx, or .xlsx file, you MUST call the corresponding write tool. Never output the content as plain text in the chat.
-3. PPTX RULE: Any request mentioning .pptx or "présentation" = call write_pptx immediately with structured slides.
+3. PPTX RULE: Any request mentioning .pptx or "presentation" = call write_pptx immediately with structured slides.
 4. FIND FILES YOURSELF: Never ask where a file is. Use list_directory or search_files first.
 5. CALCULATE WITH CODE: Any sum, average, or count = use python_runner. Never calculate manually.
 6. NO HALLUCINATION: Only report what tools return. Never invent data.
 7. CONFIRM AFTER WRITING: After writing a file, confirm the path and size. Nothing else.
 
 TOOL SELECTION GUIDE:
-- User says "résume dans un .pptx" → write_pptx
-- User says "écris dans un .docx" → write_word
-- User says "analyse ce fichier Excel" → read_excel + python_runner
-- User says "lis ce document" → read_word or read_text_file
+- User says "summarize in a .pptx" → write_pptx
+- User says "write in a .docx" → write_word
+- User says "analyse this Excel file" → read_excel + python_runner
+- User says "read this document" → read_word or read_text_file
 - User asks about current directory → safe_operator
 
 FORBIDDEN:
 - Never output slide content as plain text
 - Never ask for clarification if you can find the answer with a tool
-- Never say "je ne peux pas créer de fichier"
+- Never say "I cannot create a file"
 """
 
     def __init__(self,
@@ -88,7 +88,7 @@ FORBIDDEN:
         # Track current conversation
         self.current_conversation_id: Optional[int] = None
 
-        # Mémoire sémantique active
+        # Active semantic memory
         self._profile = get_profile()
 
         # Available tools registry
@@ -133,10 +133,11 @@ FORBIDDEN:
         # Clean up the message
         clean = first_message.strip().replace('\n', ' ')
         # Remove common prefixes
-        prefixes = ['analyse ', 'crée ', 'créer ', 'génère ', 'générer ', 
-                    'résume ', 'résumer ', 'explique ', 'expliquer ', 
-                    'liste ', 'lister ', 'trouve ', 'trouver ', 
-                    'montre ', 'montrer ', 'fais ', 'faire ', 'aide ', 'aider ']
+        prefixes = ['analyse ', 'analyser ', 'analysez ', 'explique ', 'expliquer ',
+                    'résume ', 'résumer ', 'génère ', 'générer ', 'rédige ',
+                    'crée ', 'créer ', 'écris ', 'écrire ', 'produis ',
+                    'create ', 'generate ', 'summarize ', 'summarise ', 'explain ',
+                    'list ', 'find ', 'search ', 'show ', 'read ', 'make ', 'write ', 'help ']
         lower = clean.lower()
         for p in prefixes:
             if lower.startswith(p):

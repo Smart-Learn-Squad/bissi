@@ -338,6 +338,8 @@ function renderAssistantHistory(markdownText) {
 
 function startNewConversation() {
   if (!S.bissi) return;
+  // Immediately reset the visual state before waiting for the bridge
+  resetMessages(true);
   S.pendingNewConversation = true;
   S.bissi.newConversation(() => {});
 }
@@ -494,12 +496,12 @@ function setSendBtnState(sending) {
   const btn = el('#send-btn');
   if (!btn) return;
   if (sending) {
-    btn.title = 'Arrêter';
+    btn.title = 'Stop';
     btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>';
     btn.onclick = interrupt;
     btn.disabled = false;
   } else {
-    btn.title = 'Envoyer';
+    btn.title = 'Send';
     btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>';
     btn.onclick = submit;
     btn.disabled = false;
@@ -572,6 +574,8 @@ function lock() {
   setSendBtnState(true);
   el('#chat-input').disabled = true;
   el('#status-dot').className = 'status-dot amber';
+  const hint = el('#routing-hint');
+  if (hint && !hint.textContent) hint.textContent = 'Génération…';
 }
 
 function unlock() {
@@ -581,6 +585,8 @@ function unlock() {
   inp.disabled = false;
   inp.focus();
   el('#status-dot').className = 'status-dot teal';
+  const hint = el('#routing-hint');
+  if (hint && hint.textContent === 'Génération…') hint.textContent = '';
 }
 
 // ── Theme ──────────────────────────────────────────────────────
@@ -620,8 +626,6 @@ function applyTheme(name, tokens) {
 // ── Model badge & profile ──────────────────────────────────────
 function setModel(model) {
   if (!model || model === 'demo') return;
-  const mb = el('#model-badge');
-  if (mb) mb.textContent = `● ${model}`;
   const cmb = el('#chat-model-badge');
   if (cmb) cmb.textContent = model;
   const sm = el('#status-model');
@@ -633,8 +637,6 @@ function updateProfile(profile) {
   const total = profile.total || 0;
   const mc = el('#memory-count');
   if (mc) mc.textContent = total;
-  const sm = el('#status-memory');
-  if (sm) sm.textContent = `${total} souvenirs`;
 }
 
 // ── Sessions sidebar ───────────────────────────────────────────
@@ -642,7 +644,6 @@ function renderSessions(convs, autoLoad = true) {
   const list = el('#sessions-list');
   list.innerHTML = '';
   if (!convs || !convs.length) {
-    list.innerHTML = '<div class="session-empty">Aucune session</div>';
     return;
   }
   let firstItem = null;
@@ -664,7 +665,7 @@ function renderSessions(convs, autoLoad = true) {
         try {
           const history = JSON.parse(json);
           if (history.error) {
-            sysMsg(`Erreur: ${history.error}`, 'error');
+            sysMsg(`Erreur : ${history.error}`, 'error');
             return;
           }
           const hasMessages = Array.isArray(history) && history.length > 0;
@@ -733,7 +734,9 @@ function loadDir(path) {
       const data = JSON.parse(raw);
       if (!data.success) return;
       S.curPath = target;
-      el('#explorer-path').textContent = target;
+      // Replace leading /home/<user> or /Users/<user> with ~ for a friendlier path display.
+      const displayPath = target.replace(/^\/(home|Users)\/[^/]+/, '~');
+      el('#explorer-path').textContent = displayPath;
       buildTree(data.items, target);
     } catch { /* ignore */ }
   });
@@ -909,13 +912,13 @@ function updateLayoutToggleLabels() {
 
   const sbBtn = el('#sidebar-toggle');
   if (sbBtn) {
-    const title = isSidebarCollapsed ? 'Afficher la barre latérale' : 'Rétracter la barre latérale';
+    const title = isSidebarCollapsed ? 'Show sidebar' : 'Collapse sidebar';
     sbBtn.title = title;
     sbBtn.setAttribute('aria-label', title);
   }
 
   document.querySelectorAll('.workspace-toggle-btn').forEach(btn => {
-    const title = isPanelCollapsed ? "Afficher l'espace de travail" : "Rétracter l'espace de travail";
+    const title = isPanelCollapsed ? 'Show workspace' : 'Collapse workspace';
     btn.title = title;
     btn.setAttribute('aria-label', title);
   });
@@ -940,8 +943,7 @@ function startTimer() {
     const hh = String(Math.floor(ms / 3600000)).padStart(2, '0');
     const mm = String(Math.floor((ms % 3600000) / 60000)).padStart(2, '0');
     const ss = String(Math.floor((ms % 60000) / 1000)).padStart(2, '0');
-    el('#status-session').textContent = `Session · ${hh}:${mm}:${ss}`;
-  }, 1000);
+    el('#status-session').textContent = `Session · ${hh}:${mm}:${ss}`;  }, 1000);
 }
 
 // ── Utilities ──────────────────────────────────────────────────

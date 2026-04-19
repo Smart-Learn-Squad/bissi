@@ -25,7 +25,7 @@ class Sidebar(QWidget):
         layout.setSpacing(0)
 
         # Header
-        hdr = QLabel("Sessions")
+        hdr = QLabel("Sessions")  # section label
         hdr.setStyleSheet(f"""
             padding: 12px 14px 8px;
             font-size: 11px;
@@ -48,12 +48,12 @@ class Sidebar(QWidget):
         layout.addWidget(sessions_w)
 
         self._add_session("Session active", "Maintenant", active=True)
-        self._add_session("Budget IFRI", "Hier")
+        self._add_session("IFRI Budget", "Hier")
         self._add_session("Cours Python", "Lundi")
 
         layout.addStretch()
 
-        # Footer mémoire
+        # Footer memory
         footer = QWidget()
         footer.setStyleSheet(f"""
             background: {self.theme.C['bg_sidebar']};
@@ -110,7 +110,7 @@ class Sidebar(QWidget):
 
     def set_memory(self, n: int):
         """Update memory count display."""
-        self.mem_count.setText(f"{n} souvenirs")
+        self.mem_count.setText(f"{n} souvenir{'s' if n != 1 else ''}")
 
     def set_rag(self, n: int):
         """Update knowledge base count display."""

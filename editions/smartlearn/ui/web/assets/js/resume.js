@@ -60,7 +60,7 @@
   function updateCount() {
     const text = $("#courseText")?.value || "";
     const node = $("#charCount");
-    if (node) node.textContent = `${text.length.toLocaleString("fr")} caracteres`;
+    if (node) node.textContent = `${text.length.toLocaleString("fr")} caractère${text.length !== 1 ? "s" : ""}`;
   }
 
   function importerFichier(input, type) {
@@ -87,7 +87,7 @@
       const ta = $("#courseText");
       if (ta) {
         ta.value = "";
-        ta.placeholder = `Fichier importe : ${file.name}\nAjoute des instructions optionnelles ici, ou laisse vide.`;
+        ta.placeholder = `Fichier importé : ${file.name}\nAjoute des instructions ici (facultatif).`;
       }
       updateCount();
     };
@@ -100,7 +100,7 @@
     $("#uploadBadge")?.remove();
     const ta = $("#courseText");
     if (ta) {
-      ta.placeholder = "Colle ici le texte de ton cours (minimum 80 caracteres)…";
+      ta.placeholder = "Colle ici le texte de ton cours (minimum 80 caractères)…";
       ta.value = "";
     }
     updateCount();
@@ -114,7 +114,7 @@
   }
 
   async function askBridge(prompt) {
-    if (!bridge?.sendMessage) throw new Error("Bridge indisponible");
+    if (!bridge?.sendMessage) throw new Error("Bridge unavailable");
     return new Promise((resolve, reject) => {
       const onDone = (raw) => {
         cleanup();
@@ -127,7 +127,7 @@
       };
       const onErr = (msg) => {
         cleanup();
-        reject(new Error(String(msg || "Erreur IA")));
+        reject(new Error(String(msg || "AI error")));
       };
       const cleanup = () => {
         try { bridge.responseFinished.disconnect(onDone); } catch (_) {}
@@ -146,31 +146,32 @@
       return;
     }
     if (!fichierImporte && texte.length < 80) {
-      afficherErreur("Le texte est trop court. Colle au moins quelques paragraphes.");
+      const manque = 80 - texte.length;
+      afficherErreur(`Texte trop court (${texte.length}/80 caractères). Ajoute ${manque} caractère${manque > 1 ? 's' : ''} ou importe un fichier.`);
       return;
     }
     setEtat("loading");
     $("#errorState")?.classList.remove("show");
 
     const systemPrompt = [
-      "Tu es SmartLearn, assistant pedagogique.",
-      "Reponds UNIQUEMENT en JSON valide au format:",
+      "You are SmartLearn, an educational assistant.",
+      "Respond ONLY with valid JSON in this format:",
       '{',
-      '  "titre":"Titre court",',
-      '  "matiere":"Nom de matiere",',
-      '  "resume":"Resume clair en 3-4 phrases",',
+      '  "titre":"Short title",',
+      '  "matiere":"Subject name",',
+      '  "resume":"Clear summary in 3-4 sentences",',
       '  "concepts":["c1","c2","c3","c4","c5","c6"],',
       '  "points_cles":["p1","p2","p3","p4"],',
       '  "definitions":[{"terme":"T1","definition":"D1"},{"terme":"T2","definition":"D2"}]',
       "}",
-      "Aucun markdown.",
+      "No markdown.",
     ].join("\n");
 
     const sourceHint = fichierImporte
-      ? `Fichier importe: ${fichierImporte.nom} (${fichierImporte.mediaType}).\nInstructions: ${texte || "Analyse automatique."}`
+      ? `Imported file: ${fichierImporte.nom} (${fichierImporte.mediaType}).\nInstructions: ${texte || "Automatic analysis."}`
       : texte.slice(0, 7000);
 
-    const prompt = `${systemPrompt}\n\nCours a analyser:\n${sourceHint}`;
+    const prompt = `${systemPrompt}\n\nChapter to analyse:\n${sourceHint}`;
 
     try {
       const raw = await askBridge(prompt);
@@ -185,7 +186,7 @@
     fichierImporte = null;
     $("#uploadBadge")?.remove();
 
-    $("#resultTitle").textContent = d.titre || "Chapitre analyse";
+    $("#resultTitle").textContent = d.titre || "Chapitre analysé";
     $("#resultResume").textContent = d.resume || "—";
 
     const concepts = $("#resultConcepts");
@@ -226,7 +227,7 @@
     sessionStorage.setItem("sl_resume_cours", d.resume || "");
     sessionStorage.setItem("sl_concepts_cours", (d.concepts || []).join(", "));
     sessionStorage.setItem("sl_points_cours", (d.points_cles || []).join("\n"));
-    sessionStorage.setItem("sl_matiere_cours", d.matiere || "General");
+    sessionStorage.setItem("sl_matiere_cours", d.matiere || "Général");
     updateProgressAfterAnalysis(d.titre || "Chapitre");
 
     setEtat("results");
@@ -240,7 +241,7 @@
       ta.focus();
     }
     const c = $("#charCount");
-    if (c) c.textContent = "0 caracteres";
+    if (c) c.textContent = "0 caractères";
   }
 
   function copierTout() {
@@ -254,7 +255,7 @@
       return `${t} : ${v}`;
     }).join("\n");
     navigator.clipboard.writeText(
-      `SMARTLEARN — ${titre}\n\nRESUME\n${resume}\n\nCONCEPTS CLES\n${concepts}\n\nPOINTS ESSENTIELS\n${points}\n\nDEFINITIONS\n${defs}`
+      `SMARTLEARN — ${titre}\n\nRÉSUMÉ\n${resume}\n\nCONCEPTS CLÉS\n${concepts}\n\nPOINTS ESSENTIELS\n${points}\n\nDÉFINITIONS\n${defs}`
     );
   }
 
@@ -275,7 +276,7 @@
   function initSidebarUser() {
     if (!window.SmartLearnShell) return;
     const user = window.SmartLearnShell.readStoredUser?.() || {
-      prenom: "Etudiant",
+      prenom: "Étudiant",
       filiere: "SmartLearn",
       email: "local@bissi",
     };

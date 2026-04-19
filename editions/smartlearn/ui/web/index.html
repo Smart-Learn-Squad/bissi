@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>SmartLearn — IA Pédagogique · IFRI 2026</title>
+  <title>SmartLearn — Tuteur IA</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 44 28'><path d='M22 14C22 14 17 4 10 4C3 4 3 24 10 24C17 24 22 14 22 14C22 14 27 4 34 4C41 4 41 24 34 24C27 24 22 14 22 14Z' stroke='%2360a5fa' stroke-width='2.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
   <link rel="stylesheet" href="assets/vendor/katex/katex.min.css">
   <script defer src="assets/vendor/katex/katex.min.js"></script>
@@ -49,10 +49,10 @@
         </div>
         <div class="brand-text">
           <div class="brand-name">SmartLearn</div>
-          <div class="brand-sub">IA Pédagogique</div>
+          <div class="brand-sub">Tuteur IA</div>
         </div>
       </div>
-      <button class="toggle-btn desktop-only" onclick="toggleSidebar()" title="Rétracter">
+      <button class="toggle-btn desktop-only" onclick="toggleSidebar()" title="Réduire">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
           <polyline points="15 18 9 12 15 6"/>
         </svg>
@@ -97,7 +97,7 @@
         <div class="hb-text"><div style="font-weight:600">Hack by IFRI 2026</div><span>Démo officielle</span></div>
       </div>
       <div class="user-row" id="sidebarUserRow">
-        <div class="avatar" id="sidebarAvatar">E</div>
+        <div class="avatar" id="sidebarAvatar">S</div>
         <div class="user-info">
           <div class="user-name" id="sidebarName">Étudiant</div>
           <div class="user-role" id="sidebarRole">SmartLearn</div>
@@ -108,7 +108,7 @@
 
   <!-- MAIN -->
   <main class="main">
-    <!-- Hamburger mobile flottant -->
+    <!-- Floating mobile hamburger -->
     <button class="menu-btn" onclick="openSidebar()" title="Menu">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
         <line x1="3" y1="6" x2="21" y2="6"/>
@@ -125,43 +125,50 @@
           </svg>
         </div>
         <h1>Apprends avec <em>SmartLearn</em></h1>
-        <p>Pose tes questions, explore des concepts, prépare tes examens avec l'aide de l'IA.</p>
+        <p>Pose tes questions, explore les concepts, prépare tes examens avec l'aide de l'IA.</p>
         <div class="pedagogy-row">
-          <span class="ped-chip gold">✦ Étape par étape</span>
+          <span class="ped-chip gold">✦ Pas à pas</span>
           <span class="ped-chip blue">◆ Analogies concrètes</span>
-          <span class="ped-chip gold">✦ Vérification</span>
+          <span class="ped-chip gold">✦ Vérifie ta compréhension</span>
           <span class="ped-chip blue">◆ Exemples pratiques</span>
         </div>
         <div class="suggestions">
           <div class="sug-card" onclick="useSuggestion('Explique-moi les intégrales comme si j\'avais 15 ans')">
             <strong>📐 Maths</strong>Explique-moi les intégrales comme si j'avais 15 ans
           </div>
-          <div class="sug-card" onclick="useSuggestion('Quelle est la différence entre une liaison ionique et covalente ?')">
-            <strong>⚗️ Chimie</strong>Différence entre liaison ionique et covalente ?
+          <div class="sug-card" onclick="useSuggestion('Quelle est la différence entre les liaisons ioniques et covalentes ?')">
+            <strong>⚗️ Chimie</strong>Différence entre liaisons ioniques et covalentes ?
           </div>
           <div class="sug-card" onclick="useSuggestion('Explique la récursivité avec un exemple simple')">
             <strong>💻 Algo</strong>Explique la récursivité avec un exemple simple
           </div>
-          <div class="sug-card" onclick="useSuggestion('Comment bien mémoriser un cours la veille d\'un exam ?')">
-            <strong>📚 Révision</strong>Comment bien mémoriser un cours la veille d'un exam ?
+          <div class="sug-card" onclick="useSuggestion('Comment mémoriser un cours la veille d\'un examen ?')">
+            <strong>📚 Révision</strong>Comment mémoriser un cours la veille d'un examen ?
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Barre de compréhension (activée depuis resume.html) -->
+    <!-- Comprehension bar (activated from resume.html) -->
     <div class="comprehension-bar" id="comprehensionBar">
       <div class="comprehension-label">
         <strong id="compChapterTitle">Chapitre</strong>
-        As-tu bien compris ce chapitre ?
+        Tu as compris ce chapitre ?
       </div>
       <div class="comprehension-btns">
-        <button class="comp-btn yes" onclick="repondreCompris(true)">✅ J'ai compris!</button>
+        <button class="comp-btn yes" onclick="repondreCompris(true)">✅ Oui, j'ai compris !</button>
         <button class="comp-btn no"  onclick="repondreCompris(false)">🤔 Pas vraiment...</button>
       </div>
     </div>
 
     <div class="input-area" id="inputArea">
+      <!-- Quick suggestion chips (shown after welcome disappears) -->
+      <div class="quick-suggestions" id="quickSuggestions">
+        <button class="qs-chip" onclick="useSuggestion('Explique-moi les intégrales comme si j\'avais 15 ans')">📐 Intégrales</button>
+        <button class="qs-chip" onclick="useSuggestion('Quelle est la différence entre les liaisons ioniques et covalentes ?')">⚗️ Liaisons chimiques</button>
+        <button class="qs-chip" onclick="useSuggestion('Explique la récursivité avec un exemple simple')">💻 Récursivité</button>
+        <button class="qs-chip" onclick="useSuggestion('Comment mémoriser un cours la veille d\'un examen ?')">📚 Mémorisation</button>
+      </div>
       <div class="input-wrap">
         <div class="input-row">
           <textarea class="textarea" id="messageInput" placeholder="Pose ta question à SmartLearn..." rows="1" onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendMessage();}" oninput="autoResize(this)"></textarea>
@@ -175,10 +182,9 @@
           <div class="tools">
             <button class="tool-btn" onclick="proposerQuiz()">🎯 Quiz</button>
           </div>
-          <span class="powered">⚡ <em>SmartLearn</em> IA</span>
+          <span class="powered">⚡ <em>SmartLearn</em></span>
         </div>
       </div>
-      <p class="disclaimer">SmartLearn · Démo Hack by IFRI 2026</p>
     </div>
   </main>
 </div>

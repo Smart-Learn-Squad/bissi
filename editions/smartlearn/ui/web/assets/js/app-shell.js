@@ -307,9 +307,9 @@
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function() {
       navigator.serviceWorker.register('/service-worker.js').then(function(registration) {
-        console.log('Service worker enregistré avec succès:', registration.scope);
+        console.log('Service worker registered successfully:', registration.scope);
       }).catch(function(err) {
-        console.log('Échec de l\'enregistrement du service worker:', err);
+        console.log('Service worker registration failed:', err);
       });
     });
   }

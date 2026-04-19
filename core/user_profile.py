@@ -1,10 +1,10 @@
-"""UserProfileStore — Mémoire sémantique active pour BISSI.
+"""UserProfileStore — Active semantic memory for BISSI.
 
-Enregistre chaque décision de routage pour apprendre le profil
-de l'utilisateur et adapter dynamiquement le seuil du router.
+Records each routing decision to learn the user's profile
+and dynamically adapt the router threshold.
 
-Convergence : ~10 requêtes suffisent pour un profil fiable.
-Stockage    : JSON léger dans ~/.bissi/user_profile.json
+Convergence: ~10 requests are sufficient for a reliable profile.
+Storage    : Lightweight JSON at ~/.bissi/user_profile.json
 """
 from __future__ import annotations
 
@@ -23,26 +23,26 @@ _EMPTY_PROFILE: dict = {
     "domains": {},
 }
 
-# Nombre minimum de requêtes avant d'activer l'adaptation
+# Minimum number of requests before enabling adaptation
 _MIN_SAMPLES = 8
 
 
 class UserProfileStore:
-    """Stocke et analyse le comportement de routage de l'utilisateur."""
+    """Stores and analyses the user's routing behaviour."""
 
     def __init__(self, path: str = _DEFAULT_PATH):
         self.path = expand_path(path)
         ensure_dir(self.path.parent)
         self._data = self._load()
 
-    # ── Persistance ────────────────────────────────────────────
+    # ── Persistence ────────────────────────────────────────────
 
     def _load(self) -> dict:
         if self.path.exists():
             try:
                 with open(self.path, "r", encoding="utf-8") as f:
                     data = json.load(f)
-                # Merge avec le template pour gérer les anciennes versions
+                # Merge with template to handle older versions
                 return {**_EMPTY_PROFILE, **data}
             except (json.JSONDecodeError, OSError):
                 pass
@@ -52,7 +52,7 @@ class UserProfileStore:
         with open(self.path, "w", encoding="utf-8") as f:
             json.dump(self._data, f, indent=2, ensure_ascii=False)
 
-    # ── Enregistrement ─────────────────────────────────────────
+    # ── Recording ──────────────────────────────────────────────
 
     def record(self, model: str, domains: Set[str]) -> None:
         """Records a routing decision (stub - e2b only as of 2026-04-17).
@@ -70,7 +70,7 @@ class UserProfileStore:
             )
         self._save()
 
-    # ── Analyse ────────────────────────────────────────────────
+    # ── Analysis ───────────────────────────────────────────────
 
     @property
     def heavy_ratio(self) -> float:
@@ -87,7 +87,7 @@ class UserProfileStore:
 
     @property
     def top_domains(self) -> list[tuple[str, int]]:
-        """Top 3 domaines par fréquence."""
+        """Top 3 domains by frequency."""
         return sorted(
             self._data["domains"].items(),
             key=lambda x: -x[1]
@@ -95,14 +95,14 @@ class UserProfileStore:
 
     @property
     def stats(self) -> dict:
-        """Résumé lisible du profil pour l'UI."""
+        """Readable profile summary for the UI."""
         total  = self._data["total_requests"]
         ratio  = self.heavy_ratio
         adj    = self.threshold_adjustment()
         label  = (
-            "lourd" if ratio > 0.65
-            else "léger" if ratio < 0.35
-            else "mixte"
+            "heavy" if ratio > 0.65
+            else "light" if ratio < 0.35
+            else "mixed"
         )
         return {
             "total":       total,
@@ -114,7 +114,7 @@ class UserProfileStore:
         }
 
     def reset(self) -> None:
-        """Remet le profil à zéro."""
+        """Reset the profile to empty state."""
         self._data = dict(_EMPTY_PROFILE)
         self._save()
 

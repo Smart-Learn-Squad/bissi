@@ -75,14 +75,14 @@ class StatusBar(QWidget):
 
     def set_memory(self, n: int):
         """Update memory count display."""
-        self._mem_lbl.setText(f"Mémoire · {n} souvenirs")
+        self._mem_lbl.setText(f"Mémoire · {n} souvenir{'s' if n != 1 else ''}")
 
     def set_rag(self, n: int):
         """Update knowledge base count display."""
         self._rag_lbl.setText(f"Documents · {n}")
 
     def set_routing(self, model: str, score: float):
-        """Affiche le modèle actif (gemma4:e2b)."""
+        """Update the active model display (gemma4:e2b)."""
         color = self.theme.C["teal"]
         self._model_lbl.setText(f"Ollama · {model}")
         self._model_lbl.setStyleSheet(

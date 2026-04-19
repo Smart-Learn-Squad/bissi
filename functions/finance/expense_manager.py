@@ -1,7 +1,4 @@
-"""Expense manager integration for BISSI.
-
-Interfaces with the existing GestionnaireDeD-penses application.
-"""
+"""Expense manager integration for BISSI."""
 import json
 from pathlib import Path
 from typing import List, Dict, Any, Optional, Union
@@ -27,7 +24,7 @@ class ExpenseManager:
     CATEGORIES = [
         'Alimentation', 'Transport', 'Logement', 'Santé',
         'Loisirs', 'Shopping', 'Éducation', 'Travail',
-        'Impôts', 'Général'
+        'Taxes', 'Général'
     ]
     
     def __init__(self, data_path: Optional[Union[str, Path]] = None):
@@ -121,14 +118,14 @@ class ExpenseManager:
         
         lines = [
             "📊 RAPPORT DE DÉPENSES",
-            f"Utilisateur: {status['user']}",
+            f"Utilisateur : {status['user']}",
             "",
             "💰 BUDGET",
-            f"  Budget: {status['budget']:,.0f} FCFA",
-            f"  Dépensé: {status['spent']:,.0f} FCFA ({status['percentage_used']:.1f}%)",
-            f"  Restant: {status['remaining']:,.0f} FCFA",
+            f"  Budget : {status['budget']:,.0f} FCFA",
+            f"  Dépensé : {status['spent']:,.0f} FCFA ({status['percentage_used']:.1f}%)",
+            f"  Restant : {status['remaining']:,.0f} FCFA",
             "",
-            f"Nombre de dépenses: {status['expense_count']}"
+            f"Nombre de dépenses : {status['expense_count']}"
         ]
         
         return '\n'.join(lines)

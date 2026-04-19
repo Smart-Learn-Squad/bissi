@@ -21,7 +21,7 @@ class MessageBubble(QFrame):
         self.role = role
         self.theme = theme or Theme()
         self._text = ""
-        # Injecter la palette dans le parser
+        # Inject palette into the parser
         _configure_html_renderer({
             "code_bg":    self.theme.C["code_bg"],
             "code_text":  self.theme.C["text2"],
@@ -230,7 +230,7 @@ class ChatPanel(QWidget):
 
         self.input = QLineEdit()
         self.input.setPlaceholderText(
-            "Pose une question à Bissi…  (↑↓ historique · Ctrl+C interrupt)"
+            "Pose une question à Bissi…  (↑↓ historique · Ctrl+C interrompre)"
         )
         self.input.setStyleSheet(f"""
             QLineEdit {{
@@ -313,7 +313,7 @@ class ChatPanel(QWidget):
         self._locked = False
         self.input.setEnabled(True)
         self.input.setPlaceholderText(
-            "Pose une question à Bissi…  (↑↓ historique · Ctrl+C interrupt)"
+            "Pose une question à Bissi…  (↑↓ historique · Ctrl+C interrompre)"
         )
         self.input.setFocus()
 
@@ -327,7 +327,7 @@ class ChatPanel(QWidget):
     def start_agent_message(self) -> MessageBubble:
         """Create and return assistant message bubble for streaming."""
         self._current_bubble = MessageBubble("assistant", self.theme)
-        self._current_bubble.set_text("▌")   # curseur en attente
+        self._current_bubble.set_text("▌")   # waiting cursor
         self._insert_bubble(self._current_bubble)
         return self._current_bubble
 

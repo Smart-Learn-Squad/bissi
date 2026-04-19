@@ -69,11 +69,11 @@ class TitleBar(QWidget):
         layout.addWidget(self.theme_btn)
 
     def set_theme_label(self, name: str):
-        """Met à jour l'icône du bouton selon le thème actif."""
+        """Update the button icon based on the active theme."""
         self.theme_btn.setText("☀" if name == "dark" else "☾")
 
     def set_model(self, model: str):
-        """Met à jour le badge avec le modèle actif choisi par le router."""
+        """Update the badge with the active model selected by the router."""
         short = model.split(":")[-1]
         self.status_badge.setText(f"● {model} · en ligne")
         self.status_badge.setStyleSheet(f"""

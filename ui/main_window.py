@@ -30,18 +30,18 @@ from agent import BissiAgent
 # ─────────────────────────────────────────────────────────────
 
 def _format_tool_result(result: str, max_len: int = 100) -> str:
-    """Convertit un résultat de tool JSON brut en texte lisible pour l'UI."""
+    """Converts a raw JSON tool result into a readable string for the UI."""
     import json
     try:
         data = json.loads(result)
         if not isinstance(data, dict):
             return result[:max_len]
 
-        # Succès avec message explicite
+        # Success with explicit message
         if data.get("message"):
             return data["message"][:max_len]
 
-        # Listing de fichiers
+        # File listing
         if "items" in data:
             items = data["items"]
             names = [i.get("name", "?") for i in items[:6]]
@@ -66,13 +66,13 @@ def _format_tool_result(result: str, max_len: int = 100) -> str:
             suffix = f" (+{len(lines)-1} lignes)" if len(lines) > 1 else ""
             return (preview[:80] + suffix)[:max_len]
 
-        # Colonnes Excel / CSV
+        # Excel / CSV columns
         if "columns" in data:
             cols = data["columns"][:5]
             total = data.get("total_rows", "?")
-            return f"{total} lignes · colonnes : {', '.join(str(c) for c in cols)}"
+            return f"{total} rows · columns: {', '.join(str(c) for c in cols)}"
 
-        # Succès générique
+        # Generic success
         if data.get("success"):
             return "✓ OK"
 
@@ -172,13 +172,13 @@ class BissiWindow(QMainWindow):
     def __init__(self, engine: ThemeEngine = None):
         super().__init__()
         self._engine = engine or get_engine()
-        # Backward-compat : Theme wrapper lit les tokens depuis l'engine
+        # Backward-compat: Theme wrapper reads tokens from the engine
         self.theme = Theme()
         self.setWindowTitle("Bissi")
         self.resize(DEFAULT_CONFIG.ui.window_width, DEFAULT_CONFIG.ui.window_height)
         self.setMinimumSize(DEFAULT_CONFIG.ui.min_width, DEFAULT_CONFIG.ui.min_height)
 
-        # Synchro parser avec le thème courant
+        # Sync parser with current theme
         _configure_html_renderer(self._engine.parser_colors())
         self._engine.theme_changed.connect(self._on_theme_changed)
 
@@ -232,7 +232,7 @@ class BissiWindow(QMainWindow):
 
         # Welcome message
         self.chat.add_system_msg(
-            f"Bissi prêt · {DEFAULT_CONFIG.OLLAMA_MODEL} · tape un message pour commencer",
+            f"Bissi prêt · {DEFAULT_CONFIG.OLLAMA_MODEL} · tape un message pour démarrer",
             color=self.theme.C['text_dim']
         )
 
@@ -267,10 +267,10 @@ class BissiWindow(QMainWindow):
             self._current_bubble.add_tool_line(name, "", result)
 
     def _on_thinking(self, msg: str):
-        """Affiche les infos de routage dans la status bar."""
+        """Display routing info in the status bar."""
         if not msg:
             return
-        # Format attendu : "→ gemma4:e2b · score 0.72"
+        # Expected format: "→ gemma4:e2b · score 0.72"
         if "gemma4:" in msg:
             try:
                 parts = msg.split("·")

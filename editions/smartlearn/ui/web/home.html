@@ -46,10 +46,10 @@
         </div>
         <div class="brand-text">
           <div class="brand-name">SmartLearn</div>
-          <div class="brand-sub">IA Pédagogique</div>
+
         </div>
       </div>
-      <button class="toggle-btn desktop-only" onclick="toggleSidebar()" title="Rétracter">
+      <button class="toggle-btn desktop-only" onclick="toggleSidebar()" title="Réduire">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
           <polyline points="15 18 9 12 15 6"/>
         </svg>
@@ -106,32 +106,32 @@
     </button>
 <div class="page">
 
-  <!-- En-tête -->
+  <!-- Header -->
   <div class="page-header">
     <div class="page-tag">Tableau de bord</div>
     <h1>Ma <em>progression</em></h1>
-    <p>Suivez votre maîtrise par chapitre et planifiez vos révisions intelligemment.</p>
+    <p>Suis ta maîtrise par chapitre et planifie tes révisions intelligemment.</p>
   </div>
 
-  <!-- Stats globales -->
+  <!-- Global stats -->
   <div class="stats-grid" id="statsGrid">
     <div class="stat-card blue">
       <span class="stat-icon">📚</span>
-      <div class="stat-val" id="statChapitres">6</div>
+      <div class="stat-val" id="statChapitres">0</div>
       <div class="stat-label">Chapitres étudiés</div>
-      <div class="stat-sub">sur la session</div>
+      <div class="stat-sub">cette session</div>
     </div>
     <div class="stat-card green">
       <span class="stat-icon">🎯</span>
-      <div class="stat-val" id="statQuiz">14</div>
+      <div class="stat-val" id="statQuiz">0</div>
       <div class="stat-label">Quiz complétés</div>
       <div class="stat-sub">cette semaine</div>
     </div>
     <div class="stat-card blue">
       <span class="stat-icon">⭐</span>
-      <div class="stat-val" id="statMoyenne">72<span style="font-size:18px">%</span></div>
+      <div class="stat-val" id="statMoyenne">—</div>
       <div class="stat-label">Score moyen</div>
-      <div class="stat-sub">tous chapitres</div>
+      <div class="stat-sub">tous les chapitres</div>
     </div>
     <div class="stat-card amber">
       <span class="stat-icon">⏱</span>
@@ -141,15 +141,15 @@
     </div>
   </div>
 
-  <!-- Grille principale -->
+  <!-- Main grid -->
   <div class="main-grid">
 
-    <!-- Colonne gauche -->
+    <!-- Left column -->
     <div>
       <div class="card">
         <div class="card-header">
           <span class="card-title">📖 Maîtrise par chapitre</span>
-          <span class="card-badge blue" id="chapterBadge">6 chapitres</span>
+          <span class="card-badge blue" id="chapterBadge">0 chapitre</span>
         </div>
         <div class="card-body">
           <div class="chapters-list" id="chaptersList"></div>
@@ -157,23 +157,23 @@
       </div>
     </div>
 
-    <!-- Colonne droite -->
+    <!-- Right column -->
     <div class="right-col">
 
-      <!-- ═══ TIMER POMODORO ═══ -->
+      <!-- ═══ POMODORO TIMER ═══ -->
       <div class="card timer-card">
         <div class="card-header">
-          <span class="card-title">⏱ Timer Pomodoro</span>
+          <span class="card-title">⏱ Pomodoro Timer</span>
           <span class="card-badge green" id="timerBadge">Focus</span>
         </div>
         <div class="timer-body">
 
-          <!-- Sélecteur de mode -->
+          <!-- Mode selector -->
           <div class="timer-modes">
             <button class="timer-mode-btn active" onclick="setTimerMode('focus',25,'Focus')" id="modeBtn-focus">
               Focus · 25min
             </button>
-            <button class="timer-mode-btn" onclick="setTimerMode('short',5,'Courte pause')" id="modeBtn-short">
+            <button class="timer-mode-btn" onclick="setTimerMode('short',5,'Pause courte')" id="modeBtn-short">
               Pause · 5min
             </button>
             <button class="timer-mode-btn" onclick="setTimerMode('long',15,'Longue pause')" id="modeBtn-long">
@@ -181,7 +181,7 @@
             </button>
           </div>
 
-          <!-- Anneau + affichage -->
+          <!-- Ring + display -->
           <div class="timer-ring-wrap">
             <svg class="timer-svg" viewBox="0 0 150 150">
               <defs>
@@ -203,11 +203,11 @@
             </div>
           </div>
 
-          <!-- Contrôles -->
+          <!-- Controls -->
           <div class="timer-controls">
-            <button class="timer-btn timer-btn-sec" onclick="timerReset()" title="Réinitialiser">↺</button>
-            <button class="timer-btn timer-btn-main" onclick="timerToggle()" id="timerPlayBtn" title="Démarrer">▶</button>
-            <button class="timer-btn timer-btn-sec" onclick="timerSkip()" title="Passer">⏭</button>
+            <button class="timer-btn timer-btn-sec" onclick="timerReset()" title="Reset">↺</button>
+            <button class="timer-btn timer-btn-main" onclick="timerToggle()" id="timerPlayBtn" title="Start">▶</button>
+            <button class="timer-btn timer-btn-sec" onclick="timerSkip()" title="Skip">⏭</button>
           </div>
 
           <!-- Sessions -->
@@ -222,7 +222,7 @@
         </div>
       </div>
 
-      <!-- Anneau global -->
+      <!-- Global ring -->
       <div class="card">
         <div class="card-header">
           <span class="card-title">🏆 Score global</span>
@@ -241,18 +241,18 @@
               <circle class="ring-fill" id="ringFill" cx="70" cy="70" r="60"/>
             </svg>
             <div class="ring-center">
-              <div class="ring-pct" id="ringPct">72%</div>
+              <div class="ring-pct" id="ringPct">—</div>
               <div class="ring-lbl">Maîtrise</div>
             </div>
           </div>
           <div class="ring-info">
-            <div class="ring-info-title">Niveau Intermédiaire</div>
-            <div class="ring-info-sub">Continuez — vous progressez bien !</div>
+            <div class="ring-info-title">Niveau intermédiaire</div>
+            <div class="ring-info-sub">Continuez ainsi — vous progressez bien !</div>
           </div>
         </div>
       </div>
 
-      <!-- Points faibles -->
+      <!-- Weak points -->
       <div class="card">
         <div class="card-header">
           <span class="card-title">⚠️ Points faibles</span>
@@ -263,10 +263,10 @@
         </div>
       </div>
 
-      <!-- Planning -->
+      <!-- Schedule -->
       <div class="card">
         <div class="card-header">
-          <span class="card-title">🗓 Prochaines révisions</span>
+          <span class="card-title">🗓 Révisions prévues</span>
           <span class="card-badge blue">Planning</span>
         </div>
         <div class="card-body">
@@ -281,7 +281,7 @@
             <polyline points="1 4 1 10 7 10"/>
             <path d="M3.51 15a9 9 0 102.13-9.36L1 10"/>
           </svg>
-          Réinitialiser les données
+          Réinitialiser
         </button>
       </div>
 

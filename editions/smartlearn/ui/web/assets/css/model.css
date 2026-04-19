@@ -1080,3 +1080,26 @@
     html, body, button, input, textarea, select, option, * {
       font-family: monospace, arial, roboto, sans-serif !important;
     }
+
+    /* ── Quick suggestion chips (shown after first message) ── */
+    .quick-suggestions {
+      display: none;
+      flex-wrap: wrap;
+      gap: 6px;
+      max-width: 760px;
+      margin: 0 auto 10px;
+      padding: 0 2px;
+    }
+    .quick-suggestions.visible { display: flex; }
+    .qs-chip {
+      padding: 5px 12px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--white-dim);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .qs-chip:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-dim); }

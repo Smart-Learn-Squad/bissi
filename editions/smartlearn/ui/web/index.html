@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>SmartLearn — IA Pédagogique · IFRI 2026</title>
+  <title>SmartLearn — IA Pédagogique</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 44 28'><path d='M22 14C22 14 17 4 10 4C3 4 3 24 10 24C17 24 22 14 22 14C22 14 27 4 34 4C41 4 41 24 34 24C27 24 22 14 22 14Z' stroke='%2360a5fa' stroke-width='2.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
   <link rel="stylesheet" href="assets/vendor/katex/katex.min.css">
   <script defer src="assets/vendor/katex/katex.min.js"></script>
@@ -162,6 +162,13 @@
     </div>
 
     <div class="input-area" id="inputArea">
+      <!-- Quick suggestion chips (shown after welcome disappears) -->
+      <div class="quick-suggestions" id="quickSuggestions">
+        <button class="qs-chip" onclick="useSuggestion('Explique-moi les intégrales comme si j\'avais 15 ans')">📐 Intégrales</button>
+        <button class="qs-chip" onclick="useSuggestion('Quelle est la différence entre une liaison ionique et covalente ?')">⚗️ Liaisons chimiques</button>
+        <button class="qs-chip" onclick="useSuggestion('Explique la récursivité avec un exemple simple')">💻 Récursivité</button>
+        <button class="qs-chip" onclick="useSuggestion('Comment bien mémoriser un cours la veille d\'un exam ?')">📚 Mémorisation</button>
+      </div>
       <div class="input-wrap">
         <div class="input-row">
           <textarea class="textarea" id="messageInput" placeholder="Pose ta question à SmartLearn..." rows="1" onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendMessage();}" oninput="autoResize(this)"></textarea>

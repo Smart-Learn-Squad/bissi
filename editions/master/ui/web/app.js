@@ -338,6 +338,8 @@ function renderAssistantHistory(markdownText) {
 
 function startNewConversation() {
   if (!S.bissi) return;
+  // Immediately reset the visual state before waiting for the bridge
+  resetMessages(true);
   S.pendingNewConversation = true;
   S.bissi.newConversation(() => {});
 }
@@ -572,6 +574,8 @@ function lock() {
   setSendBtnState(true);
   el('#chat-input').disabled = true;
   el('#status-dot').className = 'status-dot amber';
+  const hint = el('#routing-hint');
+  if (hint && !hint.textContent) hint.textContent = 'Génération…';
 }
 
 function unlock() {
@@ -581,6 +585,8 @@ function unlock() {
   inp.disabled = false;
   inp.focus();
   el('#status-dot').className = 'status-dot teal';
+  const hint = el('#routing-hint');
+  if (hint && hint.textContent === 'Génération…') hint.textContent = '';
 }
 
 // ── Theme ──────────────────────────────────────────────────────
@@ -620,8 +626,6 @@ function applyTheme(name, tokens) {
 // ── Model badge & profile ──────────────────────────────────────
 function setModel(model) {
   if (!model || model === 'demo') return;
-  const mb = el('#model-badge');
-  if (mb) mb.textContent = `● ${model}`;
   const cmb = el('#chat-model-badge');
   if (cmb) cmb.textContent = model;
   const sm = el('#status-model');
@@ -635,6 +639,12 @@ function updateProfile(profile) {
   if (mc) mc.textContent = total;
   const sm = el('#status-memory');
   if (sm) sm.textContent = `${total} souvenirs`;
+  // Show document/memory count in the input footer (only when > 0)
+  const rc = el('#rag-count');
+  if (rc) {
+    rc.textContent = total > 0 ? `${total} souvenirs actifs` : '';
+    rc.style.display = total > 0 ? '' : 'none';
+  }
 }
 
 // ── Sessions sidebar ───────────────────────────────────────────
@@ -733,7 +743,10 @@ function loadDir(path) {
       const data = JSON.parse(raw);
       if (!data.success) return;
       S.curPath = target;
-      el('#explorer-path').textContent = target;
+      // Show ~-relative path when inside home directory
+      const homeDir = '/home/' + (location.hostname || 'user');
+      const displayPath = target.replace(/^\/home\/[^/]+/, '~');
+      el('#explorer-path').textContent = displayPath;
       buildTree(data.items, target);
     } catch { /* ignore */ }
   });

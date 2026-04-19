@@ -146,7 +146,8 @@
       return;
     }
     if (!fichierImporte && texte.length < 80) {
-      afficherErreur("Le texte est trop court. Colle au moins quelques paragraphes.");
+      const manque = 80 - texte.length;
+      afficherErreur(`Texte trop court (${texte.length}/80 caractères). Ajoute encore ${manque} caractère${manque > 1 ? 's' : ''} ou importe un fichier.`);
       return;
     }
     setEtat("loading");

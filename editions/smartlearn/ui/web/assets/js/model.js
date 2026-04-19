@@ -304,6 +304,8 @@
   function hideWelcome() {
     const w = $("#welcome");
     if (w) w.style.display = "none";
+    const qs = $("#quickSuggestions");
+    if (qs) qs.classList.add("visible");
   }
 
   function addUserMessage(text) {
@@ -763,11 +765,24 @@
     S.activeAiNode = null;
     S.activeAiRaw = "";
     unlockInput();
+    // Hide quick suggestions, restore welcome
+    const qs = $("#quickSuggestions");
+    if (qs) qs.classList.remove("visible");
   }
 
   function repondreCompris(compris) {
     const bar = $("#comprehensionBar");
     bar?.classList.remove("show");
+    // Persist comprehension signal for home.js dashboard
+    try {
+      const titre = sessionStorage.getItem("sl_titre_cours") || "Chapitre";
+      const key = "sl_compris_" + titre.toLowerCase().replace(/\s+/g, "_");
+      localStorage.setItem(key, JSON.stringify({
+        compris,
+        titre,
+        date: new Date().toISOString(),
+      }));
+    } catch (_) {}
     useSuggestion(
       compris
         ? "Super. Donne-moi maintenant 3 exercices progressifs pour m'entrainer."

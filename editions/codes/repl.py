@@ -11,8 +11,11 @@ Layout:
   └─────────────────────────────────────┘
 """
 
+import difflib
 import os
 import re
+import signal
+import sys
 from pathlib import Path
 
 from textual.app import App, ComposeResult
@@ -29,6 +32,33 @@ from rich import box
 
 from agent import BissiAgent
 from ui.renderers.rich_text import render as _render_rich
+
+
+# ─── Persistence ──────────────────────────────────────────────────────────────
+_HISTORY_FILE = Path.home() / ".bissi" / "codes_history"
+
+
+def _load_history() -> list[str]:
+    """Load persisted command history (newest first)."""
+    try:
+        _HISTORY_FILE.parent.mkdir(parents=True, exist_ok=True)
+        if _HISTORY_FILE.exists():
+            lines = _HISTORY_FILE.read_text(encoding="utf-8").splitlines()
+            return [l for l in reversed(lines) if l.strip()][:500]
+    except Exception:
+        pass
+    return []
+
+
+def _save_history(history: list[str]) -> None:
+    """Persist command history to disk (oldest first)."""
+    try:
+        _HISTORY_FILE.parent.mkdir(parents=True, exist_ok=True)
+        # Keep at most 500 entries, oldest first on disk
+        entries = list(reversed(history[:500]))
+        _HISTORY_FILE.write_text("\n".join(entries) + "\n", encoding="utf-8")
+    except Exception:
+        pass
 
 
 # ─── Palette ──────────────────────────────────────────────────────────────────
@@ -148,17 +178,21 @@ class BissiApp(App):
         Binding("ctrl+l", "clear_log",  "Clear", show=False),
     ]
 
-    def __init__(self, agent: BissiAgent):
+    def __init__(self, agent: BissiAgent, no_splash: bool = False):
         super().__init__()
         self.agent = agent
         self._busy = False
-        self._history: list[str] = []
+        self._history: list[str] = _load_history()
         self._hist_idx = -1
+        self._no_splash = no_splash
+        self._last_response = ""
 
     COMMANDS = [
         ("/new",     "Démarrer une nouvelle conversation"),
+        ("/cd",      "Changer le répertoire courant"),
         ("/model",   "Afficher les infos du modèle actif"),
         ("/history", "Afficher l'historique récent"),
+        ("/copy",    "Copier la dernière réponse"),
         ("/help",    "Afficher l'aide"),
         ("/exit",    "Quitter Bissi Codes"),
     ]
@@ -179,10 +213,22 @@ class BissiApp(App):
     # ── Mount ─────────────────────────────────────────────────────────────────
     def on_mount(self) -> None:
         log = self.query_one(RichLog)
-        self._print_splash(log)
+        if not self._no_splash:
+            self._print_splash(log)
         log.scroll_home(animate=False)
         self.query_one("#user-input", Input).focus()
         self._suggest_idx = -1
+        # Install signal handlers for graceful shutdown
+        for sig in (signal.SIGINT, signal.SIGTERM):
+            try:
+                signal.signal(sig, self._handle_signal)
+            except (OSError, ValueError):
+                pass
+
+    def _handle_signal(self, signum, frame) -> None:
+        """Persist state then exit cleanly on SIGINT/SIGTERM."""
+        _save_history(self._history)
+        self.exit()
 
     # ── Suggestion box ────────────────────────────────────────────────────────
     @on(Input.Changed, "#user-input")
@@ -238,6 +284,30 @@ class BissiApp(App):
 
     def on_key(self, event) -> None:
         box = self.query_one("#suggest-box", Vertical)
+        inp = self.query_one("#user-input", Input)
+
+        # ── History navigation (when suggest-box is closed and not busy) ──────
+        if "active" not in box.classes and not self._busy:
+            if event.key == "up":
+                event.prevent_default()
+                limit = len(self._history)
+                if limit == 0:
+                    return
+                self._hist_idx = min(self._hist_idx + 1, limit - 1)
+                inp.value = self._history[self._hist_idx]
+                inp.cursor_position = len(inp.value)
+                return
+            elif event.key == "down":
+                event.prevent_default()
+                if self._hist_idx <= 0:
+                    self._hist_idx = -1
+                    inp.value = ""
+                    return
+                self._hist_idx -= 1
+                inp.value = self._history[self._hist_idx]
+                inp.cursor_position = len(inp.value)
+                return
+
         if "active" not in box.classes:
             return
         items = self._suggest_items()
@@ -260,8 +330,15 @@ class BissiApp(App):
             box.remove_children()
             self._suggest_idx = -1
 
+    def _sep_width(self) -> int:
+        """Dynamic separator width from terminal."""
+        try:
+            return max(40, self.size.width - 4)
+        except Exception:
+            return 64
+
     def _print_splash(self, log: RichLog) -> None:
-        W = 76  # total panel width (chars)
+        W = min(120, max(76, self.size.width - 4))
 
         # ── Panel 1: Logo ─────────────────────────────────────────────────────
         log.write(Text("┌" + "─" * (W - 2) + "┐", style=f"dim {C_BLUE}"))
@@ -380,8 +457,9 @@ class BissiApp(App):
         if not text:
             return
 
-        self._history.append(text)
+        self._history.insert(0, text)
         self._hist_idx = -1
+        _save_history(self._history)
 
         log = self.query_one(RichLog)
 
@@ -419,7 +497,18 @@ class BissiApp(App):
                 )
 
             def on_tool_done(name: str, result):
-                pass
+                # Show a brief excerpt of the tool result
+                snippet = str(result or "").strip().replace("\n", " ")
+                if len(snippet) > 100:
+                    snippet = snippet[:100] + "…"
+                status = "✓" if snippet else "✓ ok"
+                icon_style = f"dim {C_GREEN}"
+                self.call_from_thread(
+                    self.query_one(RichLog).write,
+                    Text("  │  ", style=f"dim {C_BLUE}") +
+                    Text(f"{status} {name}", style=icon_style) +
+                    (Text(f" — {snippet}", style=C_DIM) if snippet else Text(""))
+                )
 
             def on_thinking(msg: str):
                 pass
@@ -443,6 +532,7 @@ class BissiApp(App):
     # ── Response rendering ────────────────────────────────────────────────────
     def _write_response(self, response: str) -> None:
         log = self.query_one(RichLog)
+        self._last_response = response.strip()
         log.write(Text(""))
         log.write(
             Text("● ", style=f"bold {C_BLUE}") +
@@ -470,7 +560,7 @@ class BissiApp(App):
                 log.write(item)
 
         log.write(Text(""))
-        log.write(Text("─" * 64, style=C_DIM))
+        log.write(Text("─" * self._sep_width(), style=C_DIM))
         log.write(Text(""))
 
     def _write_error(self, error: str) -> None:
@@ -485,13 +575,15 @@ class BissiApp(App):
             Text(error, style=C_RED)
         )
         log.write(Text(""))
-        log.write(Text("─" * 64, style=C_DIM))
+        log.write(Text("─" * self._sep_width(), style=C_DIM))
         log.write(Text(""))
 
 
     # ── Commands ──────────────────────────────────────────────────────────────
     def _handle_command(self, cmd: str, log: RichLog) -> None:
-        cmd_lower = cmd.strip().lower()
+        parts = cmd.strip().split(None, 1)
+        cmd_lower = parts[0].lower()
+        cmd_arg = parts[1] if len(parts) > 1 else ""
 
         log.write(Text(""))
         log.write(
@@ -504,6 +596,7 @@ class BissiApp(App):
                 Text("  └ ", style=C_DIM) +
                 Text("Catch you later!", style=C_DIM)
             )
+            _save_history(self._history)
             self.exit()
             return
 
@@ -513,6 +606,25 @@ class BissiApp(App):
                 Text("  └ ", style=C_DIM) +
                 Text("Nouvelle conversation démarrée.", style=f"dim {C_GREEN}")
             )
+
+        elif cmd_lower == "/cd":
+            target = cmd_arg.strip() or str(Path.home())
+            target = os.path.expanduser(target)
+            target = os.path.abspath(target)
+            if not os.path.isdir(target):
+                log.write(
+                    Text("  └ ", style=C_DIM) +
+                    Text(f"Répertoire introuvable: {target}", style=C_RED)
+                )
+            else:
+                os.chdir(target)
+                label = self.query_one("#prompt-label", Static)
+                label.update(self._prompt_text())
+                disp = target.replace(str(Path.home()), "~")
+                log.write(
+                    Text("  └ ", style=C_DIM) +
+                    Text(f"→ {disp}", style=f"dim {C_GREEN}")
+                )
 
         elif cmd_lower == "/model":
             log.write(
@@ -529,13 +641,13 @@ class BissiApp(App):
                     Text("Aucun historique pour cette conversation.", style=C_DIM)
                 )
             else:
-                items = history[-10:]
+                items = history[-20:]
                 for j, item in enumerate(items):
                     is_last = j == len(items) - 1
                     branch = "  └ " if is_last else "  ├ "
                     role = str(item.get("role", "?")).capitalize()
-                    content = str(item.get("content", "")).replace("\n", " ")[:120]
-                    if len(content) == 120:
+                    content = str(item.get("content", "")).replace("\n", " ")[:160]
+                    if len(str(item.get("content", ""))) > 160:
                         content += "…"
                     log.write(
                         Text(branch, style=C_DIM) +
@@ -543,11 +655,58 @@ class BissiApp(App):
                         Text(content, style=C_DIM)
                     )
 
+        elif cmd_lower == "/copy":
+            if self._last_response:
+                try:
+                    import subprocess
+                    proc = subprocess.run(
+                        ["xclip", "-selection", "clipboard"],
+                        input=self._last_response.encode(),
+                        capture_output=True,
+                    )
+                    if proc.returncode != 0:
+                        raise OSError("xclip failed")
+                    log.write(
+                        Text("  └ ", style=C_DIM) +
+                        Text("Copié dans le presse-papier.", style=f"dim {C_GREEN}")
+                    )
+                except Exception:
+                    try:
+                        import subprocess
+                        subprocess.run(
+                            ["xsel", "--clipboard", "--input"],
+                            input=self._last_response.encode(),
+                            capture_output=True,
+                            check=True,
+                        )
+                        log.write(
+                            Text("  └ ", style=C_DIM) +
+                            Text("Copié dans le presse-papier.", style=f"dim {C_GREEN}")
+                        )
+                    except Exception:
+                        log.write(
+                            Text("  ├ ", style=C_DIM) +
+                            Text("Presse-papier non disponible.", style=C_YELLOW)
+                        )
+                        # Display the response so the user can copy manually
+                        preview = self._last_response[:400]
+                        for line in preview.splitlines()[:10]:
+                            log.write(Text(f"  │  {line}", style=C_DIM))
+                        if len(self._last_response) > 400:
+                            log.write(Text("  └  …", style=C_DIM))
+            else:
+                log.write(
+                    Text("  └ ", style=C_DIM) +
+                    Text("Aucune réponse à copier.", style=C_DIM)
+                )
+
         elif cmd_lower in ("/help", "/?", "/h"):
             tips = [
                 ("/new",     "Démarrer une nouvelle conversation"),
+                ("/cd",      "Changer le répertoire courant"),
                 ("/model",   "Afficher les infos du modèle actif"),
-                ("/history", "Afficher l'historique récent (10 derniers)"),
+                ("/history", "Afficher l'historique récent (20 derniers)"),
+                ("/copy",    "Copier la dernière réponse"),
                 ("/help",    "Afficher cette aide"),
                 ("/exit",    "Quitter Bissi Codes"),
             ]
@@ -561,13 +720,25 @@ class BissiApp(App):
                 )
 
         else:
-            log.write(
-                Text("  └ ", style=C_DIM) +
-                Text(f"Commande inconnue: {cmd}  (tape /help)", style=C_YELLOW)
-            )
+            # Suggest closest command on typo
+            known = [c for c, _ in self.COMMANDS]
+            matches = difflib.get_close_matches(cmd_lower, known, n=1, cutoff=0.6)
+            if matches:
+                log.write(
+                    Text("  └ ", style=C_DIM) +
+                    Text(f"Commande inconnue: {parts[0]}  ", style=C_YELLOW) +
+                    Text(f"— vouliez-vous dire ", style=C_DIM) +
+                    Text(matches[0], style="cyan") +
+                    Text(" ?", style=C_DIM)
+                )
+            else:
+                log.write(
+                    Text("  └ ", style=C_DIM) +
+                    Text(f"Commande inconnue: {parts[0]}  (tape /help)", style=C_YELLOW)
+                )
 
         log.write(Text(""))
-        log.write(Text("─" * 64, style=C_DIM))
+        log.write(Text("─" * self._sep_width(), style=C_DIM))
         log.write(Text(""))
 
     # ── Helpers ───────────────────────────────────────────────────────────────
@@ -584,17 +755,18 @@ class BissiApp(App):
             inp.focus()
 
     def action_clear_log(self) -> None:
+        """Ctrl+L — clear the log without re-printing the splash screen."""
         self.query_one(RichLog).clear()
-        self._print_splash(self.query_one(RichLog))
 
 
 # ─── Public interface (unchanged from original) ────────────────────────────
 class BissiREPL:
     """Drop-in replacement — same interface as before."""
 
-    def __init__(self, agent: BissiAgent):
+    def __init__(self, agent: BissiAgent, no_splash: bool = False):
         self.agent = agent
+        self.no_splash = no_splash
 
     def run(self) -> None:
-        app = BissiApp(self.agent)
+        app = BissiApp(self.agent, no_splash=self.no_splash)
         app.run()

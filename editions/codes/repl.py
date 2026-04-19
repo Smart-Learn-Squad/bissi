@@ -245,6 +245,8 @@ class BissiApp(App):
             try:
                 signal.signal(sig, self._handle_signal)
             except (OSError, ValueError):
+                # Some environments (non-main thread / unsupported platform) cannot install
+                # process signal handlers; ignore and continue startup.
                 pass
 
     def _handle_signal(self, signum, frame) -> None:

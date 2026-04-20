@@ -1,6 +1,6 @@
-""" Principal init (Imports) for Bissi"""
-import core
-import configs
-import functions
+"""Top-level package marker for BISSI.
+
+Keep this file import-safe during tests and local script execution.
+"""
 
 __all__ = ['core', 'configs', 'functions']

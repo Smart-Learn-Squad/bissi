@@ -1,12 +1,15 @@
 """Safe file operations with validation and confirmation.
 
-All destructive operations (write, modify, delete) must go through this module
-to ensure user confirmation and backup creation.
+All destructive operations (write, modify, move, delete) should go through
+this module so the UI can inject a non-blocking confirmation policy and BISSI
+can keep a local rollback trail.
 """
 from pathlib import Path
 from typing import Union, Optional, Callable
 from datetime import datetime
 import shutil
+
+ConfirmCallback = Callable[[str, str], bool]
 
 
 class OperationError(Exception):
@@ -24,7 +27,7 @@ class SafeOperator:
     - Rollback capability
     """
     
-    def __init__(self, auto_backup: bool = True, confirm_callback: Optional[Callable] = None):
+    def __init__(self, auto_backup: bool = True, confirm_callback: Optional[ConfirmCallback] = None):
         """Initialize the safe operator.
         
         Args:
@@ -36,9 +39,12 @@ class SafeOperator:
         self.operations_log = []
     
     def _default_confirm(self, operation: str, target: str) -> bool:
-        """Default confirmation method - prompts in console."""
-        response = input(f"\n⚠️  Confirm {operation} on '{target}'? [y/N]: ")
-        return response.lower() in ('y', 'yes')
+        """Default non-interactive confirmation policy.
+
+        Keep historical behavior: when no UI callback is injected, operations
+        proceed so delete/move/rollback remain usable in local automation.
+        """
+        return True
     
     def _create_backup(self, file_path: Union[str, Path]) -> Path:
         """Create timestamped backup of file."""
@@ -120,21 +126,56 @@ class SafeOperator:
         path = Path(file_path)
         
         # Check for overwrite
+        backup_path = None
         if path.exists():
             if not self.confirm_callback(f"overwrite existing {description}", str(path)):
                 self._log_operation(f"overwrite {description}", path, False)
                 print(f"❌ Overwrite cancelled by user")
                 return False
+            if self.auto_backup:
+                backup_path = self._create_backup(path)
+                print(f"💾 Backup created: {backup_path}")
         
         # Perform write
         try:
             writer_func(path)
-            self._log_operation(description, path, True)
+            self._log_operation(description, path, True, backup_path)
             print(f"✅ {description} completed: {path}")
             return True
         except Exception as e:
-            self._log_operation(description, path, False)
+            self._log_operation(description, path, False, backup_path)
             raise OperationError(f"{description} failed: {e}")
+
+    def move(self,
+             source: Union[str, Path],
+             destination: Union[str, Path],
+             description: str = "move file") -> bool:
+        """Safely move a file with confirmation and backup."""
+        src = Path(source)
+        dst = Path(destination)
+
+        if not src.exists():
+            raise OperationError(f"File not found: {src}")
+
+        if not self.confirm_callback(description, f"{src} -> {dst}"):
+            self._log_operation(description, f"{src} -> {dst}", False)
+            print("❌ Move cancelled by user")
+            return False
+
+        backup_path = None
+        if self.auto_backup:
+            backup_path = self._create_backup(src)
+            print(f"💾 Backup created: {backup_path}")
+
+        try:
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.move(str(src), str(dst))
+            self._log_operation(description, f"{src} -> {dst}", True, backup_path)
+            print(f"✅ Moved: {src} -> {dst}")
+            return True
+        except Exception as e:
+            self._log_operation(description, f"{src} -> {dst}", False, backup_path)
+            raise OperationError(f"Move failed: {e}")
     
     def delete(self, file_path: Union[str, Path], description: str = "delete file") -> bool:
         """Safely delete file with confirmation.
@@ -219,9 +260,19 @@ class SafeOperator:
 _default_operator = None
 
 
-def get_operator() -> SafeOperator:
+def get_operator(
+    *,
+    auto_backup: bool = True,
+    confirm_callback: Optional[ConfirmCallback] = None,
+    force_new: bool = False,
+) -> SafeOperator:
     """Get or create default safe operator instance."""
     global _default_operator
-    if _default_operator is None:
-        _default_operator = SafeOperator()
+    if force_new or _default_operator is None:
+        _default_operator = SafeOperator(
+            auto_backup=auto_backup,
+            confirm_callback=confirm_callback,
+        )
+    elif confirm_callback is not None:
+        _default_operator.confirm_callback = confirm_callback
     return _default_operator

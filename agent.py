@@ -45,6 +45,13 @@ def tool_result(func: Callable) -> Callable:
     return wrapper
 
 
+def _raise_on_failure(result: Dict[str, Any]) -> Dict[str, Any]:
+    """Raise on tool helper failure so SafeOperator can rollback cleanly."""
+    if not result.get('success'):
+        raise RuntimeError(result.get('error', 'Operation failed'))
+    return result
+
+
 class BissiAgent:
     """Central orchestrator connecting all BISSI components with native function calling."""
 
@@ -77,13 +84,14 @@ FORBIDDEN:
                  model: str = 'gemma4:e2b',
                  system_prompt: Optional[str] = None,
                  conversation_store: Optional[ConversationStore] = None,
-                 vector_store: Optional[VectorStore] = None):
+                 vector_store: Optional[VectorStore] = None,
+                 confirm_callback: Optional[Callable[[str, str], bool]] = None):
         """Initialize BISSI agent."""
         self.model = model
         self.system_prompt = system_prompt or self.DEFAULT_SYSTEM_PROMPT
         self.conversation_store = conversation_store or ConversationStore()
         self.vector_store = vector_store or VectorStore()
-        self.safe_operator = get_operator()
+        self.safe_operator = get_operator(confirm_callback=confirm_callback)
 
         # Track current conversation
         self.current_conversation_id: Optional[int] = None
@@ -385,15 +393,15 @@ FORBIDDEN:
         if func_name in self.available_functions:
             result = self.available_functions[func_name](**args)
         else:
-            result = {'error': f"Function {func_name} not found"}
+            result = {
+                'success': False,
+                'error': f"Function {func_name} not found",
+                'task_done': False,
+            }
 
-        # Normalize result to string
-        if isinstance(result, dict) and 'output' in result:
-            result_text = result['output']
-        elif isinstance(result, dict) and 'error' in result:
-            result_text = f"Error: {result['error']}"
-        elif isinstance(result, dict):
-            result_text = json.dumps(result)
+        # Keep a structured payload for the model instead of dropping metadata.
+        if isinstance(result, dict):
+            result_text = json.dumps(result, ensure_ascii=False)
         else:
             result_text = str(result)
 
@@ -777,6 +785,26 @@ FORBIDDEN:
 
     # --- Tool implementation wrappers ---
 
+    @staticmethod
+    def _cancelled_result(operation: str, file_path: Union[str, Path]) -> Dict[str, Any]:
+        return {
+            'success': False,
+            'error': f"{operation} cancelled by confirmation policy",
+            'path': str(Path(file_path).expanduser().resolve()),
+            'task_done': False,
+        }
+
+    @staticmethod
+    def _file_result(file_path: Union[str, Path], message: str) -> Dict[str, Any]:
+        path = Path(file_path).expanduser().resolve()
+        return {
+            'success': True,
+            'message': message,
+            'path': str(path),
+            'size': path.stat().st_size if path.exists() and path.is_file() else None,
+            'task_done': True,
+        }
+
     @tool_result
     def _tool_read_word(self, file_path: str) -> Dict[str, Any]:
         agent = DocxAgent(file_path)
@@ -784,13 +812,24 @@ FORBIDDEN:
             'success': True,
             'content': agent.read_paragraphs()[:500],
             'tables_count': len(agent.read_tables()),
+            'path': str(Path(file_path).expanduser().resolve()),
+            'task_done': True,
         }
 
     @tool_result
     def _tool_write_word(self, file_path: str, content: str, append: bool = False) -> Dict[str, Any]:
         from functions.office import word
-        word.write_document(file_path, content, append)
-        return {'success': True, 'message': f'Document saved to {file_path}', 'task_done': True}
+        target = Path(file_path).expanduser()
+        description = "modify word document" if append and target.exists() else "create word document"
+        operation = self.safe_operator.modify_document if append and target.exists() else self.safe_operator.write_new
+        ok = operation(
+            target,
+            lambda path: word.write_document(str(path), content, append),
+            description=description,
+        )
+        if not ok:
+            return self._cancelled_result(description, target)
+        return self._file_result(target, f'Document saved to {target}')
 
     @tool_result
     def _tool_read_excel(self, file_path: str, max_rows: int = 100) -> Dict[str, Any]:
@@ -812,29 +851,52 @@ FORBIDDEN:
     @tool_result
     def _tool_write_excel(self, file_path: str, data: List[Dict[str, Any]], sheet_name: str = "Sheet1") -> Dict[str, Any]:
         df = pd.DataFrame(data)
-        excel.write_excel(file_path, df, sheet_name=sheet_name)
-        return {
-            'success': True,
-            'message': f'Excel file saved to {file_path}',
-            'task_done': True,
-        }
+        target = Path(file_path).expanduser()
+        ok = self.safe_operator.write_new(
+            target,
+            lambda path: excel.write_excel(str(path), df, sheet_name=sheet_name),
+            description="create excel file",
+        )
+        if not ok:
+            return self._cancelled_result("create excel file", target)
+        return self._file_result(target, f'Excel file saved to {target}')
 
     @tool_result
     def _tool_read_pptx(self, file_path: str) -> Dict[str, Any]:
         slides = powerpoint.read_presentation(file_path)
-        return {'success': True, 'slides': slides}
+        return {
+            'success': True,
+            'slides': slides,
+            'path': str(Path(file_path).expanduser().resolve()),
+            'task_done': True,
+        }
 
     @tool_result
     def _tool_write_pptx(self, file_path: str, title: str, slides: List[Dict[str, str]]) -> Dict[str, Any]:
-        agent = powerpoint.create_presentation(title)
-        for slide_data in slides:
-            agent.add_slide(slide_data.get('title', ''), slide_data.get('content', ''))
-        agent.save(file_path)
-        return {'success': True, 'message': f'Presentation saved to {file_path}', 'task_done': True}
+        target = Path(file_path).expanduser()
+
+        def _write(path: Path) -> None:
+            presentation = powerpoint.create_presentation(title)
+            for slide_data in slides:
+                presentation.add_slide(slide_data.get('title', ''), slide_data.get('content', ''))
+            presentation.save(str(path))
+
+        ok = self.safe_operator.write_new(
+            target,
+            _write,
+            description="create powerpoint presentation",
+        )
+        if not ok:
+            return self._cancelled_result("create powerpoint presentation", target)
+        return self._file_result(target, f'Presentation saved to {target}')
 
     @tool_result
     def _tool_get_clipboard(self) -> Dict[str, Any]:
-        return {'success': True, 'content': clipboard.get_clipboard()}
+        return {
+            'success': True,
+            'content': clipboard.get_clipboard(),
+            'task_done': True,
+        }
 
     @tool_result
     def _tool_set_clipboard(self, text: str) -> Dict[str, Any]:
@@ -843,15 +905,24 @@ FORBIDDEN:
 
     @tool_result
     def _tool_delete_file(self, file_path: str) -> Dict[str, Any]:
-        if os.path.exists(file_path):
-            os.remove(file_path)
-            return {'success': True, 'message': f'Deleted {file_path}', 'task_done': True}
-        return {'success': False, 'error': 'File not found', 'task_done': False}
+        ok = self.safe_operator.delete(file_path)
+        if not ok:
+            return self._cancelled_result("delete file", file_path)
+        resolved = str(Path(file_path).expanduser().resolve())
+        return {
+            'success': True,
+            'message': f'Deleted {resolved}',
+            'path': resolved,
+            'size': None,
+            'task_done': True,
+        }
 
     @tool_result
     def _tool_move_file(self, source: str, destination: str) -> Dict[str, Any]:
-        shutil.move(source, destination)
-        return {'success': True, 'message': f'Moved {source} to {destination}', 'task_done': True}
+        ok = self.safe_operator.move(source, destination)
+        if not ok:
+            return self._cancelled_result("move file", source)
+        return self._file_result(destination, f'Moved {source} to {destination}')
 
     @tool_result
     def _tool_read_pdf(self, file_path: str, max_chars: int = 2000) -> Dict[str, Any]:
@@ -889,36 +960,92 @@ FORBIDDEN:
         target_path = file_path or path
         if not target_path:
             return {'success': False, 'error': "Missing required argument: 'file_path'"}
-        return writer.write_text_file(target_path, content, append)
+        target = Path(target_path).expanduser()
+        description = "modify text file" if append and target.exists() else "create text file"
+        operation = self.safe_operator.modify_document if append and target.exists() else self.safe_operator.write_new
+        ok = operation(
+            target,
+            lambda resolved: _raise_on_failure(writer.write_text_file(resolved, content, append)),
+            description=description,
+        )
+        if not ok:
+            return self._cancelled_result(description, target)
+        return self._file_result(target, f'Text file saved to {target}')
 
     @tool_result
     def _tool_edit_text_file(self, file_path: str, old_text: str, new_text: str) -> Dict[str, Any]:
-        return writer.replace_in_file(file_path, old_text, new_text)
+        target = Path(file_path).expanduser()
+        ok = self.safe_operator.modify_document(
+            target,
+            lambda resolved: _raise_on_failure(writer.replace_in_file(resolved, old_text, new_text)),
+            description="modify text file",
+        )
+        if not ok:
+            return self._cancelled_result("modify text file", target)
+        return self._file_result(target, f'Text updated in {target}')
 
     @tool_result
     def _tool_search_files(self, query: str, root_dir: str = '.') -> Dict[str, Any]:
         results = explorer.search_files(root_dir, query)
-        return {'success': True, 'results': results[:10]}
+        trimmed = results[:10]
+        return {
+            'success': True,
+            'results': trimmed,
+            'message': f'{len(trimmed)} file(s) found',
+            'task_done': True,
+        }
 
     @tool_result
     def _tool_list_directory(self, path: str) -> Dict[str, Any]:
-        return {'success': True, 'items': explorer.list_directory(path)}
+        items = explorer.list_directory(path)
+        return {
+            'success': True,
+            'items': items,
+            'path': str(Path(path).expanduser().resolve()),
+            'message': f'{len(items)} item(s)',
+            'task_done': True,
+        }
 
     @tool_result
     def _tool_file_info(self, file_path: str) -> Dict[str, Any]:
-        return {'success': True, 'info': explorer.get_file_info(file_path)}
+        info = explorer.get_file_info(file_path)
+        return {
+            'success': True,
+            'info': info,
+            'path': info.get('path'),
+            'size': info.get('size'),
+            'task_done': True,
+        }
 
     @tool_result
     def _tool_search_by_content(self, directory: str, query: str, extensions: Optional[List[str]] = None) -> Dict[str, Any]:
-        return {'success': True, 'results': explorer.search_by_content(directory, query, extensions)}
+        results = explorer.search_by_content(directory, query, extensions)
+        return {
+            'success': True,
+            'results': results,
+            'message': f'{len(results)} file(s) matched content query',
+            'task_done': True,
+        }
 
     @tool_result
     def _tool_get_directory_tree(self, path: str, max_depth: int = 3) -> Dict[str, Any]:
-        return {'success': True, 'tree': explorer.get_directory_tree(path, max_depth)}
+        return {
+            'success': True,
+            'tree': explorer.get_directory_tree(path, max_depth),
+            'path': str(Path(path).expanduser().resolve()),
+            'task_done': True,
+        }
 
     @tool_result
     def _tool_get_recent_files(self, directory: str, limit: int = 10) -> Dict[str, Any]:
-        return {'success': True, 'files': explorer.get_recent_files(directory, limit)}
+        files = explorer.get_recent_files(directory, limit=limit)
+        return {
+            'success': True,
+            'files': files,
+            'path': str(Path(directory).expanduser().resolve()),
+            'message': f'{len(files)} recent file(s)',
+            'task_done': True,
+        }
 
     @tool_result
     def _tool_python_runner(self, code: str) -> Dict[str, Any]:
@@ -927,10 +1054,10 @@ FORBIDDEN:
     @tool_result
     def _tool_safe_operator(self, operation: str) -> Dict[str, Any]:
         if operation == 'get_python_version':
-            return {'success': True, 'output': sys.version}
+            return {'success': True, 'output': sys.version, 'task_done': True}
         elif operation == 'get_current_directory':
-            return {'success': True, 'output': os.getcwd()}
-        return {'success': False, 'error': f'Unknown operation: {operation}'}
+            return {'success': True, 'output': os.getcwd(), 'task_done': True}
+        return {'success': False, 'error': f'Unknown operation: {operation}', 'task_done': False}
 
     # --- RAG helpers ---
 

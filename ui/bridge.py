@@ -106,6 +106,37 @@ class BissiBridge(QObject):
         except Exception as e:
             return json.dumps({"error": str(e)})
 
+    @pyqtSlot(int, str, result=str)
+    def renameConversation(self, conv_id: int, title: str) -> str:
+        """Rename a conversation."""
+        normalized = title.strip()
+        if not normalized:
+            return json.dumps({"success": False, "error": "Titre vide"})
+        ok = self._agent.conversation_store.update_conversation_title(conv_id, normalized)
+        if ok:
+            self._emit_conversations()
+        return json.dumps({"success": ok})
+
+    @pyqtSlot(int, result=str)
+    def archiveConversation(self, conv_id: int) -> str:
+        """Archive a conversation."""
+        ok = self._agent.conversation_store.archive_conversation(conv_id)
+        if ok:
+            if self._agent.current_conversation_id == conv_id:
+                self._agent.current_conversation_id = None
+            self._emit_conversations()
+        return json.dumps({"success": ok})
+
+    @pyqtSlot(int, result=str)
+    def deleteConversation(self, conv_id: int) -> str:
+        """Delete a conversation."""
+        ok = self._agent.conversation_store.delete_conversation(conv_id)
+        if ok:
+            if self._agent.current_conversation_id == conv_id:
+                self._agent.current_conversation_id = None
+            self._emit_conversations()
+        return json.dumps({"success": ok})
+
     @pyqtSlot(result=str)
     def getInitialData(self) -> str:
         """Called once by JS on load — returns full app state as JSON."""

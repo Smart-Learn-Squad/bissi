@@ -7,6 +7,7 @@ Drop-in replacement for the old parser.parse() return value:
 from __future__ import annotations
 
 import html as _html
+import re
 
 from ui.parser import (
     ParseResult, Block,
@@ -84,40 +85,40 @@ def _render_code_block(node: CodeBlockNode) -> str:
             f'$$\n{safe}\n$$</div>'
         )
 
-    lines = node.code.split("\n")
-    while lines and not lines[0].strip():
-        lines.pop(0)
-    while lines and not lines[-1].strip():
-        lines.pop()
-
-    html_lines = []
-    for line in lines:
-        spaces = len(line) - len(line.lstrip(" "))
-        html_lines.append("&nbsp;" * spaces + _html.escape(line.lstrip(" "), quote=False))
-    body_html = "<br>".join(html_lines)
+    code_body = node.code.strip("\n")
+    # Some models occasionally collapse sample code into one very long line.
+    # Recover basic readability for common tutorial patterns.
+    if "\n" not in code_body:
+        if re.search(r"#\s*\d+\.", code_body):
+            code_body = re.sub(r"\s*#\s*(\d+\.)", r"\n# \1", code_body)
+        if ";" in code_body:
+            code_body = re.sub(r";\s+", ";\n", code_body)
+    safe_code = _html.escape(code_body, quote=False)
 
     ui    = _C["ui"]
     badge = (
-        f'<span style="float:right;font-size:10px;color:#aaa;'
-        f'font-family:{ui};">{_html.escape(node.raw_lang or node.lang)}</span>'
+        f'<div style="padding:6px 10px;border-bottom:1px solid {_C["code_border"]};'
+        f'font-family:{ui};font-size:10px;letter-spacing:.12em;text-transform:uppercase;'
+        f'color:{_C["inline_text"]};background:{_C["inline_bg"]};">'
+        f'{_html.escape(node.raw_lang or node.lang)}</div>'
         if (node.raw_lang or node.lang) else ""
     )
     code_tag = (
-        f'<pre style="margin:0;white-space:pre-wrap;">'
-        f'<code class="language-{_html.escape(node.lang)}">{body_html}</code></pre>'
+        f'<pre style="margin:0;padding:12px 14px;overflow:auto;white-space:pre-wrap;'
+        f'word-break:normal;'
+        f'font-family:{_C["mono"]};font-size:12px;line-height:1.6;'
+        f'color:{_C["code_text"]};background:{_C["code_bg"]};">'
+        f'<code class="language-{_html.escape(node.lang)}">{safe_code}</code></pre>'
         if node.lang else
-        f'<pre style="margin:0;white-space:pre-wrap;"><code>{body_html}</code></pre>'
+        f'<pre style="margin:0;padding:12px 14px;overflow:auto;white-space:pre-wrap;'
+        f'word-break:normal;'
+        f'font-family:{_C["mono"]};font-size:12px;line-height:1.6;'
+        f'color:{_C["code_text"]};background:{_C["code_bg"]};"><code>{safe_code}</code></pre>'
     )
     return (
-        f'<table width="100%" cellpadding="0" cellspacing="0"'
-        f' style="margin:6px 0;">'
-        f'<tr><td style="'
-        f'background:{_C["code_bg"]};'
-        f'border:1px solid {_C["code_border"]};'
-        f'border-radius:6px;padding:10px 12px;'
-        f'font-family:{_C["mono"]};font-size:12px;'
-        f'color:{_C["code_text"]};line-height:1.6;">'
-        f'{badge}{code_tag}</td></tr></table>'
+        f'<div class="bissi-code-wrap" style="margin:8px 0;border:1px solid {_C["code_border"]};'
+        f'border-radius:10px;overflow:hidden;background:{_C["code_bg"]};">'
+        f'{badge}{code_tag}</div>'
     )
 
 

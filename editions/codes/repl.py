@@ -15,6 +15,7 @@ import difflib
 import os
 import re
 import signal
+import sys
 from pathlib import Path
 
 from textual.app import App, ComposeResult
@@ -28,6 +29,7 @@ from rich.markdown import Markdown
 from rich.console import Group
 from rich.table import Table
 from rich import box
+from rich.cells import cell_len
 
 from agent import BissiAgent
 from ui.renderers.rich_text import render as _render_rich
@@ -81,6 +83,44 @@ BISSI_LOGO = (
     "╚═════╝ ╚═╝╚══════╝╚══════╝╚═╝"
 )
 
+ASCII_LOGO = (
+    "BBBB  III  SSSS  SSSS  III\n"
+    "B   B  I  S     S       I \n"
+    "BBBB   I   SSS   SSS    I \n"
+    "B   B  I      S     S   I \n"
+    "BBBB  III SSSS  SSSS  III"
+)
+
+
+def _supports_unicode() -> bool:
+    if os.environ.get("BISSI_CODES_ASCII", "").strip().lower() in {"1", "true", "yes", "on"}:
+        return False
+    encoding = sys.stdout.encoding or "utf-8"
+    try:
+        "┌┐└┘│─●├⠋".encode(encoding)
+        return True
+    except Exception:
+        return False
+
+
+_UNICODE_OK = _supports_unicode()
+
+
+def _glyph(unicode_char: str, ascii_char: str) -> str:
+    return unicode_char if _UNICODE_OK else ascii_char
+
+
+def _branch(last: bool) -> str:
+    return f"  {_glyph('└' if last else '├', '+')} "
+
+
+def _pipe() -> str:
+    return f"  {_glyph('│', '|')}  "
+
+
+def _ellipsis() -> str:
+    return _glyph("…", "...")
+
 
 # ─── CSS ──────────────────────────────────────────────────────────────────────
 APP_CSS = """
@@ -93,8 +133,6 @@ Screen {
     height: 1fr;
     border: solid #1E3A5F;
     padding: 0 1;
-    scrollbar-color: #1E90FF #1a1a2e;
-    scrollbar-size: 1 1;
 }
 
 #status-bar {
@@ -207,6 +245,7 @@ class BissiApp(App):
         self._history: list[str] = _load_history()
         self._hist_idx = -1
         self._no_splash = no_splash
+        self._splash_visible = False
         self._last_response = ""
 
     COMMANDS = [
@@ -226,7 +265,7 @@ class BissiApp(App):
         with Horizontal(id="input-row"):
             yield Static(self._prompt_text(), id="prompt-label")
             yield Input(placeholder="", id="user-input")
-            yield Static("⠋ réflexion", id="loading")
+            yield Static(f"{_glyph('⠋', '...')} réflexion", id="loading")
 
     def _prompt_text(self) -> str:
         cwd = os.getcwd().replace(os.path.expanduser("~"), "~")
@@ -237,7 +276,8 @@ class BissiApp(App):
         log = self.query_one(RichLog)
         if not self._no_splash:
             self._print_splash(log)
-        log.scroll_home(animate=False)
+            self._splash_visible = True
+        log.scroll_end(animate=False)
         self.query_one("#user-input", Input).focus()
         self._suggest_idx = -1
         # Install signal handlers for graceful shutdown
@@ -362,114 +402,44 @@ class BissiApp(App):
             return 64
 
     def _print_splash(self, log: RichLog) -> None:
-        splash_width = min(120, max(76, self.size.width - 4))
+        splash_width = min(92, max(64, self.size.width - 8))
         W = splash_width  # alias kept for local readability
 
-        # ── Panel 1: Logo ─────────────────────────────────────────────────────
-        log.write(Text("┌" + "─" * (W - 2) + "┐", style=f"dim {C_BLUE}"))
-        log.write(Text("│" + " " * (W - 2) + "│", style=f"dim {C_BLUE}"))
+        # Compact splash: logo + title only.
+        log.write(Text(_glyph("┌", "+") + _glyph("─", "-") * (W - 2) + _glyph("┐", "+"), style=f"dim {C_BLUE}"))
 
         logo_lines = BISSI_LOGO.split("\n")
+        max_logo_width = max(cell_len(line) for line in logo_lines)
+        if not _UNICODE_OK or max_logo_width > (W - 6):
+            logo_lines = ASCII_LOGO.split("\n")
         for line in logo_lines:
-            pad_left  = (W - 2 - len(line)) // 2
-            pad_right = (W - 2 - len(line)) - pad_left
+            visible_width = cell_len(line)
+            pad_left  = max(0, (W - 2 - visible_width) // 2)
+            pad_right = max(0, (W - 2 - visible_width) - pad_left)
             log.write(
-                Text("│", style=f"dim {C_BLUE}") +
+                Text(_glyph("│", "|"), style=f"dim {C_BLUE}") +
                 Text(" " * pad_left) +
                 Text(line, style=f"bold {C_BLUE}") +
                 Text(" " * pad_right) +
-                Text("│", style=f"dim {C_BLUE}")
+                Text(_glyph("│", "|"), style=f"dim {C_BLUE}")
             )
 
         subtitle = "Codes v1.0.0"
         s_pad_l = (W - 2 - len(subtitle)) // 2
         s_pad_r = (W - 2 - len(subtitle)) - s_pad_l
-        log.write(Text("│" + " " * (W - 2) + "│", style=f"dim {C_BLUE}"))
         log.write(
-            Text("│", style=f"dim {C_BLUE}") +
+            Text(_glyph("│", "|"), style=f"dim {C_BLUE}") +
             Text(" " * s_pad_l) +
             Text(subtitle, style=f"bold {C_WHITE}") +
             Text(" " * s_pad_r) +
-            Text("│", style=f"dim {C_BLUE}")
+            Text(_glyph("│", "|"), style=f"dim {C_BLUE}")
         )
-        log.write(Text("│" + " " * (W - 2) + "│", style=f"dim {C_BLUE}"))
-        log.write(Text("└" + "─" * (W - 2) + "┘", style=f"dim {C_BLUE}"))
+        log.write(Text(_glyph("└", "+") + _glyph("─", "-") * (W - 2) + _glyph("┘", "+"), style=f"dim {C_BLUE}"))
         log.write(Text(""))
-
-        # ── Panel 2: Tips + Recent activity (side by side) ────────────────────
-        tips = [
-            ("/new",     "Nouvelle conversation"),
-            ("/model",   "Modèle actif"),
-            ("/history", "Voir l'historique"),
-            ("/help",    "Afficher l'aide"),
-            ("/exit",    "Quitter"),
-        ]
-
-        # recent activity from conversation store (last 3 sessions)
-        recent_lines: list[Text] = []
-        try:
-            history = self.agent.conversation_store.list_conversations(limit=3)
-            if history:
-                for conv in history:
-                    title = str(conv.get("title", "") or conv.get("first_message", "") or conv.get("id", ""))
-                    title = (title[:26] + "…") if len(title) > 27 else title
-                    recent_lines.append(Text(f"  {title}", style=f"dim {C_GREEN}"))
-        except Exception:
-            pass
-
-        if not recent_lines:
-            recent_lines = [Text("  Aucune activité récente", style=f"dim {C_GREEN}")]
-
-        INNER = W - 2  # 74 chars inside the frame
-        COL_W = INNER // 2  # 37 chars per column
-
-        log.write(Text("┌" + "─" * INNER + "┐", style=f"dim {C_BLUE}"))
-        left_hdr  = "Conseils pour démarrer"
-        right_hdr = "Activité récente"
-        log.write(
-            Text("│ ", style=f"dim {C_BLUE}") +
-            Text(left_hdr.ljust(COL_W - 1), style=f"bold {C_BLUE}") +
-            Text(right_hdr.ljust(COL_W), style=f"bold {C_BLUE}") +
-            Text("│", style=f"dim {C_BLUE}")
-        )
-        log.write(
-            Text("│", style=f"dim {C_BLUE}") +
-            Text(" " * INNER) +
-            Text("│", style=f"dim {C_BLUE}")
-        )
-
-        max_rows = max(len(tips), len(recent_lines))
-        for i in range(max_rows):
-            # Left column (tips)
-            if i < len(tips):
-                cmd, desc = tips[i]
-                left_text = f"  {cmd:<10}— {desc}"
-                left_pad = COL_W - len(left_text)
-                left_line = Text(left_text, style="cyan") + Text(" " * left_pad)
-            else:
-                left_line = Text(" " * COL_W)
-
-            # Right column (recent activity)
-            if i < len(recent_lines):
-                right_text = recent_lines[i].plain
-                right_pad = COL_W - len(right_text)
-                right_line = Text(right_text, style=f"dim {C_GREEN}") + Text(" " * right_pad)
-            else:
-                right_line = Text(" " * COL_W)
-
-            log.write(
-                Text("│", style=f"dim {C_BLUE}") +
-                left_line +
-                right_line +
-                Text("│", style=f"dim {C_BLUE}")
-            )
-
-        log.write(
-            Text("│", style=f"dim {C_BLUE}") +
-            Text(" " * (W - 2)) +
-            Text("│", style=f"dim {C_BLUE}")
-        )
-        log.write(Text("└" + "─" * (W - 2) + "┘", style=f"dim {C_BLUE}"))
+        log.write(Text("Tape /help pour démarrer.", style=C_DIM))
+        log.write(Text(f"{_branch(last=False)}Astuce: /new pour repartir à zéro", style=C_DIM))
+        log.write(Text(f"{_branch(last=False)}Astuce: /history pour revoir le fil récent", style=C_DIM))
+        log.write(Text(f"{_branch(last=True)}Astuce: /copy pour copier la dernière réponse", style=C_DIM))
         log.write(Text(""))
 
     # ── Input handling ────────────────────────────────────────────────────────
@@ -487,6 +457,7 @@ class BissiApp(App):
         _save_history(self._history)
 
         log = self.query_one(RichLog)
+        self._clear_splash_if_needed(log)
 
         if text.startswith("/"):
             self._handle_command(text, log)
@@ -495,12 +466,17 @@ class BissiApp(App):
         # ── User bubble (Claude Code style) ───────────────────────────────
         log.write(Text(""))
         log.write(
-            Text("● ", style=f"bold {C_GREEN}") +
+            Text(f"{_glyph('●', '*')} ", style=f"bold {C_GREEN}") +
             Text(text, style=C_WHITE)
         )
 
         self._set_busy(True)
         self._run_agent(text)
+
+    def _clear_splash_if_needed(self, log: RichLog) -> None:
+        if self._splash_visible:
+            log.clear()
+            self._splash_visible = False
 
     # ── Agent worker ──────────────────────────────────────────────────────────
     @work(thread=True)
@@ -517,21 +493,21 @@ class BissiApp(App):
                 tool_events.append(name)
                 self.call_from_thread(
                     self.query_one(RichLog).write,
-                    Text("  ├ ", style=f"dim {C_BLUE}") +
-                    Text(f"⚙  {name}", style=f"bold {C_YELLOW}")
+                    Text(f"  {_glyph('├', '+')} ", style=f"dim {C_BLUE}") +
+                    Text(f"{_glyph('⚙', '*')}  {name}", style=f"bold {C_YELLOW}")
                 )
 
             def on_tool_done(name: str, result):
                 # Show a brief excerpt of the tool result
                 snippet = str(result or "").strip().replace("\n", " ")
                 if len(snippet) > 100:
-                    snippet = snippet[:100] + "…"
-                status = "✓" if snippet else "✓ ok"
+                    snippet = snippet[:100] + _ellipsis()
+                status = _glyph("✓", "v")
                 icon_style = f"dim {C_GREEN}"
                 self.call_from_thread(
                     self.query_one(RichLog).write,
-                    Text("  │  ", style=f"dim {C_BLUE}") +
-                    Text(f"{status} {name}", style=icon_style) +
+                    Text(_pipe(), style=f"dim {C_BLUE}") +
+                    Text(status, style=icon_style) +
                     (Text(f" — {snippet}", style=C_DIM) if snippet else Text(""))
                 )
 
@@ -560,7 +536,7 @@ class BissiApp(App):
         self._last_response = response.strip()
         log.write(Text(""))
         log.write(
-            Text("● ", style=f"bold {C_BLUE}") +
+            Text(f"{_glyph('●', '*')} ", style=f"bold {C_BLUE}") +
             Text("Bissi", style=f"bold {C_BLUE}")
         )
 
@@ -569,12 +545,12 @@ class BissiApp(App):
 
         for i, item in enumerate(renderables):
             is_last = i == lines_total - 1
-            branch = "  └ " if is_last else "  │ "
+            branch = f"  {_glyph('└', '+')} " if is_last else f"  {_glyph('│', '|')} "
             branch_style = f"dim {C_BLUE}"
 
             if isinstance(item, Text):
                 if not item.plain.strip():
-                    log.write(Text("  │", style=branch_style))
+                    log.write(Text(f"  {_glyph('│', '|')}", style=branch_style))
                 else:
                     log.write(Text(branch, style=branch_style) + item)
             elif isinstance(item, Table):
@@ -585,22 +561,22 @@ class BissiApp(App):
                 log.write(item)
 
         log.write(Text(""))
-        log.write(Text("─" * self._sep_width(), style=C_DIM))
+        log.write(Text(_glyph("─", "-") * self._sep_width(), style=C_DIM))
         log.write(Text(""))
 
     def _write_error(self, error: str) -> None:
         log = self.query_one(RichLog)
         log.write(Text(""))
         log.write(
-            Text("● ", style=f"bold {C_RED}") +
+            Text(f"{_glyph('●', '*')} ", style=f"bold {C_RED}") +
             Text("Erreur", style=f"bold {C_RED}")
         )
         log.write(
-            Text("  └ ", style=C_DIM) +
+            Text(f"  {_glyph('└', '+')} ", style=C_DIM) +
             Text(error, style=C_RED)
         )
         log.write(Text(""))
-        log.write(Text("─" * self._sep_width(), style=C_DIM))
+        log.write(Text(_glyph("─", "-") * self._sep_width(), style=C_DIM))
         log.write(Text(""))
 
 
@@ -612,13 +588,13 @@ class BissiApp(App):
 
         log.write(Text(""))
         log.write(
-            Text("● ", style=f"bold cyan") +
+            Text(f"{_glyph('●', '*')} ", style=f"bold cyan") +
             Text(cmd, style="cyan")
         )
 
         if cmd_lower in ("/exit", "/quit"):
             log.write(
-                Text("  └ ", style=C_DIM) +
+                Text(_branch(last=True), style=C_DIM) +
                 Text("À bientôt !", style=C_DIM)
             )
             _save_history(self._history)
@@ -628,7 +604,7 @@ class BissiApp(App):
         elif cmd_lower == "/new":
             self.agent.start_conversation()
             log.write(
-                Text("  └ ", style=C_DIM) +
+                Text(_branch(last=True), style=C_DIM) +
                 Text("Nouvelle conversation démarrée.", style=f"dim {C_GREEN}")
             )
 
@@ -638,7 +614,7 @@ class BissiApp(App):
             target = os.path.abspath(target)
             if not os.path.isdir(target):
                 log.write(
-                    Text("  └ ", style=C_DIM) +
+                    Text(_branch(last=True), style=C_DIM) +
                     Text(f"Répertoire introuvable : {target}", style=C_RED)
                 )
             else:
@@ -647,13 +623,13 @@ class BissiApp(App):
                 label.update(self._prompt_text())
                 disp = target.replace(str(Path.home()), "~")
                 log.write(
-                    Text("  └ ", style=C_DIM) +
-                    Text(f"→ {disp}", style=f"dim {C_GREEN}")
+                    Text(_branch(last=True), style=C_DIM) +
+                    Text(f"{_glyph('→', '->')} {disp}", style=f"dim {C_GREEN}")
                 )
 
         elif cmd_lower == "/model":
             log.write(
-                Text("  └ ", style=C_DIM) +
+                Text(_branch(last=True), style=C_DIM) +
                 Text("Modèle actif : ", style=C_DIM) +
                 Text(self.agent.model, style=f"bold {C_BLUE}")
             )
@@ -662,19 +638,19 @@ class BissiApp(App):
             history = self.agent.get_conversation_history()
             if not history:
                 log.write(
-                    Text("  └ ", style=C_DIM) +
+                    Text(_branch(last=True), style=C_DIM) +
                     Text("Aucun historique pour cette conversation.", style=C_DIM)
                 )
             else:
                 items = history[-20:]
                 for j, item in enumerate(items):
                     is_last = j == len(items) - 1
-                    branch = "  └ " if is_last else "  ├ "
+                    branch = _branch(last=is_last)
                     role = str(item.get("role", "?")).capitalize()
                     raw_content = str(item.get("content", ""))
                     content = raw_content.replace("\n", " ")[:160]
                     if len(raw_content) > 160:
-                        content += "…"
+                        content += _ellipsis()
                     log.write(
                         Text(branch, style=C_DIM) +
                         Text(f"[{role}] ", style="cyan") +
@@ -685,23 +661,23 @@ class BissiApp(App):
             if self._last_response:
                 if _copy_to_clipboard(self._last_response):
                     log.write(
-                        Text("  └ ", style=C_DIM) +
+                        Text(_branch(last=True), style=C_DIM) +
                         Text("Copié dans le presse-papiers.", style=f"dim {C_GREEN}")
                     )
                 else:
                     log.write(
-                        Text("  ├ ", style=C_DIM) +
+                        Text(_branch(last=False), style=C_DIM) +
                         Text("Presse-papiers non disponible.", style=C_YELLOW)
                     )
                     # Display the response so the user can copy manually
                     preview = self._last_response[:400]
                     for line in preview.splitlines()[:10]:
-                        log.write(Text(f"  │  {line}", style=C_DIM))
+                        log.write(Text(f"{_pipe()}{line}", style=C_DIM))
                     if len(self._last_response) > 400:
-                        log.write(Text("  └  …", style=C_DIM))
+                        log.write(Text(f"{_branch(last=True)} {_ellipsis()}", style=C_DIM))
             else:
                 log.write(
-                    Text("  └ ", style=C_DIM) +
+                    Text(_branch(last=True), style=C_DIM) +
                     Text("Aucune réponse à copier.", style=C_DIM)
                 )
 
@@ -717,7 +693,7 @@ class BissiApp(App):
             ]
             for j, (c, d) in enumerate(tips):
                 is_last = j == len(tips) - 1
-                branch = "  └ " if is_last else "  ├ "
+                branch = _branch(last=is_last)
                 log.write(
                     Text(branch, style=C_DIM) +
                     Text(f"{c:<12}", style="cyan") +
@@ -730,7 +706,7 @@ class BissiApp(App):
             matches = difflib.get_close_matches(cmd_lower, known, n=1, cutoff=0.6)
             if matches:
                 log.write(
-                    Text("  └ ", style=C_DIM) +
+                    Text(_branch(last=True), style=C_DIM) +
                     Text(f"Commande inconnue : {parts[0]}  ", style=C_YELLOW) +
                     Text(f"— vouliez-vous dire ", style=C_DIM) +
                     Text(matches[0], style="cyan") +
@@ -738,12 +714,12 @@ class BissiApp(App):
                 )
             else:
                 log.write(
-                    Text("  └ ", style=C_DIM) +
+                    Text(_branch(last=True), style=C_DIM) +
                     Text(f"Commande inconnue : {parts[0]}  (tapez /help)", style=C_YELLOW)
                 )
 
         log.write(Text(""))
-        log.write(Text("─" * self._sep_width(), style=C_DIM))
+        log.write(Text(_glyph("─", "-") * self._sep_width(), style=C_DIM))
         log.write(Text(""))
 
     # ── Helpers ───────────────────────────────────────────────────────────────

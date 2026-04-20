@@ -210,14 +210,19 @@ _RE_H2        = re.compile(r"^##\s+(.*)")
 _RE_H1        = re.compile(r"^#\s+(.*)")
 _RE_HR        = re.compile(r"^-{3,}\s*$")
 _RE_UL        = re.compile(r"^[-*•]\s+(.*)")
-_RE_OL        = re.compile(r"^\d+\.\s+(.*)")
+_RE_OL        = re.compile(r"^\d+[.)]\s+(.*)")
 _TABLE_SEP_RE = re.compile(r"^\s*\|?(?:\s*:?-{3,}:?\s*\|)+\s*:?-{3,}:?\s*\|?\s*$")
-_FENCE_RE     = re.compile(r"```([A-Za-z0-9_+\-#.]*)\n(.*?)(?:\n```|(?=```))", re.DOTALL)
+_FENCE_OPEN_RE = re.compile(r"^\s*(```+|~~~+)\s*([A-Za-z0-9_+\-#.]*)\s*$")
 
 
 def _split_table_row(line: str) -> list[str]:
     row = line.strip().lstrip("|").rstrip("|")
     return [c.strip() for c in row.split("|")]
+
+
+def _is_closing_fence(line: str, marker: str) -> bool:
+    stripped = line.strip()
+    return stripped.startswith(marker) and set(stripped) == {marker[0]} and len(stripped) >= len(marker)
 
 
 def _looks_like_table(lines: list[str], i: int) -> bool:
@@ -343,6 +348,68 @@ def _parse_block_segment(text: str) -> list[Block]:
     return blocks
 
 
+def _parse_with_fences(text: str) -> tuple[list[Block], bool, list[str], bool]:
+    """Parse text while tolerating malformed or partial fenced code blocks."""
+    lines = text.split("\n")
+    blocks: list[Block] = []
+    has_code = False
+    languages: list[str] = []
+    is_partial = False
+    text_buffer: list[str] = []
+    i = 0
+
+    def flush_text_buffer() -> None:
+        if text_buffer:
+            blocks.extend(_parse_block_segment("\n".join(text_buffer)))
+            text_buffer.clear()
+
+    while i < len(lines):
+        line = lines[i]
+        open_match = _FENCE_OPEN_RE.match(line)
+        if not open_match:
+            text_buffer.append(line)
+            i += 1
+            continue
+
+        flush_text_buffer()
+
+        marker = open_match.group(1)
+        raw_lang = open_match.group(2).strip()
+        lang = _normalize_lang(raw_lang)
+        code_lines: list[str] = []
+        i += 1
+        closed = False
+
+        while i < len(lines):
+            candidate = lines[i]
+            if _is_closing_fence(candidate, marker):
+                closed = True
+                i += 1
+                break
+            code_lines.append(candidate)
+            i += 1
+
+        code = "\n".join(code_lines)
+        if not closed:
+            is_partial = True
+            code = f"{code}\n▌" if code else "▌"
+
+        blocks.append(
+            CodeBlockNode(
+                lang=lang,
+                raw_lang=raw_lang,
+                code=code,
+                is_partial=not closed,
+            )
+        )
+        has_code = True
+        if lang and lang not in languages:
+            languages.append(lang)
+
+    flush_text_buffer()
+    return blocks, has_code, languages, is_partial
+
+
 # ── Main parse entry point ────────────────────────────────────────────────────
 
 def parse(text: str) -> ParseResult:
@@ -352,59 +419,11 @@ def parse(text: str) -> ParseResult:
 
     # Keep LaTeX delimiters for frontend KaTeX rendering; only unescape \$.
     text = text.replace(r"\$", "$")
+    # Models sometimes escape code fences as \`\`\`; normalize them back.
+    text = text.replace(r"\`\`\`", "```")
     text = re.sub(r"\n{3,}", "\n\n", text)   # collapse excessive blank lines
 
-    blocks:    list[Block] = []
-    has_code               = False
-    languages: list[str]  = []
-    is_partial             = False
-    last                   = 0
-
-    for m in _FENCE_RE.finditer(text):
-        before = text[last:m.start()]
-        if before:
-            blocks.extend(_parse_block_segment(before))
-
-        raw_lang = m.group(1).strip()
-        lang     = _normalize_lang(raw_lang)
-        code     = m.group(2)
-        closed   = m.group(0).rstrip().endswith("```")
-
-        if not closed:
-            is_partial = True
-
-        blocks.append(CodeBlockNode(lang=lang, raw_lang=raw_lang, code=code,
-                                    is_partial=not closed))
-        has_code = True
-        if lang and lang not in languages:
-            languages.append(lang)
-
-        last = m.end()
-
-    tail = text[last:]
-    if tail:
-        fence_count = tail.count("```")
-        if fence_count % 2 == 1:
-            is_partial = True
-            fence_pos  = tail.rfind("```")
-            before_fence = tail[:fence_pos]
-            partial_raw  = tail[fence_pos + 3:]
-
-            first_nl = partial_raw.find("\n")
-            if first_nl != -1:
-                partial_lang = _normalize_lang(partial_raw[:first_nl].strip())
-                partial_body = partial_raw[first_nl + 1:]
-            else:
-                partial_lang = _normalize_lang(partial_raw.strip())
-                partial_body = ""
-
-            if before_fence:
-                blocks.extend(_parse_block_segment(before_fence))
-            blocks.append(CodeBlockNode(lang=partial_lang, raw_lang=partial_lang,
-                                        code=partial_body + "▌", is_partial=True))
-            has_code = True
-        else:
-            blocks.extend(_parse_block_segment(tail))
+    blocks, has_code, languages, is_partial = _parse_with_fences(text)
 
     return ParseResult(blocks=blocks, has_code=has_code,
                        languages=languages, is_partial=is_partial)

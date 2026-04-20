@@ -31,10 +31,20 @@ class ConversationStore:
                 CREATE TABLE IF NOT EXISTS conversations (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     title TEXT,
+                    archived INTEGER NOT NULL DEFAULT 0,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
+
+            columns = {
+                row[1]
+                for row in conn.execute("PRAGMA table_info(conversations)").fetchall()
+            }
+            if "archived" not in columns:
+                conn.execute(
+                    "ALTER TABLE conversations ADD COLUMN archived INTEGER NOT NULL DEFAULT 0"
+                )
             
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS messages (
@@ -173,14 +183,16 @@ class ConversationStore:
             
             rows = conn.execute(
                 """SELECT c.id, c.title, c.created_at, c.updated_at,
+                          c.archived,
                           COUNT(m.id) as message_count,
                           (SELECT content FROM messages WHERE conversation_id = c.id 
                            ORDER BY id ASC LIMIT 1) as first_message
-                   FROM conversations c
-                   LEFT JOIN messages m ON c.id = m.conversation_id
-                   GROUP BY c.id
-                   ORDER BY c.updated_at DESC
-                   LIMIT ?""",
+                    FROM conversations c
+                    LEFT JOIN messages m ON c.id = m.conversation_id
+                    WHERE c.archived = 0
+                    GROUP BY c.id
+                    ORDER BY c.updated_at DESC
+                    LIMIT ?""",
                 (limit,)
             ).fetchall()
             
@@ -188,6 +200,7 @@ class ConversationStore:
                 {
                     'id': row['id'],
                     'title': row['title'],
+                    'archived': row['archived'],
                     'created_at': row['created_at'],
                     'updated_at': row['updated_at'],
                     'message_count': row['message_count'],
@@ -213,6 +226,23 @@ class ConversationStore:
             cursor = conn.execute("DELETE FROM conversations WHERE id = ?", (conversation_id,))
             conn.commit()
             
+            return cursor.rowcount > 0
+
+    def archive_conversation(self, conversation_id: int) -> bool:
+        """Archive a conversation without deleting messages.
+
+        Args:
+            conversation_id: Conversation to archive
+
+        Returns:
+            True if archived successfully
+        """
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute(
+                "UPDATE conversations SET archived = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                (conversation_id,)
+            )
+            conn.commit()
             return cursor.rowcount > 0
     
     def export_conversation(self, 

@@ -5,8 +5,13 @@ Rich renderables (Text, Markdown, Table) for use with RichLog.write().
 """
 from __future__ import annotations
 
+import os
 import re
+import sys
 
+from rich.console import Group
+from rich.markdown import Markdown
+from rich.syntax import Syntax
 from rich.text import Text
 from rich.table import Table
 from rich import box as rich_box
@@ -36,6 +41,24 @@ _C = {
     "white":  "white",
     "dim":    "dim",
 }
+
+
+def _supports_unicode() -> bool:
+    if os.environ.get("BISSI_CODES_ASCII", "").strip().lower() in {"1", "true", "yes", "on"}:
+        return False
+    encoding = sys.stdout.encoding or "utf-8"
+    try:
+        "─•▌".encode(encoding)
+        return True
+    except Exception:
+        return False
+
+
+_UNICODE_OK = _supports_unicode()
+
+
+def _glyph(unicode_char: str, ascii_char: str) -> str:
+    return unicode_char if _UNICODE_OK else ascii_char
 
 
 def configure(colors: dict) -> None:
@@ -82,7 +105,11 @@ def _clean_markdown(text: str) -> str:
     cleaned = re.sub(r"^([*+-]|\d+\.)([^\s])", r"\1 \2", cleaned, flags=re.MULTILINE)
     # Force tokenization once with markdown-it + math plugin so malformed blocks
     # are handled consistently before our AST parser transforms to Rich renderables.
-    _MD_VALIDATOR.parse(cleaned)
+    try:
+        _MD_VALIDATOR.parse(cleaned)
+    except Exception:
+        # Keep the terminal renderer usable on malformed model output.
+        pass
     return cleaned
 
 
@@ -153,7 +180,7 @@ def _render_block(block: Block) -> list:
         return [Text("")]
 
     if isinstance(block, HRNode):
-        return [Text("─" * 64, style=f"dim {_C['blue']}")]
+        return [Text(_glyph("─", "-") * 64, style=f"dim {_C['blue']}")]
 
     if isinstance(block, HeadingNode):
         color = {
@@ -173,7 +200,7 @@ def _render_block(block: Block) -> list:
     if isinstance(block, UListNode):
         items = []
         for item_nodes in block.items:
-            t = Text("  • ", style=f"dim {_C['blue']}")
+            t = Text(f"  {_glyph('•', '*')} ", style=f"dim {_C['blue']}")
             t.append_text(_inline_to_text(item_nodes))
             items.append(t)
         return items
@@ -198,8 +225,20 @@ def _render_block(block: Block) -> list:
             renderables.append(
                 Text(f" {block.lang} ", style=f"bold {_C['purple']} on #1a1a2e")
             )
-        for line in lines:
-            renderables.append(Text(f"  {line}", style=f"{_C['white']} on #0d0d0d"))
+        code = "\n".join(lines) if lines else ""
+        if code:
+            syntax = Syntax(
+                code,
+                block.lang or "text",
+                theme="monokai",
+                line_numbers=False,
+                word_wrap=False,
+                indent_guides=False,
+                background_color="#0d0d0d",
+            )
+            renderables.append(syntax)
+        elif block.is_partial:
+            renderables.append(Text(f"  {_glyph('▌', '|')}", style=f"{_C['white']} on #0d0d0d"))
         return renderables
 
     if isinstance(block, TableNode):
@@ -208,7 +247,8 @@ def _render_block(block: Block) -> list:
             max((len(r) for r in block.rows), default=0),
             1,
         )
-        tbl = Table(box=rich_box.SIMPLE_HEAVY, show_lines=False,
+        table_box = rich_box.SIMPLE_HEAVY if _UNICODE_OK else rich_box.ASCII
+        tbl = Table(box=table_box, show_lines=False,
                     header_style=f"bold {_C['blue']}")
         for cell in block.headers:
             label = _inline_to_text(cell).plain or " "
@@ -234,10 +274,18 @@ def render(text: str) -> list:
         from ui.renderers.rich_text import render
         renderables = render(response)
     """
-    result = parse(_clean_markdown(text))
-    out: list = []
-    for block in result.blocks:
-        out.extend(_render_block(block))
+    try:
+        cleaned = _clean_markdown(text)
+        result = parse(cleaned)
+        out: list = []
+        for block in result.blocks:
+            out.extend(_render_block(block))
+        if _should_fallback_to_markdown(cleaned, result, out):
+            return [Markdown(cleaned, hyperlinks=False, code_theme="monokai")]
+    except Exception:
+        out = []
+        for line in (text or "").splitlines() or [""]:
+            out.append(Text(line))
     # Strip trailing empty Text items so └ lands on real content
     while out and isinstance(out[-1], Text) and not out[-1].plain.strip():
         out.pop()
@@ -245,5 +293,28 @@ def render(text: str) -> list:
 
 
 def render_streaming(accumulated: str) -> list:
-    """Alias for streaming token-by-token mode."""
-    return render(accumulated)
+    """Streaming-friendly variant with gentler fallback on incomplete markdown."""
+    cleaned = _clean_markdown(accumulated)
+    try:
+        result = parse_streaming(cleaned)
+        out: list = []
+        for block in result.blocks:
+            out.extend(_render_block(block))
+        if out:
+            return out
+    except Exception:
+        pass
+    return [Text(line) for line in (accumulated or "").splitlines() or [""]]
+
+
+def _should_fallback_to_markdown(cleaned: str, result, out: list) -> bool:
+    """Use Rich Markdown for structures our home-grown AST still handles poorly."""
+    if not cleaned.strip():
+        return False
+    if any(token in cleaned for token in ("\n> ", "\n-   ", "\n    - ", "\n    1.", "<details>", "</details>")):
+        return True
+    if "|" in cleaned and "\n" in cleaned and any(isinstance(item, Table) for item in out):
+        return False
+    if len(result.blocks) <= 1 and cleaned.count("\n") >= 6 and any(marker in cleaned for marker in ("#", "-", "*", "1.", "```", "~~~")):
+        return True
+    return False

@@ -14,11 +14,12 @@ const S = {
   bubble:       null,   // active streaming bubble element
   inputHist:    [],     // ring buffer of sent messages
   histIdx:      -1,     // -1 = not navigating
-  sessionStart: Date.now(),
+  currentConversationId: null,
   curPath:      null,
   rafPending:   false,  // requestAnimationFrame scheduled for stream render
   welcomeHTML:  '',
   pendingNewConversation: false,
+  sessionMenuBound: false,
 };
 window.S = S;
 const LAYOUT_KEYS = {
@@ -26,6 +27,8 @@ const LAYOUT_KEYS = {
   panelCollapsed: 'bissi-master-panel-collapsed',
   panelWidth: 'bissi-master-panel-width',
 };
+const THEME_MODE_KEY = 'bissi-theme-mode';
+const LEGACY_THEME_KEY = 'bissi-theme';
 const WORKSPACE_DEFAULT_WIDTH = 420;
 const WORKSPACE_MIN_WIDTH = 320;
 
@@ -38,7 +41,6 @@ document.addEventListener('DOMContentLoaded', () => {
   bindTabs();
   bindLayoutToggles();
   bindWorkspaceResize();
-  startTimer();
   waitForBridge(0);
 });
 
@@ -56,7 +58,8 @@ function waitForBridge(tries) {
   } else {
     console.warn('[bissi] QWebChannel unavailable — demo mode');
     sysMsg('Mode démo — QWebChannel non disponible', 'warn');
-    el('#status-dot').className = 'status-dot amber';
+    const dot = el('#status-dot');
+    if (dot) dot.className = 'status-dot amber';
   }
 }
 
@@ -136,9 +139,6 @@ function onThinking(msg) {
       const model = modelPart.replace('→', '').trim();
       const score = parseFloat((scorePart || '').replace('score', '').trim());
       hint.style.color = 'var(--teal)';
-      const statusModel = el('#status-model');
-      if (statusModel) statusModel.textContent = `Ollama · ${model}`;
-      
       const badge = el('#model-badge');
       if (badge) {
         badge.textContent = `● ${model} · en ligne`;
@@ -200,6 +200,7 @@ function onConvsUpdated(json) {
 }
 
 function onThemeChanged(name) {
+  setThemeMode(name);
   applyThemeLocal(name);
 }
 
@@ -216,8 +217,6 @@ function mkUserBubble(text) {
 }
 
 function mkAssistantBubble() {
-  const model = (el('#chat-model-badge') || {}).textContent || 'bissi';
-  const isHeavy = false;
   const wrap = document.createElement('div');
   wrap.className = 'msg-assistant';
   wrap.innerHTML = `
@@ -230,7 +229,6 @@ function mkAssistantBubble() {
     <div class="msg-body">
       <div class="msg-header">
         <span class="msg-name">bissi</span>
-        <span class="msg-model-tag${isHeavy ? ' heavy' : ''}">${esc(model)}</span>
       </div>
       <div class="bubble-content"><span class="stream-cursor">▌</span></div>
       <div class="tool-cards"></div>
@@ -462,6 +460,9 @@ function hlCode(container) {
   container.querySelectorAll('pre.code-block code').forEach(b => {
     b.className = `language-${b.closest('pre').dataset.lang || 'plaintext'}`;
   });
+  if (window.BissiFrontend?.highlightCodeBlocks) {
+    window.BissiFrontend.highlightCodeBlocks(container);
+  }
 }
 
 // Render LaTeX math with KaTeX (fires after markdown is in the DOM)
@@ -477,6 +478,10 @@ function renderMath(container) {
     return;
   }
   delete container.dataset.katexRetries;
+  if (window.BissiFrontend?.renderMath) {
+    window.BissiFrontend.renderMath(container);
+    return;
+  }
   try {
     renderMathInElement(container, {
       delimiters: [
@@ -573,7 +578,8 @@ function lock() {
   S.busy = true;
   setSendBtnState(true);
   el('#chat-input').disabled = true;
-  el('#status-dot').className = 'status-dot amber';
+  const dot = el('#status-dot');
+  if (dot) dot.className = 'status-dot amber';
   const hint = el('#routing-hint');
   if (hint && !hint.textContent) hint.textContent = 'Génération…';
 }
@@ -584,7 +590,8 @@ function unlock() {
   const inp = el('#chat-input');
   inp.disabled = false;
   inp.focus();
-  el('#status-dot').className = 'status-dot teal';
+  const dot = el('#status-dot');
+  if (dot) dot.className = 'status-dot teal';
   const hint = el('#routing-hint');
   if (hint && hint.textContent === 'Génération…') hint.textContent = '';
 }
@@ -594,32 +601,61 @@ function bindTheme() {
   // The theme button keeps its SVG icon — no textContent override needed
 
   el('#theme-toggle').addEventListener('click', () => {
-    const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    const current = document.documentElement.getAttribute('data-theme') || getSystemTheme();
+    const next = current === 'dark' ? 'light' : 'dark';
+    setThemeMode(next);
     applyThemeLocal(next);
     if (S.bissi) S.bissi.applyTheme(next);   // sync Python side (QSS)
   });
 
   // Follow system preference changes
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-    if (!localStorage.getItem('bissi-theme')) {
+    if (getThemeMode() === 'auto') {
       applyThemeLocal(e.matches ? 'dark' : 'light');
     }
   });
 }
 
 function applyThemeLocal(name) {
+  // Clear stale inline token overrides to avoid mixed-theme states.
+  const root = document.documentElement;
+  const toRemove = [];
+  for (let i = 0; i < root.style.length; i += 1) {
+    const prop = root.style[i];
+    if (prop && prop.startsWith('--')) toRemove.push(prop);
+  }
+  toRemove.forEach((prop) => root.style.removeProperty(prop));
   document.documentElement.setAttribute('data-theme', name);
-  localStorage.setItem('bissi-theme', name);
 }
 
-function applyTheme(name, tokens) {
-  document.documentElement.setAttribute('data-theme', name);
-  el('#theme-toggle').textContent = name === 'dark' ? '☀' : '☾';
-  if (tokens && typeof tokens === 'object') {
-    const root = document.documentElement;
-    for (const [k, v] of Object.entries(tokens)) {
-      root.style.setProperty(`--${k.replace(/_/g, '-')}`, v);
-    }
+function applyTheme(name, _tokens) {
+  const mode = getThemeMode();
+  if (mode === 'light' || mode === 'dark') {
+    applyThemeLocal(mode);
+    return;
+  }
+  applyThemeLocal(getSystemTheme());
+}
+
+function getSystemTheme() {
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
+function getThemeMode() {
+  const mode = localStorage.getItem(THEME_MODE_KEY);
+  if (mode === 'light' || mode === 'dark' || mode === 'auto') return mode;
+  const legacy = localStorage.getItem(LEGACY_THEME_KEY);
+  if (legacy === 'light' || legacy === 'dark') {
+    localStorage.setItem(THEME_MODE_KEY, legacy);
+    return legacy;
+  }
+  localStorage.setItem(THEME_MODE_KEY, 'auto');
+  return 'auto';
+}
+
+function setThemeMode(mode) {
+  if (mode === 'light' || mode === 'dark' || mode === 'auto') {
+    localStorage.setItem(THEME_MODE_KEY, mode);
   }
 }
 
@@ -628,39 +664,79 @@ function setModel(model) {
   if (!model || model === 'demo') return;
   const cmb = el('#chat-model-badge');
   if (cmb) cmb.textContent = model;
-  const sm = el('#status-model');
-  if (sm) sm.textContent = model;
 }
 
 function updateProfile(profile) {
   if (!profile) return;
-  const total = profile.total || 0;
-  const mc = el('#memory-count');
-  if (mc) mc.textContent = total;
 }
 
 // ── Sessions sidebar ───────────────────────────────────────────
 function renderSessions(convs, autoLoad = true) {
   const list = el('#sessions-list');
   list.innerHTML = '';
+  if (!S.sessionMenuBound) {
+    document.addEventListener('click', () => {
+      list.querySelectorAll('.session-item.menu-open').forEach((node) => node.classList.remove('menu-open'));
+    });
+    S.sessionMenuBound = true;
+  }
   if (!convs || !convs.length) {
+    S.currentConversationId = null;
     return;
   }
   let firstItem = null;
   convs.forEach((c, i) => {
     const d = document.createElement('div');
-    d.className = 'session-item' + (i === 0 ? ' active' : '');
+    const convId = Number(c.id);
+    const isActive = S.currentConversationId != null
+      ? Number(S.currentConversationId) === convId
+      : i === 0;
+    d.className = 'session-item' + (isActive ? ' active' : '');
     d.dataset.convId = c.id;
     const title = c.title || (c.first_message || '').slice(0, 40) || `Session ${i + 1}`;
     const date  = c.updated_at ? new Date(c.updated_at).toLocaleDateString('fr') : '';
     d.innerHTML = `
-      <div class="session-title">${esc(title)}</div>
-      <div class="session-date">${esc(date)}</div>`;
+      <div class="session-main">
+        <div class="session-title">${esc(title)}</div>
+        <div class="session-date">${esc(date)}</div>
+      </div>
+      <button class="session-menu-btn" type="button" title="Actions conversation" aria-label="Actions conversation">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle cx="12" cy="5" r="1.8" fill="currentColor"></circle>
+          <circle cx="12" cy="12" r="1.8" fill="currentColor"></circle>
+          <circle cx="12" cy="19" r="1.8" fill="currentColor"></circle>
+        </svg>
+      </button>
+      <div class="session-menu" role="menu">
+        <button class="session-menu-item rename" type="button" role="menuitem" title="Renommer">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 20h9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+            <path d="M16.5 3.5a2.1 2.1 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path>
+          </svg>
+          <span>Renommer</span>
+        </button>
+        <button class="session-menu-item archive" type="button" role="menuitem" title="Archiver">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <rect x="3.5" y="4.5" width="17" height="4" rx="1" stroke="currentColor" stroke-width="1.8"></rect>
+            <path d="M5 8.5v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-9" stroke="currentColor" stroke-width="1.8"></path>
+            <path d="M10 12h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+          </svg>
+          <span>Archiver</span>
+        </button>
+        <button class="session-menu-item delete" type="button" role="menuitem" title="Supprimer">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M4 7h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+            <path d="M9 7V5h6v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+            <path d="M7 7l1 12h8l1-12" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path>
+          </svg>
+          <span>Supprimer</span>
+        </button>
+      </div>`;
     d.addEventListener('click', () => {
       list.querySelectorAll('.session-item').forEach(s => s.classList.remove('active'));
       d.classList.add('active');
+      S.currentConversationId = convId;
       // Load conversation content
-      const convId = parseInt(d.dataset.convId);
       S.bissi.loadConversation(convId, json => {
         try {
           const history = JSON.parse(json);
@@ -691,8 +767,75 @@ function renderSessions(convs, autoLoad = true) {
         }
       });
     });
+
+    const menuBtn = d.querySelector('.session-menu-btn');
+    menuBtn?.addEventListener('click', (event) => {
+      event.stopPropagation();
+      const isOpen = d.classList.contains('menu-open');
+      list.querySelectorAll('.session-item.menu-open').forEach((node) => node.classList.remove('menu-open'));
+      if (!isOpen) d.classList.add('menu-open');
+    });
+
+    const renameBtn = d.querySelector('.session-menu-item.rename');
+    renameBtn?.addEventListener('click', (event) => {
+      event.stopPropagation();
+      d.classList.remove('menu-open');
+      if (!S.bissi?.renameConversation) return;
+      const nextTitle = window.prompt('Nouveau titre de la conversation :', title);
+      if (!nextTitle) return;
+      const trimmed = nextTitle.trim();
+      if (!trimmed || trimmed === title) return;
+      S.bissi.renameConversation(convId, trimmed, (raw) => {
+        let payload = {};
+        try { payload = JSON.parse(raw); } catch (_) {}
+        if (!payload.success) {
+          sysMsg(`Erreur : ${payload.error || 'renommage impossible'}`, 'error');
+        }
+      });
+    });
+
+    const archiveBtn = d.querySelector('.session-menu-item.archive');
+    archiveBtn?.addEventListener('click', (event) => {
+      event.stopPropagation();
+      d.classList.remove('menu-open');
+      if (!S.bissi?.archiveConversation) return;
+      if (!window.confirm('Archiver cette conversation ?')) return;
+      S.bissi.archiveConversation(convId, (raw) => {
+        let payload = {};
+        try { payload = JSON.parse(raw); } catch (_) {}
+        if (!payload.success) {
+          sysMsg(`Erreur : ${payload.error || 'archivage impossible'}`, 'error');
+          return;
+        }
+        if (S.currentConversationId === convId) {
+          S.currentConversationId = null;
+          resetMessages(true);
+        }
+      });
+    });
+
+    const deleteBtn = d.querySelector('.session-menu-item.delete');
+    deleteBtn?.addEventListener('click', (event) => {
+      event.stopPropagation();
+      d.classList.remove('menu-open');
+      if (!S.bissi?.deleteConversation) return;
+      if (!window.confirm('Supprimer définitivement cette conversation ?')) return;
+      S.bissi.deleteConversation(convId, (raw) => {
+        let payload = {};
+        try { payload = JSON.parse(raw); } catch (_) {}
+        if (!payload.success) {
+          sysMsg(`Erreur : ${payload.error || 'suppression impossible'}`, 'error');
+          return;
+        }
+        if (S.currentConversationId === convId) {
+          S.currentConversationId = null;
+          resetMessages(true);
+        }
+      });
+    });
+
     list.appendChild(d);
-    if (i === 0) firstItem = d;
+    if (isActive || (!firstItem && i === 0)) firstItem = d;
   });
   
   // Auto-load the first (newest) conversation only if autoLoad flag is true
@@ -734,9 +877,7 @@ function loadDir(path) {
       const data = JSON.parse(raw);
       if (!data.success) return;
       S.curPath = target;
-      // Replace leading /home/<user> or /Users/<user> with ~ for a friendlier path display.
-      const displayPath = target.replace(/^\/(home|Users)\/[^/]+/, '~');
-      el('#explorer-path').textContent = displayPath;
+      el('#explorer-path').textContent = maskPath(target);
       buildTree(data.items, target);
     } catch { /* ignore */ }
   });
@@ -936,20 +1077,18 @@ function closeSidebar() {
   setSidebarCollapsed(true);
 }
 
-// ── Session timer ──────────────────────────────────────────────
-function startTimer() {
-  setInterval(() => {
-    const ms = Date.now() - S.sessionStart;
-    const hh = String(Math.floor(ms / 3600000)).padStart(2, '0');
-    const mm = String(Math.floor((ms % 3600000) / 60000)).padStart(2, '0');
-    const ss = String(Math.floor((ms % 60000) / 1000)).padStart(2, '0');
-    el('#status-session').textContent = `Session · ${hh}:${mm}:${ss}`;  }, 1000);
-}
-
 // ── Utilities ──────────────────────────────────────────────────
 const el = s => document.querySelector(s);
 
+function maskPath(path) {
+  const p = String(path || '');
+  if (!p) return '~';
+  if (p === '/home' || p === '/Users') return '~';
+  return p.replace(/^\/(home|Users)\/[^/]+/, '~');
+}
+
 function esc(str) {
+  if (window.BissiFrontend?.esc) return window.BissiFrontend.esc(str);
   return String(str)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')

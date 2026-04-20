@@ -1,18 +1,19 @@
-"""Safe Python code execution for BISSI.
+"""Restricted Python execution for BISSI.
 
-Provides a sandboxed environment for running Python code with data analysis capabilities.
+This module intentionally uses a separate Python subprocess with a real timeout.
+It is still not a fully isolated OS-level sandbox, but it is materially safer
+and more reliable for demos than in-process ``exec``.
 """
+import json
+import subprocess
 import sys
-import io
-import contextlib
-from pathlib import Path
-from typing import Dict, Any, Optional, Union, List
-import traceback
+import importlib
 import ast
+from typing import Dict, Any
 
 
 class PythonSandbox:
-    """Sandboxed Python execution environment."""
+    """Restricted Python execution environment."""
     
     # Allowed modules for data analysis
     ALLOWED_MODULES = {
@@ -37,54 +38,6 @@ class PythonSandbox:
         """
         self.timeout = timeout
         self.execution_history = []
-        self.globals = self._setup_globals()
-    
-    def _setup_globals(self) -> Dict[str, Any]:
-        """Setup safe global namespace."""
-        safe_globals = {
-            '__builtins__': self._get_safe_builtins()
-        }
-        
-        # Import allowed modules
-        for module_name in self.ALLOWED_MODULES:
-            try:
-                module = __import__(module_name)
-                safe_globals[module_name] = module
-                # Common aliases
-                if module_name == 'pandas':
-                    safe_globals['pd'] = module
-                elif module_name == 'numpy':
-                    safe_globals['np'] = module
-                elif module_name == 'matplotlib':
-                    safe_globals['plt'] = module.pyplot
-            except ImportError:
-                pass
-        
-        return safe_globals
-    
-    def _get_safe_builtins(self) -> Dict[str, Any]:
-        """Get safe builtin functions."""
-        safe_builtins = {}
-        
-        # Whitelist safe builtins
-        safe_names = [
-            'abs', 'all', 'any', 'ascii', 'bin', 'bool', 'bytearray',
-            'bytes', 'callable', 'chr', 'complex', 'dict', 'dir',
-            'divmod', 'enumerate', 'filter', 'float', 'format',
-            'frozenset', 'hasattr', 'hash', 'hex', 'id', 'int',
-            'isinstance', 'issubclass', 'iter', 'len', 'list',
-            'locals', 'map', 'max', 'memoryview', 'min', 'next',
-            'oct', 'ord', 'pow', 'print', 'property', 'range',
-            'repr', 'reversed', 'round', 'set', 'slice', 'sorted',
-            'staticmethod', 'str', 'sum', 'tuple', 'type', 'vars',
-            'zip', 'True', 'False', 'None'
-        ]
-        
-        for name in safe_names:
-            if name in __builtins__:
-                safe_builtins[name] = __builtins__[name]
-        
-        return safe_builtins
     
     def _is_code_safe(self, code: str) -> tuple[bool, str]:
         """Check if code contains forbidden elements.
@@ -111,12 +64,15 @@ class PythonSandbox:
             # Check imports
             if isinstance(node, ast.Import):
                 for alias in node.names:
-                    if alias.name not in self.ALLOWED_MODULES:
+                    root = alias.name.split('.')[0]
+                    if root not in self.ALLOWED_MODULES:
                         return False, f"Forbidden import: {alias.name}"
             
             elif isinstance(node, ast.ImportFrom):
-                if node.module and node.module not in self.ALLOWED_MODULES:
-                    return False, f"Forbidden import from: {node.module}"
+                if node.module:
+                    root = node.module.split('.')[0]
+                    if root not in self.ALLOWED_MODULES:
+                        return False, f"Forbidden import from: {node.module}"
             
             # Check for dangerous calls
             elif isinstance(node, ast.Call):
@@ -144,37 +100,41 @@ class PythonSandbox:
                 'output': ''
             }
         
-        # Capture stdout
-        stdout_capture = io.StringIO()
-        
         try:
-            with contextlib.redirect_stdout(stdout_capture):
-                # Execute with timeout (simplified - real timeout needs threading)
-                exec(code, self.globals)
-            
-            output = stdout_capture.getvalue()
-            
-            # Record execution
-            self.execution_history.append({
-                'code': code[:100] + '...' if len(code) > 100 else code,
-                'success': True
-            })
-            
-            return {
-                'success': True,
-                'output': output,
-                'error': None
-            }
-            
-        except Exception as e:
-            error_msg = f"{type(e).__name__}: {str(e)}"
-            tb = traceback.format_exc()
-            
+            completed = subprocess.run(
+                [sys.executable, "-I", "-c", self._bootstrap_code()],
+                input=code,
+                text=True,
+                capture_output=True,
+                timeout=self.timeout,
+                env={"MPLBACKEND": "Agg"},
+            )
+        except subprocess.TimeoutExpired:
             return {
                 'success': False,
-                'output': stdout_capture.getvalue(),
-                'error': error_msg,
-                'traceback': tb
+                'output': '',
+                'error': f"Timeout after {self.timeout}s",
+            }
+
+        if completed.returncode != 0:
+            return {
+                'success': False,
+                'output': completed.stdout,
+                'error': completed.stderr.strip() or f"Subprocess failed with exit code {completed.returncode}",
+            }
+
+        try:
+            payload = json.loads(completed.stdout)
+            self.execution_history.append({
+                'code': code[:100] + '...' if len(code) > 100 else code,
+                'success': payload.get('success', False)
+            })
+            return payload
+        except json.JSONDecodeError:
+            return {
+                'success': False,
+                'output': completed.stdout,
+                'error': 'Invalid sandbox response',
             }
     
     def execute_expression(self, expression: str) -> Any:
@@ -190,10 +150,10 @@ class PythonSandbox:
         if not is_safe:
             raise ValueError(f"Security error: {reason}")
         
-        try:
-            return eval(expression, self.globals)
-        except Exception as e:
-            raise ValueError(f"Evaluation error: {e}")
+        result = self.execute(f"print(repr({expression}))")
+        if not result.get("success"):
+            raise ValueError(f"Evaluation error: {result.get('error')}")
+        return result.get("output", "").strip()
     
     def get_variable(self, name: str) -> Any:
         """Get variable from sandbox globals.
@@ -204,7 +164,7 @@ class PythonSandbox:
         Returns:
             Variable value
         """
-        return self.globals.get(name)
+        raise NotImplementedError("Variables are not persisted across subprocess runs.")
     
     def set_variable(self, name: str, value: Any) -> None:
         """Set variable in sandbox globals.
@@ -213,15 +173,88 @@ class PythonSandbox:
             name: Variable name
             value: Value to set
         """
-        self.globals[name] = value
+        raise NotImplementedError("Variables are not persisted across subprocess runs.")
     
     def get_available_variables(self) -> Dict[str, str]:
         """Get list of defined variables with their types."""
-        variables = {}
-        for name, value in self.globals.items():
-            if not name.startswith('_'):
-                variables[name] = type(value).__name__
-        return variables
+        return {}
+
+    @classmethod
+    def _bootstrap_code(cls) -> str:
+        allowed_modules = sorted(cls.ALLOWED_MODULES)
+        forbidden_calls = sorted(cls.FORBIDDEN_KEYWORDS)
+        return f"""
+import builtins
+import contextlib
+import importlib
+import io
+import json
+import traceback
+import sys
+
+ALLOWED_MODULES = {allowed_modules!r}
+SAFE_NAMES = [
+    'abs', 'all', 'any', 'ascii', 'bin', 'bool', 'bytearray',
+    'bytes', 'callable', 'chr', 'complex', 'dict', 'dir',
+    'divmod', 'enumerate', 'filter', 'float', 'format',
+    'frozenset', 'hasattr', 'hash', 'hex', 'id', 'int',
+    'isinstance', 'issubclass', 'iter', 'len', 'list',
+    'locals', 'map', 'max', 'memoryview', 'min', 'next',
+    'oct', 'ord', 'pow', 'print', 'property', 'range',
+    'repr', 'reversed', 'round', 'set', 'slice', 'sorted',
+    'staticmethod', 'str', 'sum', 'tuple', 'type', 'vars',
+    'zip', 'True', 'False', 'None'
+]
+FORBIDDEN_CALLS = {forbidden_calls!r}
+
+def safe_import(name, globals=None, locals=None, fromlist=(), level=0):
+    root = (name or '').split('.')[0]
+    if root not in ALLOWED_MODULES:
+        raise ImportError(f'Forbidden import: {{name}}')
+    module = importlib.import_module(name)
+    return module if fromlist else importlib.import_module(root)
+
+safe_builtins = {{name: getattr(builtins, name) for name in SAFE_NAMES if hasattr(builtins, name)}}
+safe_builtins['__import__'] = safe_import
+safe_globals = {{'__builtins__': safe_builtins}}
+
+for module_name in ALLOWED_MODULES:
+    try:
+        module = importlib.import_module(module_name)
+        safe_globals[module_name] = module
+        if module_name == 'pandas':
+            safe_globals['pd'] = module
+        elif module_name == 'numpy':
+            safe_globals['np'] = module
+        elif module_name == 'matplotlib':
+            try:
+                safe_globals['plt'] = importlib.import_module('matplotlib.pyplot')
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+code = sys.stdin.read()
+stdout_capture = io.StringIO()
+
+try:
+    with contextlib.redirect_stdout(stdout_capture):
+        exec(code, safe_globals)
+    payload = {{
+        'success': True,
+        'output': stdout_capture.getvalue(),
+        'error': None,
+    }}
+except Exception as exc:
+    payload = {{
+        'success': False,
+        'output': stdout_capture.getvalue(),
+        'error': f'{{type(exc).__name__}}: {{exc}}',
+        'traceback': traceback.format_exc(),
+    }}
+
+print(json.dumps(payload))
+"""
 
 
 def run_code(code: str, timeout: int = 30) -> Dict[str, Any]:

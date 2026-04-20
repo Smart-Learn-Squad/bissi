@@ -31,7 +31,9 @@ def write_text_file(file_path: Union[str, Path], content: str, append: bool = Fa
             'success': True,
             'path': str(path.absolute()),
             'size': path.stat().st_size,
-            'action': 'append' if append else 'write'
+            'action': 'append' if append else 'write',
+            'message': f"File {'updated' if append else 'written'}: {path}",
+            'task_done': True,
         }
     except Exception as e:
         return {'success': False, 'error': str(e)}
@@ -81,7 +83,9 @@ def replace_in_file(file_path: Union[str, Path],
         return {
             'success': True,
             'replacements': count,
-            'path': str(path.absolute())
+            'path': str(path.absolute()),
+            'message': f"Updated {count} occurrence(s) in {path}",
+            'task_done': True,
         }
     except Exception as e:
         return {'success': False, 'error': str(e)}

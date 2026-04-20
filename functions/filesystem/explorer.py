@@ -24,17 +24,29 @@ def read_text_file(file_path: Union[str, Path], max_lines: Optional[int] = None)
     try:
         path = Path(file_path)
         if not path.exists():
-            return {'error': f'File not found: {file_path}'}
+            return {
+                'success': False,
+                'error': f'File not found: {file_path}',
+                'path': str(path.absolute()),
+                'task_done': False,
+            }
         
         if not path.is_file():
-            return {'error': f'Not a file: {file_path}'}
+            return {
+                'success': False,
+                'error': f'Not a file: {file_path}',
+                'path': str(path.absolute()),
+                'task_done': False,
+            }
         
         # Read file content
         with open(path, 'r', encoding='utf-8', errors='ignore') as f:
+            truncated = False
             if max_lines:
                 lines = []
                 for i, line in enumerate(f):
                     if i >= max_lines:
+                        truncated = True
                         break
                     lines.append(line)
                 content = ''.join(lines)
@@ -42,13 +54,21 @@ def read_text_file(file_path: Union[str, Path], max_lines: Optional[int] = None)
                 content = f.read()
         
         return {
+            'success': True,
             'content': content,
             'lines': len(content.split('\n')),
             'size': path.stat().st_size,
-            'path': str(path.absolute())
+            'path': str(path.absolute()),
+            'truncated': truncated,
+            'task_done': not truncated,
         }
     except Exception as e:
-        return {'error': f'Failed to read file: {str(e)}'}
+        return {
+            'success': False,
+            'error': f'Failed to read file: {str(e)}',
+            'path': str(Path(file_path).absolute()),
+            'task_done': False,
+        }
 
 
 def list_directory(directory: Union[str, Path], 
@@ -88,8 +108,8 @@ def list_directory(directory: Union[str, Path],
                 'created': datetime.fromtimestamp(stat.st_ctime).isoformat()
             }
             items.append(info)
-    except PermissionError:
-        pass
+    except PermissionError as exc:
+        raise PermissionError(f"Permission denied: {path}") from exc
     
     # Sort: directories first, then alphabetical
     items.sort(key=lambda x: (0 if x['type'] == 'directory' else 1, x['name'].lower()))
@@ -313,9 +333,12 @@ def get_directory_tree(directory: Union[str, Path],
     return build_tree(path, 1)
 
 
-def get_recent_files(directory: Union[str, Path],
-                     hours: int = 24,
-                     pattern: str = "*") -> List[Dict[str, Any]]:
+def get_recent_files(
+    directory: Union[str, Path],
+    limit: int = 10,
+    hours: int = 24,
+    pattern: str = "*",
+) -> List[Dict[str, Any]]:
     """Get files modified within specified hours.
     
     Args:
@@ -324,7 +347,7 @@ def get_recent_files(directory: Union[str, Path],
         pattern: File pattern to match
         
     Returns:
-        List of recently modified files
+        List of recently modified files (newest first, limited)
     """
     from datetime import timedelta
     
@@ -349,4 +372,4 @@ def get_recent_files(directory: Union[str, Path],
     
     # Sort by modification time (newest first)
     recent.sort(key=lambda x: x['modified'], reverse=True)
-    return recent
+    return recent[:max(1, int(limit))]

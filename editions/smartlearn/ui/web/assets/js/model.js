@@ -11,13 +11,18 @@
     parserInFlight: false,
     parserLastRequestedRaw: "",
     quizRequestActive: false,
+    currentConversationId: null,
+    conversationMenuBound: false,
   };
 
   const $ = (sel) => document.querySelector(sel);
-  const esc = (s) => String(s ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+  const esc = (s) => {
+    if (window.BissiFrontend?.esc) return window.BissiFrontend.esc(s);
+    return String(s ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  };
   const PROGRESS_KEY = "bissi_smartlearn_progress";
 
   function loadProgress() {
@@ -250,7 +255,7 @@
     S.bissi.interrupted.connect(onInterrupted);
     S.bissi.conversationUpdated.connect((raw) => {
       try {
-        renderConversations(JSON.parse(raw));
+        renderConversations(JSON.parse(raw), false);
       } catch (_) {}
     });
   }
@@ -260,7 +265,7 @@
     S.bissi.getInitialData((raw) => {
       try {
         const data = JSON.parse(raw);
-        renderConversations(Array.isArray(data.conversations) ? data.conversations : []);
+        renderConversations(Array.isArray(data.conversations) ? data.conversations : [], true);
       } catch (_) {}
     });
   }
@@ -457,12 +462,16 @@
 
   function enhanceRenderedContent(root) {
     if (!root) return;
-    if (typeof hljs !== "undefined") {
+    if (window.BissiFrontend?.highlightCodeBlocks) {
+      window.BissiFrontend.highlightCodeBlocks(root);
+    } else if (typeof hljs !== "undefined") {
       root.querySelectorAll("pre code").forEach((block) => {
         try { hljs.highlightElement(block); } catch (_) {}
       });
     }
-    if (window._katexReady && typeof renderMathInElement !== "undefined") {
+    if (window.BissiFrontend?.renderMath) {
+      window.BissiFrontend.renderMath(root);
+    } else if (window._katexReady && typeof renderMathInElement !== "undefined") {
       try {
         renderMathInElement(root, {
           delimiters: [
@@ -604,10 +613,16 @@
     scrollToBottom();
   }
 
-  function renderConversations(conversations) {
+  function renderConversations(conversations, autoLoad = false) {
     const list = $("#conversationsList");
     if (!list) return;
     list.innerHTML = "";
+    if (!S.conversationMenuBound) {
+      document.addEventListener("click", () => {
+        list.querySelectorAll(".hist-item.menu-open").forEach((node) => node.classList.remove("menu-open"));
+      });
+      S.conversationMenuBound = true;
+    }
     if (!conversations.length) {
       const empty = document.createElement("div");
       empty.className = "hist-item";
@@ -619,12 +634,48 @@
     let firstItem = null;
     conversations.forEach((c, idx) => {
       const item = document.createElement("div");
-      item.className = `hist-item${idx === 0 ? " active" : ""}`;
+      const convId = Number(c.id);
+      const isActive = S.currentConversationId != null
+        ? Number(S.currentConversationId) === convId
+        : idx === 0;
+      item.className = `hist-item${isActive ? " active" : ""}`;
       item.dataset.convId = c.id;
       const title = c.title || c.first_message || `Session ${idx + 1}`;
       item.innerHTML = `
         <span class="hi-icon">💬</span>
         <span class="hi-text">${esc(title)}</span>
+        <button class="hist-menu-btn" type="button" title="Actions conversation" aria-label="Actions conversation">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="12" cy="5" r="1.8" fill="currentColor"></circle>
+            <circle cx="12" cy="12" r="1.8" fill="currentColor"></circle>
+            <circle cx="12" cy="19" r="1.8" fill="currentColor"></circle>
+          </svg>
+        </button>
+        <div class="hist-menu" role="menu">
+          <button class="hist-menu-item rename" type="button" role="menuitem" title="Renommer">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 20h9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+              <path d="M16.5 3.5a2.1 2.1 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path>
+            </svg>
+            <span>Renommer</span>
+          </button>
+          <button class="hist-menu-item archive" type="button" role="menuitem" title="Archiver">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <rect x="3.5" y="4.5" width="17" height="4" rx="1" stroke="currentColor" stroke-width="1.8"></rect>
+              <path d="M5 8.5v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-9" stroke="currentColor" stroke-width="1.8"></path>
+              <path d="M10 12h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+            </svg>
+            <span>Archiver</span>
+          </button>
+          <button class="hist-menu-item delete" type="button" role="menuitem" title="Supprimer">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M4 7h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+              <path d="M9 7V5h6v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+              <path d="M7 7l1 12h8l1-12" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path>
+            </svg>
+            <span>Supprimer</span>
+          </button>
+        </div>
       `;
 
       // Load conversation when clicked
@@ -632,8 +683,7 @@
         // mark active
         list.querySelectorAll('.hist-item').forEach(i => i.classList.remove('active'));
         item.classList.add('active');
-
-        const convId = parseInt(item.dataset.convId, 10);
+        S.currentConversationId = convId;
         if (!S.bissi?.loadConversation) return;
 
         S.bissi.loadConversation(convId, (raw) => {
@@ -702,18 +752,86 @@
         });
       });
 
+      const menuBtn = item.querySelector(".hist-menu-btn");
+      menuBtn?.addEventListener("click", (event) => {
+        event.stopPropagation();
+        const isOpen = item.classList.contains("menu-open");
+        list.querySelectorAll(".hist-item.menu-open").forEach((node) => node.classList.remove("menu-open"));
+        if (!isOpen) item.classList.add("menu-open");
+      });
+
+      const renameBtn = item.querySelector(".hist-menu-item.rename");
+      renameBtn?.addEventListener("click", (event) => {
+        event.stopPropagation();
+        item.classList.remove("menu-open");
+        if (!S.bissi?.renameConversation) return;
+        const nextTitle = window.prompt("Nouveau titre de la conversation :", title);
+        if (!nextTitle) return;
+        const trimmed = nextTitle.trim();
+        if (!trimmed || trimmed === title) return;
+        S.bissi.renameConversation(convId, trimmed, (raw) => {
+          let payload = {};
+          try {
+            payload = JSON.parse(raw);
+          } catch (_) {}
+          if (!payload.success) {
+            pushSystem(`Erreur : ${payload.error || "renommage impossible"}`);
+          }
+        });
+      });
+
+      const archiveBtn = item.querySelector(".hist-menu-item.archive");
+      archiveBtn?.addEventListener("click", (event) => {
+        event.stopPropagation();
+        item.classList.remove("menu-open");
+        if (!S.bissi?.archiveConversation) return;
+        if (!window.confirm("Archiver cette conversation ?")) return;
+        S.bissi.archiveConversation(convId, (raw) => {
+          let payload = {};
+          try {
+            payload = JSON.parse(raw);
+          } catch (_) {}
+          if (!payload.success) {
+            pushSystem(`Erreur : ${payload.error || "archivage impossible"}`);
+            return;
+          }
+          if (S.currentConversationId === convId) {
+            S.currentConversationId = null;
+            const messages = $("#messages");
+            if (messages && S.welcomeHtml) messages.innerHTML = S.welcomeHtml;
+          }
+        });
+      });
+
+      const deleteBtn = item.querySelector(".hist-menu-item.delete");
+      deleteBtn?.addEventListener("click", (event) => {
+        event.stopPropagation();
+        item.classList.remove("menu-open");
+        if (!S.bissi?.deleteConversation) return;
+        if (!window.confirm("Supprimer définitivement cette conversation ?")) return;
+        S.bissi.deleteConversation(convId, (raw) => {
+          let payload = {};
+          try {
+            payload = JSON.parse(raw);
+          } catch (_) {}
+          if (!payload.success) {
+            pushSystem(`Erreur : ${payload.error || "suppression impossible"}`);
+            return;
+          }
+          if (S.currentConversationId === convId) {
+            S.currentConversationId = null;
+            const messages = $("#messages");
+            if (messages && S.welcomeHtml) messages.innerHTML = S.welcomeHtml;
+          }
+        });
+      });
+
       list.appendChild(item);
-      if (idx === 0) firstItem = item;
+      if (isActive || (!firstItem && idx === 0)) firstItem = item;
     });
 
-    // Auto-load the first conversation if welcome screen is visible or messages empty
-    const msgs = $("#messages");
-    const welcome = $("#welcome");
-    if (firstItem && msgs) {
-      const showWelcome = welcome && welcome.style.display !== "none";
-      if (showWelcome || msgs.children.length === 0) {
-        firstItem.click();
-      }
+    if (autoLoad && firstItem) {
+      firstItem.click();
     }
   }
 
@@ -759,7 +877,16 @@
   }
 
   function nouvelleConversation() {
-    if (S.bissi?.newConversation) S.bissi.newConversation();
+    if (S.bissi?.newConversation) {
+      S.bissi.newConversation((raw) => {
+        try {
+          const data = JSON.parse(raw);
+          if (data?.conversation_id != null) {
+            S.currentConversationId = Number(data.conversation_id);
+          }
+        } catch (_) {}
+      });
+    }
     const messages = $("#messages");
     if (messages && S.welcomeHtml) messages.innerHTML = S.welcomeHtml;
     S.activeAiNode = null;

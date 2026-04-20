@@ -252,18 +252,64 @@
     .hist-item.active { background: var(--blue-dim); color: var(--blue); border-left-color: var(--blue); font-weight: 500; }
     .hi-icon { font-size: 14px; flex-shrink: 0; }
     .hi-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; opacity: 1; transition: opacity 0.2s; }
-    .hi-date { font-size: 10px; opacity: 0.55; margin-left: auto; flex-shrink: 0; }
-    .hist-del-btn {
-      width: 18px; height: 18px; border: none; border-radius: 6px;
-      margin-left: 4px; background: transparent; color: var(--text-faint);
-      cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
-      font-size: 14px; line-height: 1; opacity: 0; transition: all 0.15s;
-      flex-shrink: 0;
+    .hist-menu-btn {
+      margin-left: auto;
+      width: 20px;
+      height: 20px;
+      border: none;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text-faint);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.15s, background 0.15s, color 0.15s;
     }
-    .hist-item:hover .hist-del-btn,
-    .hist-item.active .hist-del-btn { opacity: 1; }
-    .hist-del-btn:hover { background: var(--red-dim); color: var(--red); }
+    .hist-menu-btn svg { width: 13px; height: 13px; }
+    .hist-item:hover .hist-menu-btn,
+    .hist-item.active .hist-menu-btn,
+    .hist-item.menu-open .hist-menu-btn { opacity: 1; }
+    .hist-menu-btn:hover { background: var(--blue-dim); color: var(--blue); }
+
+    .hist-menu {
+      position: absolute;
+      right: 8px;
+      top: calc(100% - 2px);
+      min-width: 132px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--card);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.25);
+      padding: 6px;
+      display: none;
+      flex-direction: column;
+      gap: 2px;
+      z-index: 80;
+    }
+    .hist-item.menu-open .hist-menu { display: flex; }
+    .hist-menu-item {
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--text);
+      font-size: 12px;
+      font-family: inherit;
+      padding: 6px 8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      text-align: left;
+    }
+    .hist-menu-item svg { width: 13px; height: 13px; flex-shrink: 0; }
+    .hist-menu-item.rename:hover { background: var(--blue-dim); color: var(--blue); }
+    .hist-menu-item.archive:hover { background: rgba(16, 185, 129, 0.12); color: #34d399; }
+    .hist-menu-item.delete:hover { background: var(--red-dim); color: var(--red); }
     .sidebar.collapsed .hi-text { opacity: 0; }
+    .sidebar.collapsed .hist-menu-btn,
+    .sidebar.collapsed .hist-menu { display: none; }
     .sidebar.collapsed .hist-item { justify-content: center; }
     /* Masquer complètement conversations et label quand collapsed */
     .sidebar.collapsed .section-lbl,
@@ -506,6 +552,25 @@
     .msg.user .msg-content { background: var(--blue-dim); border: 1px solid var(--border); border-radius: 4px 16px 16px 16px; padding: 12px 16px; font-size: 16px; line-height: 1.75; color: var(--text); }
     .msg.ai .msg-content { font-size: 16px; line-height: 1.85; color: var(--text); padding-top: 2px; }
     .msg.ai .msg-content p + p { margin-top: 10px; }
+    .msg.ai .msg-content pre {
+      margin: 10px 0;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(10, 16, 28, 0.92);
+      overflow: auto;
+    }
+    .msg.ai .msg-content pre code {
+      display: block;
+      padding: 12px 14px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: "Fira Code", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #dbeafe;
+      background: transparent;
+      border: none;
+    }
     .tw-text { white-space: pre-wrap; }
     .typing-cursor {
       display: inline-block;

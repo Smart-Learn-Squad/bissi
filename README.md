@@ -1,217 +1,127 @@
-# BISSI (by Smart-Learn Squad)
+# BISSI
 
-> **"Optima, immo absoluta perfectio"**
+> **Optima, immo absoluta perfectio**
 
-## Vision
-BISSI is the definitive answer to the digital divide. Where the cloud fails due to bandwidth constraints, BISSI excels through its local presence. We are reclaiming technological sovereignty by bringing world-class intelligence directly to the edge.
+BISSI est un assistant IA **local-first**, pensé pour tourner sur la machine de l’utilisateur avec **Gemma 4 via Ollama**. Le projet privilégie l’usage réel, la confidentialité et une UX différente selon le contexte.
+
+## Ce qui est réellement implémenté aujourd’hui
+
+- **Moteur agent local** en Python, avec appel d’outils via Ollama.
+- **Trois éditions** :
+  - `master` : poste de travail généraliste
+  - `codes` : TUI orientée développement
+  - `smartlearn` : mode apprentissage
+- **Mémoire locale** :
+  - historique de conversation en SQLite
+  - index vectoriel Chroma pour RAG local
+- **Outils utilisables** :
+  - lecture/écriture de documents Word, Excel et PowerPoint
+  - lecture PDF/OCR
+  - lecture/édition de fichiers texte
+  - exploration du système de fichiers
+  - exécution Python restreinte avec timeout réel
+  - presse-papiers
+- **Moteur de workflows** local, simple, de style IFTTT
+
+## Positionnement
+
+BISSI n’est pas un framework cloud-first ni une simple interface de chat.
+
+Le projet vise un **assistant personnel local**, capable de :
+- travailler avec les fichiers de l’utilisateur,
+- produire des artefacts,
+- aider au code, aux documents et à l’apprentissage,
+- rester exploitable hors ligne autant que possible.
+
+## Éditions disponibles
+
+- **Master** : `python main.py`
+- **Codes** : `python main.py --edition codes`
+- **SmartLearn** : `python main.py --edition smartlearn`
+- **Legacy UI** : `python main.py --legacy`
 
 ## Architecture
 
-### BISSI Lite (Smartlearn)
-**Target:** Students | **Model:** gemma4:e2b (2B parameters)
+- `main.py` sélectionne l’édition active.
+- `agent.py` contient la boucle principale de raisonnement + tools.
+- `core/` regroupe mémoire, moteur Ollama et routage simple.
+- `functions/` contient les capacités concrètes exposées à l’agent.
+- `ui/` contient les briques PyQt/WebEngine et le bridge frontend.
+- `workflows/` fournit l’automatisation locale.
 
-Designed for students with limited resources. Features AI tutoring and seamless Office document management for offline learning.
+## Prérequis
 
-- AI Tutor with step-by-step explanations
-- Office suite integration (Word, Excel, PowerPoint)
-- Study planning and exam preparation
-- Document analysis and summarization
+- Linux ou macOS
+- Python 3.11+
+- Ollama installé
+- modèle `gemma4:e2b` disponible localement
+- environnement virtuel `.venv`
 
-### BISSI Hi
-**Target:** Researchers | **Model:** gemma4:e2b (2B parameters)
-
-Engineered for complex research tasks. Capable of advanced data analysis while ensuring total data sovereignty.
-
-- DNA sequence analysis and bioinformatics
-- Survival analysis and statistical modeling
-- Research paper synthesis
-- Advanced data visualization
-
-## Why BISSI?
-
-* **Zero Latency:** No server wait times; immediate inference.
-* **Zero Data Cost:** Once downloaded, it remains free for life—no internet required.
-* **Privacy First:** Your documents and research data never leave your local machine.
-* **Modular Design:** Use only what you need.
-
-## Project Structure
-
-```
-bissi/
-│
-├── main.py                    # Application entry point
-├── manager.py                 # Central orchestrator (BissiManager)
-│
-├── core/                      # AI Engine & Memory
-│   ├── bissi.py              # Ollama LLM interface (BissiEngine)
-│   └── memory/
-│       ├── conversation_store.py  # SQLite chat persistence
-│       └── vector_store.py        # ChromaDB RAG system
-│
-├── functions/                 # Capabilities (28+ modules)
-│   ├── office/               # Document processing
-│   │   ├── word.py           # Word documents
-│   │   ├── excel.py          # Spreadsheets & formulas
-│   │   ├── powerpoint.py     # Presentations
-│   │   ├── pdf.py            # PDF text extraction
-│   │   └── ocr.py            # Tesseract OCR
-│   ├── database/
-│   │   └── access.py         # Microsoft Access via pyodbc
-│   ├── communication/
-│   │   ├── email_client.py   # IMAP/SMTP client
-│   │   ├── calendar.py       # Google Calendar integration
-│   │   └── contacts.py       # Contact management (vCard)
-│   ├── media/
-│   │   ├── audio.py          # Whisper transcription, TTS
-│   │   ├── image.py          # PIL image processing
-│   │   └── video.py          # FFmpeg frame extraction
-│   ├── code/
-│   │   └── python_runner.py  # RestrictedPython sandbox
-│   ├── data/
-│   │   └── analysis.py       # Pandas/NumPy analytics
-│   ├── web/
-│   │   └── search.py         # URL fetching, content extraction
-│   ├── templates/
-│   │   ├── engine.py         # Jinja2 template engine
-│   │   └── repository.py     # Template storage
-│   ├── finance/
-│   │   └── expense_manager.py # Expense tracker integration
-│   ├── filesystem/
-│   │   └── explorer.py       # File navigation & search
-│   └── system/
-│       ├── operations.py     # Safe file operations
-│       └── clipboard.py      # System clipboard access
-│
-├── workflows/                 # Automation (IFTTT-style)
-│   ├── engine.py             # Workflow orchestrator
-│   ├── triggers.py           # Event triggers (time, file, etc.)
-│   └── actions.py            # Executable actions
-│
-├── configs/                   # Configuration & Personas
-│   ├── settings.py           # Global settings manager
-│   └── personas/
-│       ├── researcher.py     # Research assistant persona
-│       ├── student.py        # Study companion persona
-│       └── office_assistant.py # Productivity persona
-│
-├── ui/                        # User Interface
-│   ├── components/           # Atomic design system
-│   │   ├── atoms.py         # Buttons, inputs, labels
-│   │   ├── molecules.py     # Chat bubbles, cards
-│   │   ├── organisms.py     # Sidebar, ChatArea
-│   │   └── complex.py       # Code blocks, drop zones
-│   └── styles/
-│       └── theme.py         # Design tokens
-│
-└── utils/                     # Shared utilities
-    └── helpers.py            # Common functions (JSON, paths, etc.)
-```
-
-## Quick Start
+## Installation
 
 ```bash
-# Install dependencies
+cd ~/Dev/OFFMODE/bissi
+source .venv/bin/activate
 pip install -r requirements.txt
-
-# Configure Ollama (required)
-ollama pull gemma4:e2b  # For all Bissi editions
-
-# Launch application
-python -m bissi
+ollama pull gemma4:e2b
 ```
 
-## Key Features
-
-### Document Intelligence
-- Read/write Word, Excel, PowerPoint
-- PDF text extraction and OCR
-- Smart document summarization
-- Template-based generation
-
-### Communication Hub
-- Email (IMAP/SMTP) with attachments
-- Google Calendar event management
-- Contact vCard import/export
-- Meeting notes automation
-
-### Data & Analysis
-- Python sandbox for safe code execution
-- Pandas/NumPy data analysis
-- Automatic chart generation
-- Statistical insights
-
-### Media Processing
-- Audio transcription (Whisper)
-- Text-to-speech (gTTS)
-- Image processing (resize, convert)
-- Video frame extraction
-
-### Workflow Automation
-- File watchers (auto-backup, auto-process)
-- Scheduled tasks
-- Trigger-based actions
-- Document conversion pipelines
-
-## Configuration
-
-```python
-# ~/.bissi/config.json
-{
-    "model": "gemma4:e2b",
-    "persona": "student",
-    "memory": {
-        "conversation_db": "~/.bissi/conversations.db",
-        "vector_store": "~/.bissi/vector_store"
-    },
-    "office": {
-        "auto_backup": true,
-        "backup_dir": "~/.bissi/backups"
-    }
-}
-```
-
-## Dependencies
-
-**Core:**
-- `ollama` - Local LLM inference
-- `chromadb` - Vector database
-- `sqlite3` - Conversation storage
-
-**Office:**
-- `python-docx`, `openpyxl`, `python-pptx` - Document processing
-- `PyPDF2`, `pdfplumber` - PDF handling
-- `pytesseract`, `pdf2image` - OCR
-
-**Media:**
-- `whisper` - Audio transcription
-- `Pillow` - Image processing
-
-**Data:**
-- `pandas`, `numpy`, `matplotlib` - Analytics
-- `RestrictedPython` - Safe code execution
-
-## Development
+## Lancement
 
 ```bash
-# Run tests
-pytest tests/
-
-# Code style
-black bissi/
-flake8 bissi/
+python main.py
+python main.py --edition codes
+python main.py --edition smartlearn
+python main.py --legacy
 ```
 
-## License
+## Validation rapide
 
-MIT License - Smart-Learn Squad
+```bash
+source .venv/bin/activate
+.venv/bin/pytest -q tests
+python scripts/demo_check.py
+```
 
----
+## Parcours de démo recommandés
 
-### 🛡️ The Smart-Learn Squad
-*Refining intelligence through collective willpower.*
+1. **Master**
+   Ouvrir un fichier Excel, demander une synthèse, puis générer un `.docx`.
 
-* **Lead Engineer:** [Sam (goldensam777)](https://github.com/goldensam777)
-* **Core Architecture:** [Abdel](https://github.com/tarouwereabdelazim-arch)
-* **Logic & Systems:** [Tobie](https://github.com/tobiamadou-eng)
-* **UI/UX Design:** [Mauricia](https://github.com/neriah249-alt)
-* **Research & Data:** [Frejus](https://github.com/AthindehouFrejus)
+2. **Codes**
+   Lire un fichier source, expliquer un bug, proposer une correction et écrire un fichier texte de sortie.
+
+3. **SmartLearn**
+   Charger un document de cours ou un PDF, puis demander une explication pas à pas et un résumé.
+
+## Robustesse terminal (édition `codes`)
+
+L’édition `codes` active des fallbacks ASCII si le terminal ne gère pas correctement certains glyphes Unicode (box drawing, puces, séparateurs).
+
+Pour forcer ce mode en démo :
+
+```bash
+BISSI_CODES_ASCII=1 python main.py --edition codes
+```
+
+## Limites connues
+
+- L’exécution Python est **restreinte** avec timeout réel, mais ce n’est pas un sandbox OS complet.
+- Le projet est actuellement optimisé pour **Gemma 4** en mono-modèle local.
+- Certaines briques décrites dans les anciens documents d’architecture restent des pistes d’évolution, pas des composants déjà présents dans le repo.
+
+## Développement
+
+- privilégier des patchs ciblés et réversibles ;
+- préserver la séparation entre éditions ;
+- éviter les dépendances cloud non nécessaires ;
+- garder les changements UI cohérents entre `master` et `smartlearn`.
+- la boucle tools (`agent.py`) sérialise maintenant les retours dictionnaire en JSON complet pour conserver toutes les métadonnées (et éviter la perte de `path`, `size`, `task_done`, etc.).
+
+## Licence
+
+MIT License — Smart-Learn Squad
+
+## Attribution
+
+**Lead technique & auteur unique du code : [Sam (goldensam777)](https://github.com/goldensam777)**

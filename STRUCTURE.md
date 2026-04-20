@@ -1,42 +1,39 @@
 # BISSI - Smart-Learn Squad
-# Structure complète d'un Agent Bureau Local (Offline AI Agent)
+# Structure actuelle du dépôt
 
 ```
 bissi/
 │
 ├── main.py                          # Point d'entrée : Lance l'interface PyQt6
-├── manager.py                       # Orchestrateur central (UI ↔ Core ↔ Tools)
+├── manager.py                       # Dataclasses simples pour éditions/modèles
 ├── requirements.txt                 # Dépendances Python
 ├── .gitignore
 ├── README.md
 │
 ├── configs/                         # Mémoire & Paramètres globaux
 │   ├── __init__.py
-│   ├── settings.py                  # Sélection modèle, chemins, logs
+│   ├── settings.py                  # Réglages généraux
 │   ├── prompts.py                   # Prompts système BISSI
-│   ├── personas/                  # Personnalités spécialisées
+│   ├── personas/                    # Personnalités spécialisées
 │   │   ├── __init__.py
 │   │   ├── researcher.py
 │   │   ├── student.py
 │   │   └── office_assistant.py
-│   └── constants.py                 # Constantes globales
 │
-├── core/                            # Cerveau technique
+├── core/                            # Cerveau technique réellement utilisé
 │   ├── __init__.py
 │   ├── bissi.py                     # Moteur Ollama (interface LLM)
+│   ├── config.py                    # Configuration runtime
+│   ├── router.py                    # Heuristiques simples de scoring/routage
+│   ├── types.py                     # Types communs
+│   ├── user_profile.py              # Profil d'usage local
 │   ├── memory/                      # Mémoire persistante
 │   │   ├── __init__.py
 │   │   ├── conversation_store.py    # Historique conversations
-│   │   ├── vector_store.py          # Embeddings RAG (ChromaDB/FAISS)
-│   │   ├── embeddings.py            # Génération embeddings
-│   │   └── cache.py                 # Cache réponses fréquentes
-│   ├── planner.py                   # Décomposition tâches complexes
-│   ├── context_manager.py           # Gestion contexte conversation
-│   └── safety.py                    # Validation actions, sandbox
+│   │   └── vector_store.py          # Index vectoriel local (Chroma)
 │
-├── functions/                       # Muscles (Capacités spécifiques)
+├── functions/                       # Capacités effectivement présentes
 │   ├── __init__.py
-│   │
 │   ├── office/                      # Suite Office complète
 │   │   ├── __init__.py
 │   │   ├── word.py                  # DOCX read/write/template
@@ -48,32 +45,19 @@ bissi/
 │   ├── filesystem/                  # Système fichiers
 │   │   ├── __init__.py
 │   │   ├── explorer.py              # Navigation arborescence
-│   │   ├── search.py                # Recherche globale (fzf-style)
-│   │   ├── operations.py            # CRUD fichiers + confirmations
-│   │   ├── watcher.py               # Surveillance changements fichiers
-│   │   └── indexer.py               # Index contenu pour recherche rapide
+│   │   └── writer.py                # Lecture/écriture texte
 │   │
 │   ├── code/                        # Exécution code
 │   │   ├── __init__.py
-│   │   ├── python_runner.py         # Sandbox Python (pandas, numpy, plot)
-│   │   ├── shell.py                 # Commandes shell contrôlées
-│   │   ├── process_manager.py       # Liste/tue processus
-│   │   └── dependencies.py          # Gestion packages pip
+│   │   └── python_runner.py         # Exécution Python restreinte + timeout
 │   │
 │   ├── data/                        # Analyse données
 │   │   ├── __init__.py
 │   │   ├── analysis.py              # Stats descriptives
-│   │   ├── visualization.py         # Graphiques (matplotlib/seaborn)
-│   │   ├── database.py              # SQLite CRUD
-│   │   ├── formats.py               # CSV, JSON, Parquet, XML
-│   │   └── transformers.py          # Nettoyage/transformation données
 │   │
 │   ├── web/                         # Web & API (si connectivité)
 │   │   ├── __init__.py
 │   │   ├── search.py                # Moteur recherche web
-│   │   ├── fetch.py                 # Récupération contenu URL
-│   │   ├── api_client.py            # Client REST générique
-│   │   └── local_index.py           # Index contenu web sauvegardé
 │   │
 │   ├── communication/               # Communication
 │   │   ├── __init__.py
@@ -90,27 +74,23 @@ bissi/
 │   ├── system/                      # Contrôle système
 │   │   ├── __init__.py
 │   │   ├── clipboard.py             # Lire/écrire presse-papiers
-│   │   ├── screenshot.py            # Capture écran
-│   │   ├── notifications.py         # Notifications locales
-│   │   ├── automation.py            # Macros, raccourcis clavier
-│   │   └── scheduler.py             # Tâches planifiées (cron-like)
 │   │
 │   └── templates/                   # Génération documents
 │       ├── __init__.py
 │       ├── engine.py                # Moteur templates Jinja2
-│       ├── repository.py            # Stockage templates
-│       └── variables.py             # Extraction variables dynamiques
+│       └── repository.py            # Stockage templates
 │
-├── ui/                              # Interface utilisateur PyQt6
+├── ui/                              # Interface utilisateur PyQt6 / WebEngine
 │   ├── __init__.py
-│   ├── main_window.py               # Fenêtre principale
-│   ├── chat_widget.py               # Zone conversation
-│   ├── file_drop.py                 # Drag & drop fichiers
-│   ├── toolbar.py                   # Barre outils rapide
-│   ├── settings_dialog.py           # Panneau configuration
+│   ├── agent_worker.py              # Thread de travail agent
+│   ├── bridge.py                    # Pont Python ↔ JS
+│   ├── main_window.py               # Ancienne UI widgets
+│   ├── parser.py                    # Parsing frontend
+│   ├── web_window.py                # Fenêtre WebEngine principale
 │   └── styles/                      # Thèmes CSS/QSS
-│       ├── light.qss
-│       └── dark.qss
+│   ├── renderers/                   # Rendu markdown/rich text
+│   ├── themes/                      # Système de thème
+│   └── web/                         # Assets web partagés
 │
 ├── workflows/                       # Automations chaînées
 │   ├── __init__.py
@@ -122,9 +102,8 @@ bissi/
 │       ├── backup_daily.yaml
 │       └── email_digest.yaml
 │
-├── tests/                           # Tests unitaires & intégration
+├── tests/                           # Tests ciblés sur les briques critiques
 │   ├── __init__.py
-│   ├── conftest.py
 │   ├── test_core/
 │   ├── test_functions/
 │   └── test_workflows/
@@ -137,15 +116,11 @@ bissi/
 
 ```
 
-## Modules prioritaires (ordre implémentation)
+## À lire correctement
 
-1. **Office** (Word/Excel/PDF) - Core use case étudiants
-2. **Filesystem** (Explorer/Search) - Navigation indispensable
-3. **Code** (Python sandbox) - Analyses data
-4. **Memory** (Vector store) - RAG pour contexte persistant
-5. **Data** (DB/Formats) - Manipulation données structurées
-6. **System** (Clipboard/Screenshot) - Intégration OS
-7. **Communication** (Email/Calendar) - Productivité complète
-8. **Web** - Connexion optionnelle
-9. **Media** - Traitement avancé fichiers
-10. **Workflows** - Automations avancées
+Ce document décrit la **structure réelle du dépôt aujourd’hui**.
+
+Les anciens éléments de roadmap qui mentionnaient des modules comme
+`planner.py`, `context_manager.py`, `shell.py` ou `fetch.py` relevaient d’une
+vision d’extension plus large, mais ne doivent pas être présentés comme des
+composants déjà implémentés dans cette version.

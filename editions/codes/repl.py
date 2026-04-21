@@ -715,11 +715,12 @@ class BissiApp(App):
                     log.write(Text(f"  • {Path(img).name}", style=C_DIM))
 
         elif cmd_lower == "/attach":
-            parts = text.split(None, 1)
-            if len(parts) < 2:
+            # Use cmd_arg which already has the path
+            image_path = cmd_arg.strip()
+            if not image_path:
                 log.write(Text("Usage: /attach <image_path>", style=C_DIM))
             else:
-                self._add_pending_image(parts[1])
+                self._add_pending_image(image_path)
 
         elif cmd_lower == "/history":
             history = self.agent.get_conversation_history()

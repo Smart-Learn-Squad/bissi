@@ -489,26 +489,68 @@ class BissiApp(App):
                 nonlocal full_response
                 full_response += chunk
 
+            def _format_tool_call(name: str, args: dict) -> str:
+                """Format tool call like Bash(cmd) or Read(path=...)"""
+                if not args:
+                    return f"{name}()"
+
+                # Format args for display
+                formatted = []
+                for k, v in args.items():
+                    v_str = str(v)
+                    if len(v_str) > 40:
+                        v_str = v_str[:37] + "..."
+                    formatted.append(f"{k}={v_str!r}")
+
+                return f"{name}({', '.join(formatted)})"
+
             def on_tool_start(name: str, args):
                 tool_events.append(name)
+                # Format like Read(path="..."), Bash(cmd="...")
+                call_str = self._format_tool_call(name, args or {})
                 self.call_from_thread(
                     self.query_one(RichLog).write,
                     Text(f"  {_glyph('├', '+')} ", style=f"dim {C_BLUE}") +
-                    Text(f"{_glyph('⚙', '*')}  {name}", style=f"bold {C_YELLOW}")
+                    Text(f"{_glyph('⚙', '*')}  {call_str}", style=f"bold {C_YELLOW}")
                 )
 
             def on_tool_done(name: str, result):
-                # Show a brief excerpt of the tool result
-                snippet = str(result or "").strip().replace("\n", " ")
-                if len(snippet) > 100:
-                    snippet = snippet[:100] + _ellipsis()
-                status = _glyph("✓", "v")
-                icon_style = f"dim {C_GREEN}"
+                # Parse result for nice display
+                import json
+                try:
+                    parsed = json.loads(result or "{}")
+                    success = parsed.get("success", False)
+                    msg = parsed.get("message") or parsed.get("path") or ""
+                    error = parsed.get("error")
+                except:
+                    success = False
+                    msg = ""
+                    error = None
+
+                # Status icon
+                if success:
+                    status_icon = _glyph("✓", "v")
+                    icon_style = f"bold {C_GREEN}"
+                    status_text = f"{status_icon} completed"
+                else:
+                    status_icon = _glyph("✗", "x")
+                    icon_style = f"bold {C_RED}"
+                    status_text = f"{status_icon} failed"
+
+                # Add details
+                details = ""
+                if msg:
+                    details = f" — {msg}"
+                elif error:
+                    details = f" — {error[:80]}"
+                elif success:
+                    details = ""
+
                 self.call_from_thread(
                     self.query_one(RichLog).write,
                     Text(_pipe(), style=f"dim {C_BLUE}") +
-                    Text(status, style=icon_style) +
-                    (Text(f" — {snippet}", style=C_DIM) if snippet else Text(""))
+                    Text(status_text, style=icon_style) +
+                    (Text(details, style=C_DIM) if details else Text(""))
                 )
 
             def on_thinking(msg: str):

@@ -357,10 +357,14 @@ class StyledPresentation:
 
     def __init__(self, file_path: Optional[str] = None, width: float = 10, height: float = 7.5):
         self.file_path = file_path
-        self.presentation = Presentation()
-        self.slide_count = 0
-        self.presentation.slide_width = Inches(width)
-        self.presentation.slide_height = Inches(height)
+        if file_path and Path(file_path).exists():
+            self.presentation = Presentation(file_path)
+            self.slide_count = len(self.presentation.slides)
+        else:
+            self.presentation = Presentation()
+            self.slide_count = 0
+            self.presentation.slide_width = Inches(width)
+            self.presentation.slide_height = Inches(height)
 
     def add_title_slide(self, title: str, subtitle: str = None, color: RGBColor = None) -> 'StyledPresentation':
         slide_layout = self.presentation.slide_layouts[self.LAYOUT_TITLE]

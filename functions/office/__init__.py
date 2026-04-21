@@ -9,14 +9,18 @@ from .word import (
     read_document, read_with_structure, create_document
 )
 
-# Excel processing  
+# Excel processing
 from .excel import (
     read_excel, write_excel, get_sheet_names, get_sheet_info,
-    add_formula, create_chart, get_formulas, summarize_sheet
+    add_formula, create_chart, get_formulas, summarize_sheet,
+    StyledExcel, ExcelColors, NumberFormats
 )
 
 # PowerPoint processing
-from .powerpoint import PPTXAgent, read_presentation, get_presentation_info, create_presentation
+from .powerpoint import (
+    PPTXAgent, read_presentation, get_presentation_info, create_presentation,
+    StyledPresentation, PPTColors, Layouts
+)
 
 # PDF processing
 from .pdf import (

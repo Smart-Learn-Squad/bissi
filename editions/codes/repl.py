@@ -252,6 +252,7 @@ class BissiApp(App):
     BINDINGS = [
         Binding("ctrl+c", "app.quit", "Quit", show=False),
         Binding("ctrl+l", "clear_log",  "Clear", show=False),
+        Binding("ctrl+v", "paste_image", "Paste Image", show=False),
     ]
 
     def __init__(self, agent: BissiAgent, no_splash: bool = False):
@@ -263,6 +264,7 @@ class BissiApp(App):
         self._no_splash = no_splash
         self._splash_visible = False
         self._last_response = ""
+        self._pending_images: list[str] = []  # Images en attente d'analyse
 
     COMMANDS = [
         ("/new",     "Nouvelle conversation"),
@@ -270,6 +272,8 @@ class BissiApp(App):
         ("/model",   "Afficher le modèle actif"),
         ("/history", "Afficher l'historique récent"),
         ("/copy",    "Copier la dernière réponse"),
+        ("/attach",  "Ajouter une image"),
+        ("/analyze", "Analyser les images en attente"),
         ("/help",    "Afficher l'aide"),
         ("/exit",    "Quitter Bissi Codes"),
     ]
@@ -572,6 +576,9 @@ class BissiApp(App):
             def on_thinking(msg: str):
                 pass
 
+            # Process pending images if any
+            text = self._process_pending_images(text)
+
             self.agent.process_request(
                 text,
                 on_chunk=on_chunk,
@@ -692,6 +699,28 @@ class BissiApp(App):
                 Text(self.agent.model, style=f"bold {C_BLUE}")
             )
 
+        elif cmd_lower == "/analyze":
+            if not self._pending_images:
+                log.write(
+                    Text(_branch(last=True), style=C_DIM) +
+                    Text("Aucune image en attente. Utilise /attach <path>.", style=C_DIM)
+                )
+            else:
+                count = len(self._pending_images)
+                log.write(
+                    Text(_branch(last=True), style=C_DIM) +
+                    Text(f"📎 {count} image(s) prête(s) à analyser.", style=f"bold {C_GREEN}")
+                )
+                for img in self._pending_images:
+                    log.write(Text(f"  • {Path(img).name}", style=C_DIM))
+
+        elif cmd_lower == "/attach":
+            parts = text.split(None, 1)
+            if len(parts) < 2:
+                log.write(Text("Usage: /attach <image_path>", style=C_DIM))
+            else:
+                self._add_pending_image(parts[1])
+
         elif cmd_lower == "/history":
             history = self.agent.get_conversation_history()
             if not history:
@@ -796,6 +825,57 @@ class BissiApp(App):
     def action_clear_log(self) -> None:
         """Ctrl+L — clear the log without re-printing the splash screen."""
         self.query_one(RichLog).clear()
+
+    def action_paste_image(self) -> None:
+        """Ctrl+V — paste image from clipboard (if available)."""
+        try:
+            # Try to get image from clipboard via pyperclip
+            from pathlib import Path
+            import tempfile
+
+            # Check clipboard for image (platform-dependent)
+            # For now, show a message to drop a file
+            log = self.query_one(RichLog)
+            log.write(Text(""))
+            log.write(Text(f"📎 Drop an image file here or use /analyze <path>", style=C_DIM))
+        except Exception as e:
+            pass
+
+    def _add_pending_image(self, image_path: str) -> None:
+        """Add an image to pending analysis queue."""
+        path = Path(image_path)
+        if not path.exists():
+            return
+
+        valid_exts = {'.png', '.jpg', '.jpeg', '.webp', '.gif', '.bmp'}
+        if path.suffix.lower() not in valid_exts:
+            return
+
+        self._pending_images.append(str(path.absolute()))
+
+        # Show confirmation
+        log = self.query_one(RichLog)
+        log.write(Text(f"📎 Image added: {path.name} ({len(self._pending_images)} pending)"))
+
+    def _process_pending_images(self, text: str) -> str:
+        """Process any pending images before running the agent."""
+        if not self._pending_images:
+            return text
+
+        # Build image analysis prompt
+        images_to_analyze = self._pending_images.copy()
+        self._pending_images.clear()
+
+        # If user just sent "analyze", analyze the images
+        if text.strip().lower() in {"analyze", "décris", "describe", ""}:
+            prompt = f"Analyze these {len(images_to_analyze)} image(s)."
+            for img in images_to_analyze:
+                prompt += f" Image: {Path(img).name}"
+        else:
+            # User provided a question, use it
+            prompt = text
+
+        return prompt
 
 
 # ─── Public interface (unchanged from original) ────────────────────────────

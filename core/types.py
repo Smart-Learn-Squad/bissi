@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass, field
 from enum import Enum
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Callable, Protocol
 
 
@@ -54,7 +55,19 @@ class ToolResult:
     output: Optional[Any] = None
     error: Optional[str] = None
     message: Optional[str] = None
+    path: Optional[str] = None
+    size: Optional[int] = None
     task_done: bool = True
+
+    @classmethod
+    def ok(cls, output=None, message: str = None, path: str = None, size: int = None, task_done: bool = True):
+        """Create a success result."""
+        return cls(success=True, output=output, message=message, path=path, size=size, task_done=task_done)
+
+    @classmethod
+    def fail(cls, error: str, path: str = None, task_done: bool = False):
+        """Create an error result."""
+        return cls(success=False, error=error, path=path, task_done=task_done)
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for LLM consumption."""
@@ -65,8 +78,17 @@ class ToolResult:
             result["error"] = self.error
         if self.message:
             result["message"] = self.message
+        if self.path:
+            result["path"] = self.path
+        if self.size is not None:
+            result["size"] = self.size
         result["task_done"] = self.task_done
         return result
+
+
+class ToolError(Exception):
+    """Raised when a tool fails."""
+    pass
 
 
 @dataclass

@@ -1,12 +1,43 @@
 """Excel operations for BISSI.
 
 Provides functionality to read, write, and manipulate XLSX files.
+Includes StyledExcel for professional spreadsheets with styled headers and cells.
 """
 import openpyxl
 import pandas as pd
 from pathlib import Path
 from typing import List, Dict, Any, Optional, Union
 from openpyxl.chart import BarChart, LineChart, PieChart, Reference
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.utils import get_column_letter
+from openpyxl.formatting.rule import FormulaRule, ColorScaleRule
+from openpyxl.worksheet.datavalidation import DataValidation
+
+
+# Predefined color palettes for Excel styling
+class ExcelColors:
+    """Predefined color palette for Excel styling."""
+    PRIMARY = "2E86AB"       # Deep blue
+    SECONDARY = "212121"      # Dark gray
+    ACCENT = "E74C3C"       # Coral red
+    SUCCESS = "27AE60"      # Green
+    WARNING = "F1C40F"      # Yellow
+    INFO = "3498DB"          # Light blue
+    LIGHT_GRAY = "95A5A6"
+    HEADER_BG = "2E86AB"     # Header background
+    HEADER_FONT = "FFFFFF"   # Header font
+    ALT_ROW = "F0F8FF"      # Alternating row
+
+
+class NumberFormats:
+    """Excel number format presets."""
+    CURRENCY = '#,##0.00 €'
+    DECIMAL = '#,##0.00'
+    INTEGER = '#,##0'
+    PERCENT = '0.00%'
+    DATE = 'DD/MM/YYYY'
+    DATETIME = 'DD/MM/YYYY HH:MM'
+    SCIENTIFIC = '0.00E+00'
 
 
 def read_excel(file_path: Union[str, Path], 
@@ -230,3 +261,551 @@ def summarize_sheet(file_path: Union[str, Path],
     }
     
     return summary
+
+
+class StyledExcel:
+    """Create polished, styled Excel workbooks with headers, formats, and conditional styling.
+
+    Provides a fluent API for professional spreadsheet generation with:
+    - Styled header rows (bold, colored backgrounds)
+    - Column width management
+    - Frozen panes and filters
+    - Number formatting (currency, dates, percentages)
+    - Conditional formatting
+    - Merged cells
+    - Cell borders and alignment
+
+    Example:
+        wb = StyledExcel("sales.xlsx")
+        wb.add_sheet("Q1 2024")
+        wb.add_header_row(["Product", "Qty", "Price", "Total"])
+        wb.add_row(["Widget", 100, 9.99], bold=True)
+        wb.add_number_format("CURRENCY")
+        wb.freeze_panes("B2")
+        wb.auto_filter()
+        wb.save()
+    """
+
+    def __init__(self, file_path: Optional[str] = None):
+        """Initialize a styled workbook.
+
+        Args:
+            file_path: Path to save the workbook (optional, can set later)
+        """
+        self.file_path = file_path
+        self.workbook = openpyxl.Workbook()
+        self.current_sheet = self.workbook.active
+        self._column_configs = {}
+
+    @property
+    def sheet(self):
+        """Get current worksheet."""
+        return self.current_sheet
+
+    def add_sheet(self, name: str) -> 'StyledExcel':
+        """Add a new worksheet.
+
+        Args:
+            name: Sheet name
+
+        Returns:
+            self for fluent chaining
+        """
+        self.current_sheet = self.workbook.create_sheet(name)
+        self._column_configs = {}
+        return self
+
+    def set_active_sheet(self, name: str) -> 'StyledExcel':
+        """Set active sheet by name.
+
+        Args:
+            name: Sheet name
+
+        Returns:
+            self for fluent chaining
+        """
+        if name in self.workbook.sheetnames:
+            self.current_sheet = self.workbook[name]
+            self._column_configs = {}
+        return self
+
+    # ─────────────────────────────────────────────────────────
+    # Headers
+    # ─────────────────────────────────────────────────────────
+
+    def add_header_row(
+        self,
+        headers: List[str],
+        bold: bool = True,
+        bg_color: str = None,
+        font_color: str = None,
+        font_size: int = 11,
+        alignment: str = 'center',
+    ) -> 'StyledExcel':
+        """Add a styled header row.
+
+        Args:
+            headers: List of column headers
+            bold: Make headers bold
+            bg_color: Header background color (hex, default: PRIMARY)
+            font_color: Header font color (hex, default: WHITE)
+            font_size: Font size
+            alignment: 'left', 'center', 'right'
+
+        Returns:
+            self for fluent chaining
+        """
+        bg = bg_color or ExcelColors.HEADER_BG
+        font = font_color or ExcelColors.HEADER_FONT
+
+        fill = PatternFill(start_color=bg, end_color=bg, fill_type='solid')
+        font_style = Font(bold=bold, size=font_size, color=font)
+
+        align_map = {'left': 'left', 'center': 'center', 'right': 'right'}
+        alignment_style = Alignment(horizontal=align_map.get(alignment, 'center'), vertical='center')
+
+        for col, header in enumerate(headers, start=1):
+            cell = self.current_sheet.cell(row=1, column=col)
+            cell.value = header
+            cell.fill = fill
+            cell.font = font_style
+            cell.alignment = alignment_style
+
+        return self
+
+    def add_subheader_row(
+        self,
+        headers: List[str],
+        bold: bool = True,
+        font_size: int = 10,
+    ) -> 'StyledExcel':
+        """Add a secondary header row (below main header).
+
+        Args:
+            headers: List of sub-headers
+            bold: Make bold
+            font_size: Font size
+
+        Returns:
+            self for fluent chaining
+        """
+        row = self.current_sheet.max_row + 1
+        font_style = Font(bold=bold, size=font_size)
+
+        for col, header in enumerate(headers, start=1):
+            cell = self.current_sheet.cell(row=row, column=col)
+            cell.value = header
+            cell.font = font_style
+
+        return self
+
+    # ─────────────────────────────────────────────────────────
+    # Data Rows
+    # ─────────────────────────────────────────────────────────
+
+    def add_row(
+        self,
+        values: List[Any],
+        bold: bool = False,
+        italic: bool = False,
+        font_size: int = 11,
+        bg_color: str = None,
+    ) -> 'StyledExcel':
+        """Add a data row.
+
+        Args:
+            values: List of cell values
+            bold: Make row bold
+            italic: Make row italic
+            font_size: Font size
+            bg_color: Background color (for entire row)
+
+        Returns:
+            self for fluent chaining
+        """
+        row = self.current_sheet.max_row + 1
+        font_style = Font(bold=bold, italic=italic, size=font_size)
+
+        fill = None
+        if bg_color:
+            fill = PatternFill(start_color=bg_color, end_color=bg_color, fill_type='solid')
+
+        for col, value in enumerate(values, start=1):
+            cell = self.current_sheet.cell(row=row, column=col)
+            cell.value = value
+            cell.font = font_style
+            if fill:
+                cell.fill = fill
+
+        return self
+
+    def add_rows(
+        self,
+        data: List[List[Any]],
+        bold_rows: List[int] = None,
+    ) -> 'StyledExcel':
+        """Add multiple data rows.
+
+        Args:
+            data: 2D list of values
+            bold_rows: Row indices (0-based) to make bold
+
+        Returns:
+            self for fluent chaining
+        """
+        bold_set = set(bold_rows or [])
+        for i, row in enumerate(data):
+            self.add_row(row, bold=(i in bold_set))
+        return self
+
+    def add_data_table(
+        self,
+        data: List[dict],
+        columns: List[str] = None,
+        header_row: bool = True,
+    ) -> 'StyledExcel':
+        """Add table from list of dictionaries.
+
+        Args:
+            data: [{col1: val, col2: val}, ...]
+            columns: Column order (uses dict keys if None)
+            header_row: Include header row
+
+        Returns:
+            self for fluent chaining
+        """
+        if not data:
+            return self
+
+        cols = columns or list(data[0].keys())
+
+        # Header
+        if header_row:
+            self.add_header_row(cols)
+
+        # Data rows
+        for row in data:
+            self.add_row([row.get(col) for col in cols])
+
+        return self
+
+    # ─────────────────────────────────────────────────────────
+    # Number Formats
+    # ──────────��──────────────────────────────────────────────
+
+    def set_column_format(
+        self,
+        column: int,
+        format: str,
+    ) -> 'StyledExcel':
+        """Set number format for a column.
+
+        Args:
+            column: Column index (1-based)
+            format: Format string or key from NumberFormats
+
+        Returns:
+            self for fluent chaining
+        """
+        format_str = getattr(NumberFormats, format, format) if format.isupper() else format
+        max_row = self.current_sheet.max_row
+
+        for row in range(1, max_row + 1):
+            cell = self.current_sheet.cell(row=row, column=column)
+            cell.number_format = format_str
+
+        return self
+
+    def set_currency(self, column: int) -> 'StyledExcel':
+        """Format column as currency."""
+        return self.set_column_format(column, NumberFormats.CURRENCY)
+
+    def set_decimal(self, column: int, decimals: int = 2) -> 'StyledExcel':
+        """Format column as decimal."""
+        format_str = f'#,##{"0" * decimals}.{"0" * decimals}'
+        for row in range(1, self.current_sheet.max_row + 1):
+            self.current_sheet.cell(row=row, column=column).number_format = format_str
+        return self
+
+    def set_percent(self, column: int) -> 'StyledExcel':
+        """Format column as percentage."""
+        return self.set_column_format(column, NumberFormats.PERCENT)
+
+    def set_date(self, column: int) -> 'StyledExcel':
+        """Format column as date."""
+        return self.set_column_format(column, NumberFormats.DATE)
+
+    # ─────────────────────────────────────────────────────────
+    # Column Configuration
+    # ─────────────────────────────────────────────────────────
+
+    def set_column_width(self, column: int, width: float) -> 'StyledExcel':
+        """Set column width.
+
+        Args:
+            column: Column index (1-based)
+            width: Width in characters
+
+        Returns:
+            self for fluent chaining
+        """
+        col_letter = get_column_letter(column)
+        self.current_sheet.column_dimensions[col_letter].width = width
+        return self
+
+    def set_auto_column_width(self, column: int) -> 'StyledExcel':
+        """Auto-fit column width.
+
+        Args:
+            column: Column index (1-based)
+
+        Returns:
+            self for fluent chaining
+        """
+        col_letter = get_column_letter(column)
+        self.current_sheet.column_dimensions[col_letter].auto_size = True
+        return self
+
+    def set_column_widths(self, widths: List[float]) -> 'StyledExcel':
+        """Set multiple column widths.
+
+        Args:
+            widths: List of widths by column index
+
+        Returns:
+            self for fluent chaining
+        """
+        for i, width in enumerate(widths, start=1):
+            self.set_column_width(i, width)
+        return self
+
+    # ─────────────────────────────────────────────────────────
+    # Freeze & Filter
+    # ─────────────────────────────────────────────────────────
+
+    def freeze_panes(self, cell: str = 'B2') -> 'StyledExcel':
+        """Freeze panes at cell position.
+
+        Args:
+            cell: Cell reference (e.g., 'B2' freezes row 1 and column A)
+
+        Returns:
+            self for fluent chaining
+        """
+        self.current_sheet.freeze_panes = cell
+        return self
+
+    def freeze_header(self) -> 'StyledExcel':
+        """Freeze header row."""
+        return self.freeze_panes('A2')
+
+    def auto_filter(self, ref: str = None) -> 'StyledExcel':
+        """Add auto-filter to range.
+
+        Args:
+            ref: Range reference (e.g., 'A1:E10'). Uses all data if None.
+
+        Returns:
+            self for fluent chaining
+        """
+        if ref:
+            self.current_sheet.auto_filter.ref = ref
+        else:
+            # Auto-filter all data
+            max_row = self.current_sheet.max_row
+            max_col = self.current_sheet.max_column
+            if max_row > 0 and max_col > 0:
+                ref = f'A1:{get_column_letter(max_col)}{max_row}'
+                self.current_sheet.auto_filter.ref = ref
+        return self
+
+    # ─────────────────────────────────────────────────────────
+    # Cell Styling
+    # ─────────────────────────────────────────────────────────
+
+    def set_cell_color(
+        self,
+        row: int,
+        column: int,
+        bg_color: str,
+        font_color: str = None,
+    ) -> 'StyledExcel':
+        """Set cell background color.
+
+        Args:
+            row: Row index (1-based)
+            column: Column index (1-based)
+            bg_color: Background color (hex)
+            font_color: Font color (hex, optional)
+
+        Returns:
+            self for fluent chaining
+        """
+        cell = self.current_sheet.cell(row=row, column=column)
+        cell.fill = PatternFill(start_color=bg_color, end_color=bg_color, fill_type='solid')
+        if font_color:
+            cell.font = Font(color=font_color)
+        return self
+
+    def apply_borders(
+        self,
+        start_row: int = 1,
+        end_row: int = None,
+        start_col: int = 1,
+        end_col: int = None,
+        style: str = 'thin',
+    ) -> 'StyledExcel':
+        """Apply borders to range.
+
+        Args:
+            start_row: Start row (1-based)
+            end_row: End row (defaults to max row)
+            start_col: Start column (1-based)
+            end_col: End column (defaults to max col)
+            style: 'thin', 'medium', 'thick'
+
+        Returns:
+            self for fluent chaining
+        """
+        border_styles = {
+            'thin': Side(style='thin'),
+            'medium': Side(style='medium'),
+            'thick': Side(style='thick'),
+        }
+        side = border_styles.get(style, Side(style='thin'))
+        border = Border(left=side, right=side, top=side, bottom=side)
+
+        end_row = end_row or self.current_sheet.max_row
+        end_col = end_col or self.current_sheet.max_column
+
+        for row_idx in range(start_row, end_row + 1):
+            for col_idx in range(start_col, end_col + 1):
+                cell = self.current_sheet.cell(row=row_idx, column=col_idx)
+                cell.border = border
+
+        return self
+
+    def set_cell_alignment(
+        self,
+        row: int,
+        column: int,
+        horizontal: str = 'left',
+        vertical: str = 'center',
+    ) -> 'StyledExcel':
+        """Set cell alignment.
+
+        Args:
+            row: Row index (1-based)
+            column: Column index (1-based)
+            horizontal: 'left', 'center', 'right'
+            vertical: 'top', 'center', 'bottom'
+
+        Returns:
+            self for fluent chaining
+        """
+        cell = self.current_sheet.cell(row=row, column=column)
+        cell.alignment = Alignment(horizontal=horizontal, vertical=vertical)
+        return self
+
+    # ─────────────────────────────────────────────────────────
+    # Merged Cells
+    # ─────────────────────────────────────────────────────────
+
+    def merge_cells(
+        self,
+        start_row: int,
+        end_row: int,
+        start_col: int,
+        end_col: int,
+    ) -> 'StyledExcel':
+        """Merge cells.
+
+        Args:
+            start_row: Start row (1-based)
+            end_row: End row (1-based)
+            start_col: Start column (1-based)
+            end_col: End column (1-based)
+
+        Returns:
+            self for fluent chaining
+        """
+        start = f'{get_column_letter(start_col)}{start_row}'
+        end = f'{get_column_letter(end_col)}{end_row}'
+        self.current_sheet.merge_cells(f'{start}:{end}')
+        return self
+
+    # ─────────────────────────────────────────────────────────
+    # Conditional Formatting
+    # ─────────────────────────────────────────────────────────
+
+    def add_color_scale(
+        self,
+        start_row: int,
+        end_row: int,
+        start_col: int,
+        end_col: int,
+    ) -> 'StyledExcel':
+        """Apply color scale (gradient from low to high values).
+
+        Args:
+            start_row: Start row
+            end_row: End row
+            start_col: Start column
+            end_col: End column
+
+        Returns:
+            self for fluent chaining
+        """
+        ref = f'{get_column_letter(start_col)}{start_row}:{get_column_letter(end_col)}{end_row}'
+        rule = ColorScaleRule(
+            start_type='min', start_color=ExcelColors.INFO,
+            mid_type='percentile', mid_value=50, mid_color='FFF2CC',
+            end_type='max', end_color=ExcelColors.ACCENT,
+        )
+        self.current_sheet.conditional_formatting.add(ref, rule)
+        return self
+
+    # ─────────────────────────────────────────────────────────
+    # Data Validation
+    # ─────────────────────────────────────────────────────────
+
+    def add_dropdown(
+        self,
+        row: int,
+        column: int,
+        options: List[str],
+    ) -> 'StyledExcel':
+        """Add dropdown validation to cell.
+
+        Args:
+            row: Row index (1-based)
+            column: Column index (1-based)
+            options: List of dropdown options
+
+        Returns:
+            self for fluent chaining
+        """
+        dv = DataValidation(type='list', formula1=f'"{",".join(options)}"')
+        self.workbook.add_data_validation(dv)
+        cell = f'{get_column_letter(column)}{row}'
+        dv.add(self.current_sheet[cell])
+        return self
+
+    # ─────────────────────────────────────────────────────────
+    # Save
+    # ─────────────────────────────────────────────────────────
+
+    def save(self, file_path: str = None) -> None:
+        """Save the workbook.
+
+        Args:
+            file_path: Path to save (uses init path if None)
+        """
+        path = file_path or self.file_path
+        if not path:
+            raise ValueError("No file_path specified")
+        self.workbook.save(path)
+
+    def get_workbook(self) -> openpyxl.Workbook:
+        """Get underlying openpyxl Workbook."""
+        return self.workbook

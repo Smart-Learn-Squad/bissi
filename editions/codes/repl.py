@@ -122,6 +122,22 @@ def _ellipsis() -> str:
     return _glyph("…", "...")
 
 
+# ─── Tool call formatting ─────────────────────────────────────────────
+def _format_tool_call(name: str, args: dict) -> str:
+    """Format tool call like Bash(cmd) or Read(path=...)."""
+    if not args:
+        return f"{name}()"
+
+    formatted = []
+    for k, v in args.items():
+        v_str = str(v)
+        if len(v_str) > 40:
+            v_str = v_str[:37] + "..."
+        formatted.append(f"{k}={v_str!r}")
+
+    return f"{name}({', '.join(formatted)})"
+
+
 # ─── CSS ──────────────────────────────────────────────────────────────────────
 APP_CSS = """
 Screen {
@@ -507,7 +523,7 @@ class BissiApp(App):
             def on_tool_start(name: str, args):
                 tool_events.append(name)
                 # Format as ● ToolName(args)
-                call_str = self._format_tool_call(name, args or {})
+                call_str = _format_tool_call(name, args or {})
                 self.call_from_thread(
                     self.query_one(RichLog).write,
                     Text(f"{_glyph('●', '*')} ", style=f"bold {C_YELLOW}") +

@@ -280,7 +280,7 @@ class BissiApp(App):
 
     # ── Layout ────────────────────────────────────────────────────────────────
     def compose(self) -> ComposeResult:
-        yield RichLog(id="log-area", highlight=True, markup=False, wrap=True)
+        yield RichLog(id="log-area", highlight=True, markup=False, wrap=False)
         yield Vertical(id="suggest-box")
         with Horizontal(id="input-row"):
             yield Static(self._prompt_text(), id="prompt-label")
@@ -417,9 +417,11 @@ class BissiApp(App):
     def _sep_width(self) -> int:
         """Dynamic separator width from terminal."""
         try:
-            return max(40, self.size.width - 4)
+            if hasattr(self, 'size') and self.size:
+                return max(40, self.size.width - 4)
         except Exception:
-            return 64
+            pass
+        return 64
 
     def _print_splash(self, log: RichLog) -> None:
         splash_width = min(92, max(64, self.size.width - 8))

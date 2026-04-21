@@ -1,6 +1,5 @@
-# --- Python -
---
-__pycache__/
+# --- Python ---
+*/__pycache__/*
 *.py[cod]
 *$py.class
 *.so
@@ -70,3 +69,7 @@ tests_results/
 # Keep lightweight metadata in git, ignore heavy npz payloads.
 papers/upcycle_poc/*/dense/
 papers/upcycle_poc/*/moe_init/
+.claude/
+CLAUDE.md
+:memory:/
+manifeste_thermodynamique_programmatique.txt

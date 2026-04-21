@@ -122,6 +122,11 @@ FORBIDDEN:
             'python_runner': self._tool_python_runner,
             'get_clipboard': self._tool_get_clipboard,
             'set_clipboard': self._tool_set_clipboard,
+            # Vision tools
+            'describe_image': self._tool_describe_image,
+            'extract_text_from_image': self._tool_extract_text_from_image,
+            'analyze_screenshot': self._tool_analyze_screenshot,
+            'analyze_chart': self._tool_analyze_chart,
             'delete_file': self._tool_delete_file,
             'move_file': self._tool_move_file,
         }
@@ -780,6 +785,65 @@ FORBIDDEN:
                     }
                 }
             },
+            {
+                'type': 'function',
+                'function': {
+                    'name': 'describe_image',
+                    'description': 'Describe or analyze an image using Gemma 4 vision model. Supports PNG, JPG, WEBP, GIF, BMP formats.',
+                    'parameters': {
+                        'type': 'object',
+                        'properties': {
+                            'file_path': {'type': 'string', 'description': 'Path to the image file'},
+                            'prompt': {'type': 'string', 'description': 'Question or instruction about the image'},
+                            'detail': {'type': 'string', 'enum': ['low', 'high', 'auto'], 'description': 'Detail level (default: high)'}
+                        },
+                        'required': ['file_path']
+                    }
+                }
+            },
+            {
+                'type': 'function',
+                'function': {
+                    'name': 'extract_text_from_image',
+                    'description': 'Extract text from an image using vision model (OCR-like).',
+                    'parameters': {
+                        'type': 'object',
+                        'properties': {
+                            'file_path': {'type': 'string', 'description': 'Path to the image'},
+                            'language': {'type': 'string', 'description': 'Language code (default: eng)'}
+                        },
+                        'required': ['file_path']
+                    }
+                }
+            },
+            {
+                'type': 'function',
+                'function': {
+                    'name': 'analyze_screenshot',
+                    'description': 'Analyze a screenshot, identify UI elements, text, and layout.',
+                    'parameters': {
+                        'type': 'object',
+                        'properties': {
+                            'file_path': {'type': 'string', 'description': 'Path to the screenshot'}
+                        },
+                        'required': ['file_path']
+                    }
+                }
+            },
+            {
+                'type': 'function',
+                'function': {
+                    'name': 'analyze_chart',
+                    'description': 'Analyze a chart or graph, extract data points and trends.',
+                    'parameters': {
+                        'type': 'object',
+                        'properties': {
+                            'file_path': {'type': 'string', 'description': 'Path to the chart image'}
+                        },
+                        'required': ['file_path']
+                    }
+                }
+            },
         ]
 
     # --- Tool implementation wrappers ---
@@ -1037,6 +1101,27 @@ FORBIDDEN:
         elif operation == 'get_current_directory':
             return ToolResult.ok(output=os.getcwd())
         return ToolResult.fail(f'Unknown operation: {operation}')
+
+    # --- Vision tools ---
+    @tool_result
+    def _tool_describe_image(self, file_path: str, prompt: str = "Describe this image in detail.", detail: str = "high") -> ToolResult:
+        from functions.vision import describe_image
+        return describe_image(file_path, prompt, detail)
+
+    @tool_result
+    def _tool_extract_text_from_image(self, file_path: str, language: str = "eng") -> ToolResult:
+        from functions.vision import extract_text_from_image
+        return extract_text_from_image(file_path, language)
+
+    @tool_result
+    def _tool_analyze_screenshot(self, file_path: str) -> ToolResult:
+        from functions.vision import analyze_screenshot
+        return analyze_screenshot(file_path)
+
+    @tool_result
+    def _tool_analyze_chart(self, file_path: str) -> ToolResult:
+        from functions.vision import analyze_chart
+        return analyze_chart(file_path)
 
     # --- RAG helpers ---
 

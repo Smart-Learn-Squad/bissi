@@ -506,12 +506,12 @@ class BissiApp(App):
 
             def on_tool_start(name: str, args):
                 tool_events.append(name)
-                # Format like Read(path="..."), Bash(cmd="...")
+                # Format as ● ToolName(args)
                 call_str = self._format_tool_call(name, args or {})
                 self.call_from_thread(
                     self.query_one(RichLog).write,
-                    Text(f"  {_glyph('├', '+')} ", style=f"dim {C_BLUE}") +
-                    Text(f"{_glyph('⚙', '*')}  {call_str}", style=f"bold {C_YELLOW}")
+                    Text(f"{_glyph('●', '*')} ", style=f"bold {C_YELLOW}") +
+                    Text(f"{call_str}", style=C_WHITE)
                 )
 
             def on_tool_done(name: str, result):

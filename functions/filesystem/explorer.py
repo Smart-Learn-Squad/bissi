@@ -1,6 +1,15 @@
 """Filesystem operations for BISSI.
 
 Provides file navigation, search, and metadata extraction.
+
+Functions:
+- read_text_file: Read text file content
+- list_directory: List directory contents
+- search_files: Find files by name pattern
+- search_by_content: Find files by content
+- get_file_info: Get file metadata
+- get_directory_tree: Get directory hierarchy
+- get_recent_files: Get recently modified files
 """
 import os
 import fnmatch
@@ -8,37 +17,29 @@ from pathlib import Path
 from typing import List, Dict, Any, Optional, Union, Iterator
 from datetime import datetime
 
+from core.types import ToolResult
 
-def read_text_file(file_path: Union[str, Path], max_lines: Optional[int] = None) -> Dict[str, Any]:
+
+def read_text_file(file_path: Union[str, Path], max_lines: Optional[int] = None) -> ToolResult:
     """Read the content of a text file (Python, Markdown, TXT, JSON, etc.).
-    
+
     Use this tool to read source code files, documentation, config files, and any text-based file.
-    
+
     Args:
         file_path: Path to the text file
         max_lines: Maximum number of lines to read (default: all)
-        
+
     Returns:
-        Dictionary with file content and metadata
+        ToolResult with 'output' containing content, lines, size, truncated
     """
     try:
         path = Path(file_path)
         if not path.exists():
-            return {
-                'success': False,
-                'error': f'File not found: {file_path}',
-                'path': str(path.absolute()),
-                'task_done': False,
-            }
-        
+            return ToolResult.fail(f'File not found: {file_path}', path=str(path.absolute()))
+
         if not path.is_file():
-            return {
-                'success': False,
-                'error': f'Not a file: {file_path}',
-                'path': str(path.absolute()),
-                'task_done': False,
-            }
-        
+            return ToolResult.fail(f'Not a file: {file_path}', path=str(path.absolute()))
+
         # Read file content
         with open(path, 'r', encoding='utf-8', errors='ignore') as f:
             truncated = False
@@ -52,37 +53,33 @@ def read_text_file(file_path: Union[str, Path], max_lines: Optional[int] = None)
                 content = ''.join(lines)
             else:
                 content = f.read()
-        
-        return {
-            'success': True,
-            'content': content,
-            'lines': len(content.split('\n')),
-            'size': path.stat().st_size,
-            'path': str(path.absolute()),
-            'truncated': truncated,
-            'task_done': not truncated,
-        }
+
+        return ToolResult.ok(
+            output={
+                'content': content,
+                'lines': len(content.split('\n')),
+                'size': path.stat().st_size,
+                'truncated': truncated,
+            },
+            path=str(path.absolute()),
+            task_done=not truncated,
+        )
     except Exception as e:
-        return {
-            'success': False,
-            'error': f'Failed to read file: {str(e)}',
-            'path': str(Path(file_path).absolute()),
-            'task_done': False,
-        }
+        return ToolResult.fail(f'Failed to read file: {str(e)}', path=str(Path(file_path).absolute()))
 
 
-def list_directory(directory: Union[str, Path], 
+def list_directory(directory: Union[str, Path],
                    pattern: Optional[str] = None,
-                   include_hidden: bool = False) -> List[Dict[str, Any]]:
+                   include_hidden: bool = False) -> ToolResult:
     """List contents of a directory with metadata.
-    
+
     Args:
         directory: Path to directory
         pattern: Glob pattern to filter files (e.g., "*.py", "*.docx")
         include_hidden: Whether to include hidden files
-        
+
     Returns:
-        List of dictionaries with file/directory info
+        ToolResult with 'output' containing items list
     """
     path = Path(directory)
     items = []
@@ -109,37 +106,39 @@ def list_directory(directory: Union[str, Path],
             }
             items.append(info)
     except PermissionError as exc:
-        raise PermissionError(f"Permission denied: {path}") from exc
+        return ToolResult.fail(f"Permission denied: {path}")
     
     # Sort: directories first, then alphabetical
     items.sort(key=lambda x: (0 if x['type'] == 'directory' else 1, x['name'].lower()))
-    return items
+    return ToolResult.ok(output={'items': items})
 
 
 def search_files(directory: Union[str, Path],
                  pattern: str = "*",
                  recursive: bool = True,
-                 include_hidden: bool = False) -> List[Dict[str, Any]]:
+                 include_hidden: bool = False) -> ToolResult:
     """Search for files matching pattern in directory and subdirectories.
-    
+
     CRITICAL: This function searches BOTH the root directory AND all subdirectories.
     When searching for "*.py", it WILL find smartlearn.py, main.py at root level
     AND all __init__.py files in subdirectories.
-    
+
     Args:
         directory: Root directory to search
         pattern: Glob pattern (e.g., "*.txt", "report*", "*.py")
         recursive: Search in subdirectories (default: True)
         include_hidden: Include hidden files
-        
+
     Returns:
-        List of matching files with metadata including size
+        ToolResult with 'output' containing results list
     """
-    path = Path(directory).resolve()  # Resolve to absolute path
+    path = Path(directory).resolve()
+    if not path.exists():
+        return ToolResult.fail(f'Directory not found: {directory}', path=str(path))
+
     matches = []
     seen_paths = set()
-    
-    # Search 1: Root directory only (non-recursive)
+
     for item in path.glob(pattern):
         if not include_hidden and any(part.startswith('.') for part in item.parts):
             continue
@@ -155,8 +154,7 @@ def search_files(directory: Union[str, Path],
                     'modified': datetime.fromtimestamp(stat.st_mtime).isoformat(),
                     'directory': str(item.parent)
                 })
-    
-    # Search 2: Subdirectories (recursive)
+
     if recursive:
         for item in path.rglob(pattern):
             if not include_hidden and any(part.startswith('.') for part in item.parts):
@@ -173,24 +171,24 @@ def search_files(directory: Union[str, Path],
                         'modified': datetime.fromtimestamp(stat.st_mtime).isoformat(),
                         'directory': str(item.parent)
                     })
-    
-    return sorted(matches, key=lambda x: x['name'].lower())
+
+    return ToolResult.ok(output={'results': sorted(matches, key=lambda x: x['name'].lower())}, path=str(path))
 
 
 def search_by_content(directory: Union[str, Path],
                       query: str,
                       extensions: Optional[List[str]] = None,
-                      case_sensitive: bool = False) -> List[Dict[str, Any]]:
+                      case_sensitive: bool = False) -> ToolResult:
     """Search for files containing specific text.
-    
+
     Args:
         directory: Root directory to search
         query: Text to search for
         extensions: Limit to specific file extensions (e.g., ['.txt', '.py'])
         case_sensitive: Case sensitive search
-        
+
     Returns:
-        List of files containing the query text
+        ToolResult with 'output' containing results
     """
     path = Path(directory)
     matches = []
@@ -231,8 +229,8 @@ def search_by_content(directory: Union[str, Path],
                     })
         except Exception:
             continue
-    
-    return matches
+
+    return ToolResult.ok(output={'results': matches}, path=str(path))
 
 
 def _is_binary(file_path: Path, chunk_size: int = 1024) -> bool:
@@ -245,22 +243,22 @@ def _is_binary(file_path: Path, chunk_size: int = 1024) -> bool:
         return True
 
 
-def get_file_info(file_path: Union[str, Path]) -> Dict[str, Any]:
+def get_file_info(file_path: Union[str, Path]) -> ToolResult:
     """Get detailed information about a file.
-    
+
     Args:
         file_path: Path to file
-        
+
     Returns:
-        Dictionary with file metadata
+        ToolResult with 'output' containing info dict
     """
     path = Path(file_path)
-    
+
     if not path.exists():
-        raise FileNotFoundError(f"File not found: {path}")
-    
+        return ToolResult.fail(f"File not found: {path}")
+
     stat = path.stat()
-    
+
     info = {
         'name': path.name,
         'path': str(path.absolute()),
@@ -274,8 +272,8 @@ def get_file_info(file_path: Union[str, Path]) -> Dict[str, Any]:
         'permissions': oct(stat.st_mode)[-3:],
         'is_hidden': path.name.startswith('.')
     }
-    
-    return info
+
+    return ToolResult.ok(output=info, path=str(path.absolute()))
 
 
 def _format_size(size_bytes: int) -> str:
@@ -289,16 +287,16 @@ def _format_size(size_bytes: int) -> str:
 
 def get_directory_tree(directory: Union[str, Path],
                        max_depth: int = 3,
-                       include_files: bool = True) -> Dict[str, Any]:
+                       include_files: bool = True) -> ToolResult:
     """Get hierarchical tree structure of directory.
-    
+
     Args:
         directory: Root directory
         max_depth: Maximum depth to traverse
         include_files: Include files or just directories
-        
+
     Returns:
-        Nested dictionary representing directory tree
+        ToolResult with 'output' containing tree dict
     """
     path = Path(directory)
     
@@ -327,10 +325,10 @@ def get_directory_tree(directory: Union[str, Path],
                     })
         except PermissionError:
             result['error'] = 'Permission denied'
-        
+
         return result
-    
-    return build_tree(path, 1)
+
+    return ToolResult.ok(output=build_tree(path, 1), path=str(Path(directory).absolute()))
 
 
 def get_recent_files(
@@ -338,30 +336,30 @@ def get_recent_files(
     limit: int = 10,
     hours: int = 24,
     pattern: str = "*",
-) -> List[Dict[str, Any]]:
+) -> ToolResult:
     """Get files modified within specified hours.
-    
+
     Args:
         directory: Directory to search
         hours: Number of hours to look back
         pattern: File pattern to match
-        
+
     Returns:
-        List of recently modified files (newest first, limited)
+        ToolResult with 'output' containing files list
     """
     from datetime import timedelta
-    
+
     path = Path(directory)
     cutoff = datetime.now() - timedelta(hours=hours)
     recent = []
-    
+
     for item in path.rglob(pattern):
         if not item.is_file():
             continue
-        
+
         stat = item.stat()
         modified = datetime.fromtimestamp(stat.st_mtime)
-        
+
         if modified > cutoff:
             recent.append({
                 'name': item.name,
@@ -369,7 +367,7 @@ def get_recent_files(
                 'modified': modified.isoformat(),
                 'size': stat.st_size
             })
-    
+
     # Sort by modification time (newest first)
     recent.sort(key=lambda x: x['modified'], reverse=True)
-    return recent[:max(1, int(limit))]
+    return ToolResult.ok(output={'files': recent[:max(1, int(limit))]}, path=str(Path(directory).absolute()))

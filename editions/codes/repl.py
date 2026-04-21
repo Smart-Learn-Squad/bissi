@@ -151,6 +151,21 @@ Screen {
     padding: 0 1;
 }
 
+#log-area:focus,
+#log-area > .:focus {
+    border: solid #1E3A5F;
+}
+
+/* Hide scrollbar but keep scrolling functional */
+#log-area ScrollBar {
+    width: 0;
+    display: none;
+}
+
+#log-area > .virtual-scroll {
+    scrollbar-size: 0 0;
+}
+
 #status-bar {
     height: 1;
     background: #111111;

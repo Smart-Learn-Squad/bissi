@@ -3,6 +3,7 @@ import time
 from types import SimpleNamespace
 
 from agent import BissiAgent
+from core.types import ToolResult
 from functions.filesystem import explorer
 
 
@@ -10,9 +11,9 @@ def test_read_text_file_returns_structured_error_for_missing_file(tmp_path):
     missing = tmp_path / "missing.txt"
     result = explorer.read_text_file(missing)
 
-    assert result["success"] is False
-    assert "File not found" in result["error"]
-    assert result["task_done"] is False
+    assert result.success is False
+    assert "File not found" in result.error
+    assert result.task_done is False
 
 
 def test_get_recent_files_uses_limit_not_hours(tmp_path):
@@ -20,11 +21,11 @@ def test_get_recent_files_uses_limit_not_hours(tmp_path):
     for idx in range(3):
         path = tmp_path / f"f{idx}.txt"
         path.write_text(str(idx), encoding="utf-8")
-        # Keep distinct mtimes for deterministic ordering.
         time.sleep(0.01)
         files.append(path)
 
-    recent = explorer.get_recent_files(tmp_path, limit=2)
+    result = explorer.get_recent_files(tmp_path, limit=2)
+    recent = result.output['files']
 
     assert len(recent) == 2
     assert recent[0]["name"] == files[-1].name

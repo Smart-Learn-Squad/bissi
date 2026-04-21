@@ -25,6 +25,7 @@ from core.memory.conversation_store import ConversationStore
 from core.memory.vector_store import VectorStore
 from core.router import route as _route
 from core.user_profile import get_profile
+from core.types import ToolResult
 
 logger = logging.getLogger(__name__)
 
@@ -32,16 +33,16 @@ logger = logging.getLogger(__name__)
 def tool_result(func: Callable) -> Callable:
     """Decorator that wraps tool methods with uniform error handling.
 
-    Catches any exception and returns {'success': False, 'error': str(e)}
+    Catches any exception and returns ToolResult.fail()
     so the LLM always gets a structured response.
     """
     @wraps(func)
-    def wrapper(*args, **kwargs) -> Dict[str, Any]:
+    def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
         except Exception as e:
             logger.exception("Tool %s failed", func.__name__)
-            return {'success': False, 'error': str(e)}
+            return ToolResult.fail(str(e))
     return wrapper
 
 
@@ -393,14 +394,12 @@ FORBIDDEN:
         if func_name in self.available_functions:
             result = self.available_functions[func_name](**args)
         else:
-            result = {
-                'success': False,
-                'error': f"Function {func_name} not found",
-                'task_done': False,
-            }
+            result = ToolResult.fail(f"Function {func_name} not found")
 
         # Keep a structured payload for the model instead of dropping metadata.
-        if isinstance(result, dict):
+        if isinstance(result, ToolResult):
+            result_text = json.dumps(result.to_dict(), ensure_ascii=False)
+        elif isinstance(result, dict):
             result_text = json.dumps(result, ensure_ascii=False)
         else:
             result_text = str(result)
@@ -786,38 +785,32 @@ FORBIDDEN:
     # --- Tool implementation wrappers ---
 
     @staticmethod
-    def _cancelled_result(operation: str, file_path: Union[str, Path]) -> Dict[str, Any]:
-        return {
-            'success': False,
-            'error': f"{operation} cancelled by confirmation policy",
-            'path': str(Path(file_path).expanduser().resolve()),
-            'task_done': False,
-        }
+    def _cancelled_result(operation: str, file_path: Union[str, Path]) -> ToolResult:
+        path = str(Path(file_path).expanduser().resolve())
+        return ToolResult.fail(
+            f"{operation} cancelled by confirmation policy",
+            path=path,
+        )
 
     @staticmethod
-    def _file_result(file_path: Union[str, Path], message: str) -> Dict[str, Any]:
+    def _file_result(file_path: Union[str, Path], message: str) -> ToolResult:
         path = Path(file_path).expanduser().resolve()
-        return {
-            'success': True,
-            'message': message,
-            'path': str(path),
-            'size': path.stat().st_size if path.exists() and path.is_file() else None,
-            'task_done': True,
-        }
+        size = path.stat().st_size if path.exists() and path.is_file() else None
+        return ToolResult.ok(message=message, path=str(path), size=size)
 
     @tool_result
-    def _tool_read_word(self, file_path: str) -> Dict[str, Any]:
+    def _tool_read_word(self, file_path: str) -> ToolResult:
         agent = DocxAgent(file_path)
-        return {
-            'success': True,
-            'content': agent.read_paragraphs()[:500],
-            'tables_count': len(agent.read_tables()),
-            'path': str(Path(file_path).expanduser().resolve()),
-            'task_done': True,
-        }
+        return ToolResult.ok(
+            output={
+                'content': agent.read_paragraphs()[:500],
+                'tables_count': len(agent.read_tables()),
+            },
+            path=str(Path(file_path).expanduser().resolve()),
+        )
 
     @tool_result
-    def _tool_write_word(self, file_path: str, content: str, append: bool = False) -> Dict[str, Any]:
+    def _tool_write_word(self, file_path: str, content: str, append: bool = False) -> ToolResult:
         from functions.office import word
         target = Path(file_path).expanduser()
         description = "modify word document" if append and target.exists() else "create word document"
@@ -832,24 +825,23 @@ FORBIDDEN:
         return self._file_result(target, f'Document saved to {target}')
 
     @tool_result
-    def _tool_read_excel(self, file_path: str, max_rows: int = 100) -> Dict[str, Any]:
+    def _tool_read_excel(self, file_path: str, max_rows: int = 100) -> ToolResult:
         df = excel.read_excel(file_path)
         total_rows = len(df)
         data = df.head(max_rows).to_dict('records')
         all_rows_returned = len(data) >= total_rows
-        return {
-            'success': True,
-            'columns': list(df.columns),
-            'data': data,
-            'total_rows': total_rows,
-            'returned_rows': len(data),
-            # task_done is True only when all rows were returned in one call;
-            # False signals the LLM that it may need to read more with a higher max_rows.
-            'task_done': all_rows_returned,
-        }
+        return ToolResult.ok(
+            output={
+                'columns': list(df.columns),
+                'data': data,
+                'total_rows': total_rows,
+                'returned_rows': len(data),
+            },
+            task_done=all_rows_returned,
+        )
 
     @tool_result
-    def _tool_write_excel(self, file_path: str, data: List[Dict[str, Any]], sheet_name: str = "Sheet1") -> Dict[str, Any]:
+    def _tool_write_excel(self, file_path: str, data: List[Dict[str, Any]], sheet_name: str = "Sheet1") -> ToolResult:
         df = pd.DataFrame(data)
         target = Path(file_path).expanduser()
         ok = self.safe_operator.write_new(
@@ -862,17 +854,15 @@ FORBIDDEN:
         return self._file_result(target, f'Excel file saved to {target}')
 
     @tool_result
-    def _tool_read_pptx(self, file_path: str) -> Dict[str, Any]:
+    def _tool_read_pptx(self, file_path: str) -> ToolResult:
         slides = powerpoint.read_presentation(file_path)
-        return {
-            'success': True,
-            'slides': slides,
-            'path': str(Path(file_path).expanduser().resolve()),
-            'task_done': True,
-        }
+        return ToolResult.ok(
+            output={'slides': slides},
+            path=str(Path(file_path).expanduser().resolve()),
+        )
 
     @tool_result
-    def _tool_write_pptx(self, file_path: str, title: str, slides: List[Dict[str, str]]) -> Dict[str, Any]:
+    def _tool_write_pptx(self, file_path: str, title: str, slides: List[Dict[str, str]]) -> ToolResult:
         target = Path(file_path).expanduser()
 
         def _write(path: Path) -> None:
@@ -891,41 +881,31 @@ FORBIDDEN:
         return self._file_result(target, f'Presentation saved to {target}')
 
     @tool_result
-    def _tool_get_clipboard(self) -> Dict[str, Any]:
-        return {
-            'success': True,
-            'content': clipboard.get_clipboard(),
-            'task_done': True,
-        }
+    def _tool_get_clipboard(self) -> ToolResult:
+        return ToolResult.ok(output={'content': clipboard.get_clipboard()})
 
     @tool_result
-    def _tool_set_clipboard(self, text: str) -> Dict[str, Any]:
+    def _tool_set_clipboard(self, text: str) -> ToolResult:
         clipboard.set_clipboard(text)
-        return {'success': True, 'message': 'Text copied to clipboard', 'task_done': True}
+        return ToolResult.ok(message='Text copied to clipboard')
 
     @tool_result
-    def _tool_delete_file(self, file_path: str) -> Dict[str, Any]:
+    def _tool_delete_file(self, file_path: str) -> ToolResult:
         ok = self.safe_operator.delete(file_path)
         if not ok:
             return self._cancelled_result("delete file", file_path)
         resolved = str(Path(file_path).expanduser().resolve())
-        return {
-            'success': True,
-            'message': f'Deleted {resolved}',
-            'path': resolved,
-            'size': None,
-            'task_done': True,
-        }
+        return ToolResult.ok(message=f'Deleted {resolved}', path=resolved)
 
     @tool_result
-    def _tool_move_file(self, source: str, destination: str) -> Dict[str, Any]:
+    def _tool_move_file(self, source: str, destination: str) -> ToolResult:
         ok = self.safe_operator.move(source, destination)
         if not ok:
             return self._cancelled_result("move file", source)
         return self._file_result(destination, f'Moved {source} to {destination}')
 
     @tool_result
-    def _tool_read_pdf(self, file_path: str, max_chars: int = 2000) -> Dict[str, Any]:
+    def _tool_read_pdf(self, file_path: str, max_chars: int = 2000) -> ToolResult:
         result = ocr.smart_pdf_extract(file_path)
         text = result['text']
         truncated = len(text) > max_chars
@@ -935,19 +915,30 @@ FORBIDDEN:
                 f'\n\n... [TRUNCATED: {len(text) - max_chars} more characters remaining. '
                 'Use max_chars to read more.]'
             )
-        return {
-            'success': True,
-            'content': content,
-            'is_scanned': result['is_scanned'],
-            'truncated': truncated,
-            'total_length': len(text),
-            # If truncated, the LLM may need another call with a higher max_chars
-            'task_done': not truncated,
-        }
+        return ToolResult.ok(
+            output={
+                'content': content,
+                'is_scanned': result['is_scanned'],
+                'truncated': truncated,
+                'total_length': len(text),
+            },
+            task_done=not truncated,
+        )
 
     @tool_result
-    def _tool_read_text_file(self, file_path: str, max_lines: int = None) -> Dict[str, Any]:
-        return explorer.read_text_file(file_path, max_lines)
+    def _tool_read_text_file(self, file_path: str, max_lines: int = None) -> ToolResult:
+        result = explorer.read_text_file(file_path, max_lines)
+        if result.get('success'):
+            return ToolResult.ok(
+                output={
+                    'content': result.get('content'),
+                    'lines': result.get('lines'),
+                },
+                path=result.get('path'),
+                size=result.get('size'),
+                task_done=not result.get('truncated', False),
+            )
+        return ToolResult.fail(result.get('error'), path=result.get('path'))
 
     @tool_result
     def _tool_write_text_file(
@@ -956,10 +947,10 @@ FORBIDDEN:
         content: str = "",
         append: bool = False,
         path: Optional[str] = None,
-    ) -> Dict[str, Any]:
+    ) -> ToolResult:
         target_path = file_path or path
         if not target_path:
-            return {'success': False, 'error': "Missing required argument: 'file_path'"}
+            return ToolResult.fail("Missing required argument: 'file_path'")
         target = Path(target_path).expanduser()
         description = "modify text file" if append and target.exists() else "create text file"
         operation = self.safe_operator.modify_document if append and target.exists() else self.safe_operator.write_new
@@ -973,7 +964,7 @@ FORBIDDEN:
         return self._file_result(target, f'Text file saved to {target}')
 
     @tool_result
-    def _tool_edit_text_file(self, file_path: str, old_text: str, new_text: str) -> Dict[str, Any]:
+    def _tool_edit_text_file(self, file_path: str, old_text: str, new_text: str) -> ToolResult:
         target = Path(file_path).expanduser()
         ok = self.safe_operator.modify_document(
             target,
@@ -985,79 +976,67 @@ FORBIDDEN:
         return self._file_result(target, f'Text updated in {target}')
 
     @tool_result
-    def _tool_search_files(self, query: str, root_dir: str = '.') -> Dict[str, Any]:
+    def _tool_search_files(self, query: str, root_dir: str = '.') -> ToolResult:
         results = explorer.search_files(root_dir, query)
         trimmed = results[:10]
-        return {
-            'success': True,
-            'results': trimmed,
-            'message': f'{len(trimmed)} file(s) found',
-            'task_done': True,
-        }
+        return ToolResult.ok(
+            output={'results': trimmed},
+            message=f'{len(trimmed)} file(s) found',
+        )
 
     @tool_result
-    def _tool_list_directory(self, path: str) -> Dict[str, Any]:
+    def _tool_list_directory(self, path: str) -> ToolResult:
         items = explorer.list_directory(path)
-        return {
-            'success': True,
-            'items': items,
-            'path': str(Path(path).expanduser().resolve()),
-            'message': f'{len(items)} item(s)',
-            'task_done': True,
-        }
+        return ToolResult.ok(
+            output={'items': items},
+            path=str(Path(path).expanduser().resolve()),
+            message=f'{len(items)} item(s)',
+        )
 
     @tool_result
-    def _tool_file_info(self, file_path: str) -> Dict[str, Any]:
+    def _tool_file_info(self, file_path: str) -> ToolResult:
         info = explorer.get_file_info(file_path)
-        return {
-            'success': True,
-            'info': info,
-            'path': info.get('path'),
-            'size': info.get('size'),
-            'task_done': True,
-        }
+        return ToolResult.ok(
+            output={'info': info},
+            path=info.get('path'),
+            size=info.get('size'),
+        )
 
     @tool_result
-    def _tool_search_by_content(self, directory: str, query: str, extensions: Optional[List[str]] = None) -> Dict[str, Any]:
+    def _tool_search_by_content(self, directory: str, query: str, extensions: Optional[List[str]] = None) -> ToolResult:
         results = explorer.search_by_content(directory, query, extensions)
-        return {
-            'success': True,
-            'results': results,
-            'message': f'{len(results)} file(s) matched content query',
-            'task_done': True,
-        }
+        return ToolResult.ok(
+            output={'results': results},
+            message=f'{len(results)} file(s) matched content query',
+        )
 
     @tool_result
-    def _tool_get_directory_tree(self, path: str, max_depth: int = 3) -> Dict[str, Any]:
-        return {
-            'success': True,
-            'tree': explorer.get_directory_tree(path, max_depth),
-            'path': str(Path(path).expanduser().resolve()),
-            'task_done': True,
-        }
+    def _tool_get_directory_tree(self, path: str, max_depth: int = 3) -> ToolResult:
+        return ToolResult.ok(
+            output={'tree': explorer.get_directory_tree(path, max_depth)},
+            path=str(Path(path).expanduser().resolve()),
+        )
 
     @tool_result
-    def _tool_get_recent_files(self, directory: str, limit: int = 10) -> Dict[str, Any]:
+    def _tool_get_recent_files(self, directory: str, limit: int = 10) -> ToolResult:
         files = explorer.get_recent_files(directory, limit=limit)
-        return {
-            'success': True,
-            'files': files,
-            'path': str(Path(directory).expanduser().resolve()),
-            'message': f'{len(files)} recent file(s)',
-            'task_done': True,
-        }
+        return ToolResult.ok(
+            output={'files': files},
+            path=str(Path(directory).expanduser().resolve()),
+            message=f'{len(files)} recent file(s)',
+        )
 
     @tool_result
-    def _tool_python_runner(self, code: str) -> Dict[str, Any]:
+    def _tool_python_runner(self, code: str) -> ToolResult:
         return python_runner.run_code(code)
 
     @tool_result
-    def _tool_safe_operator(self, operation: str) -> Dict[str, Any]:
+    def _tool_safe_operator(self, operation: str) -> ToolResult:
         if operation == 'get_python_version':
-            return {'success': True, 'output': sys.version, 'task_done': True}
+            return ToolResult.ok(output=sys.version)
         elif operation == 'get_current_directory':
-            return {'success': True, 'output': os.getcwd(), 'task_done': True}
-        return {'success': False, 'error': f'Unknown operation: {operation}', 'task_done': False}
+            return ToolResult.ok(output=os.getcwd())
+        return ToolResult.fail(f'Unknown operation: {operation}')
 
     # --- RAG helpers ---
 

@@ -280,7 +280,7 @@ class BissiApp(App):
 
     # ── Layout ────────────────────────────────────────────────────────────────
     def compose(self) -> ComposeResult:
-        yield RichLog(id="log-area", highlight=True, markup=False, wrap=False)
+        yield RichLog(id="log-area", highlight=True, markup=False, wrap=False, show_scrollbar=False)
         yield Vertical(id="suggest-box")
         with Horizontal(id="input-row"):
             yield Static(self._prompt_text(), id="prompt-label")

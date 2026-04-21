@@ -4,7 +4,10 @@ Provides unified interface for Word, Excel, PowerPoint, PDF, and OCR operations.
 """
 
 # Word processing
-from .word import DocxAgent, read_document, read_with_structure, create_document
+from .word import (
+    DocxAgent, StyledDocument, DocColors, TableStyles,
+    read_document, read_with_structure, create_document
+)
 
 # Excel processing  
 from .excel import (

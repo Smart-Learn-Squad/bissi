@@ -1,0 +1,12 @@
+# Backend — review obligatoire de Sam sur tout PR qui touche ces fichiers
+/core/                  @samuel-yevi
+/api/                   @samuel-yevi
+/functions/             @samuel-yevi
+/main.py                @samuel-yevi
+/preload.js             @samuel-yevi
+/main.js                @samuel-yevi
+/bissi-master.sh        @samuel-yevi
+/requirements.txt       @samuel-yevi
+
+# Frontend — équipe design libre
+/bissi-master-ui/renderer/    @any

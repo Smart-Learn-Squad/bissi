@@ -331,6 +331,7 @@
         padding: 4px 14px 8px;
         letter-spacing: 0.02em;
       }
+      body.light .disc { color: rgba(71,85,105,0.5); }
 
       /* CANVAS */
       .canvas {
@@ -576,13 +577,19 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
     <script>
         let light = false, think = true, ddOpen = false;
         let currentConversationId = null;
-        let currentEventSource = null;
-        const body = document.body;
+        let isStreaming = false;
+        let userProfile = null;
+        const API = 'http://localhost:8765';
+        const FILE_EXTS = ['.docx', '.xlsx', '.pdf', '.py'];
 
-        // Initialize app
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+
         window.addEventListener('DOMContentLoaded', async () => {
             await loadUserProfile();
             await loadModels();
@@ -594,406 +601,443 @@
             const banner = document.getElementById('error-banner');
             banner.textContent = message;
             banner.classList.remove('hidden');
-            setTimeout(() => {
-                banner.classList.add('hidden');
-            }, 5000);
+            setTimeout(() => banner.classList.add('hidden'), 5000);
         }
 
         async function loadUserProfile() {
             try {
                 const profile = await window.bissi.profile.load();
                 if (profile) {
-                    const initials = (profile.first_name[0] + profile.last_name[0]).toUpperCase();
+                    userProfile = profile;
+                    const initials = ((profile.first_name || '?')[0] + (profile.last_name || '?')[0]).toUpperCase();
                     document.getElementById('user-avatar').textContent = initials;
-                    document.getElementById('user-name').textContent = `${profile.first_name} ${profile.last_name}`;
+                    document.getElementById('user-name').textContent = `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
                 }
-            } catch (error) {
-                console.error('Error loading profile:', error);
-            }
+            } catch (e) { console.error('Profile load error:', e); }
         }
 
         async function loadModels() {
             try {
-                const ollamaData = await window.bissi.ollama.models();
-                const modelsData = await window.bissi.models.list();
-                
+                const [ollamaData, modelsData] = await Promise.all([
+                    window.bissi.ollama.models(),
+                    window.bissi.models.list()
+                ]);
+                const modelsList = document.getElementById('models-list');
+                modelsList.innerHTML = '';
                 if (ollamaData.available && ollamaData.models) {
-                    const modelsList = document.getElementById('models-list');
-                    modelsList.innerHTML = '';
-                    
                     ollamaData.models.forEach(model => {
                         const opt = document.createElement('div');
                         opt.className = 'ms-opt';
-                        opt.onclick = () => selectModel(model.name, '#10B981', event);
-                        
                         const color = getModelColor(model.name);
-                        opt.innerHTML = `
-                            <div class="m-dot" style="background:${color}"></div>
-                            ${model.name}
-                            <span class="m-sz">${formatSize(model.size || 0)}</span>
-                        `;
+                        opt.innerHTML = `<div class="m-dot" style="background:${color}"></div>${model.name}<span class="m-sz">${formatSize(model.size || 0)}</span>`;
+                        opt.onclick = (e) => { e.stopPropagation(); selectModel(model.name, color, e); };
                         modelsList.appendChild(opt);
                     });
-                    
-                    // Set active model from backend health check
-                    if (modelsData.activeModel) {
-                        document.getElementById('ms-name').textContent = modelsData.activeModel;
-                    } else if (ollamaData.models.length > 0) {
-                        document.getElementById('ms-name').textContent = ollamaData.models[0].name;
-                    }
+                    document.getElementById('ms-name').textContent = modelsData.activeModel || (ollamaData.models[0]?.name) || 'Model';
                 } else {
-                    document.getElementById('ms-name').textContent = 'Non disponible';
+                    document.getElementById('ms-name').textContent = modelsData.activeModel || 'Non disponible';
                 }
-            } catch (error) {
-                console.error('Error loading models:', error);
+            } catch (e) {
+                console.error('Models load error:', e);
                 document.getElementById('ms-name').textContent = 'Erreur';
             }
         }
 
-        function getModelColor(modelName) {
-            if (modelName.includes('gemma')) return '#10B981';
-            if (modelName.includes('llama')) return '#0EA5E9';
-            if (modelName.includes('phi')) return '#F59E0B';
-            return '#64748B';
-        }
-
-        function formatSize(bytes) {
-            const sizes = ['B', 'KB', 'MB', 'GB'];
-            if (bytes === 0) return '0 B';
-            const i = Math.floor(Math.log(bytes) / Math.log(1024));
-            return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
-        }
+        function getModelColor(n) { return n.includes('gemma') ? '#10B981' : n.includes('llama') ? '#0EA5E9' : n.includes('phi') ? '#F59E0B' : '#64748B'; }
+        function formatSize(bytes) { const s = ['B','KB','MB','GB']; if (!bytes) return '0 B'; const i = Math.floor(Math.log(bytes) / Math.log(1024)); return (bytes / Math.pow(1024, i)).toFixed(1) + ' ' + s[i]; }
 
         async function loadConversations() {
             try {
-                const response = await fetch('http://localhost:8765/conversations');
-                if (response.ok) {
-                    const conversations = await response.json();
-                    displayConversations(conversations);
-                }
-            } catch (error) {
-                console.error('Error loading conversations:', error);
-            }
+                const res = await fetch(`${API}/conversations`);
+                if (res.ok) displayConversations(await res.json());
+            } catch (e) { console.error('Conversations load error:', e); }
         }
 
         function displayConversations(conversations) {
-            const todayContainer = document.getElementById('conversations-today');
-            const weekContainer = document.getElementById('conversations-week');
-            
-            todayContainer.innerHTML = '';
-            weekContainer.innerHTML = '';
-            
+            const todayEl = document.getElementById('conversations-today');
+            const weekEl = document.getElementById('conversations-week');
+            todayEl.innerHTML = '';
+            weekEl.innerHTML = '';
             const now = new Date();
             const today = now.toDateString();
-            const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-            
+            const weekAgo = new Date(now.getTime() - 7 * 86400000);
             conversations.forEach(conv => {
-                const convDate = new Date(conv.created_at);
-                const element = createConversationElement(conv);
-                
-                if (convDate.toDateString() === today) {
-                    todayContainer.appendChild(element);
-                } else if (convDate >= weekAgo) {
-                    weekContainer.appendChild(element);
-                }
+                const d = new Date(conv.created_at || conv.updated_at);
+                const el = document.createElement('div');
+                el.className = 'ci' + (conv.id === currentConversationId ? ' on' : '');
+                const time = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+                const title = conv.title || (conv.first_message ? conv.first_message.slice(0, 35) : 'Nouvelle conversation');
+                el.innerHTML = `<div class="ci-dot"></div><span class="ci-t">${title}</span><span class="ci-ts">${time}</span>`;
+                el.onclick = () => loadConversation(conv.id);
+                if (d.toDateString() === today) todayEl.appendChild(el);
+                else if (d >= weekAgo) weekEl.appendChild(el);
             });
         }
 
-        function createConversationElement(conv) {
-            const div = document.createElement('div');
-            div.className = 'ci';
-            div.onclick = () => loadConversation(conv.id);
-            
-            const time = new Date(conv.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-            div.innerHTML = `
-                <div class="ci-dot"></div>
-                <span class="ci-t">${conv.title || 'Nouvelle conversation'}</span>
-                <span class="ci-ts">${time}</span>
-            `;
-            
-            return div;
-        }
-
-        async function loadConversation(conversationId) {
+        async function loadConversation(id) {
             try {
-                currentConversationId = conversationId;
-                const response = await fetch(`http://localhost:8765/conversations/${conversationId}/history`);
-                if (response.ok) {
-                    const messages = await response.json();
-                    displayMessages(messages);
+                currentConversationId = id;
+                const res = await fetch(`${API}/conversations/${id}/history`);
+                if (res.ok) {
+                    const messages = await res.json();
+                    renderHistory(messages);
                     showChat();
                 }
-            } catch (error) {
-                console.error('Error loading conversation:', error);
-                showError('Erreur lors du chargement de la conversation');
+            } catch (e) {
+                console.error('History load error:', e);
+                showError('Erreur lors du chargement');
             }
         }
 
-        function displayMessages(messages) {
+        function renderHistory(messages) {
             const container = document.getElementById('messages-container');
             container.innerHTML = '';
-            
-            messages.forEach(msg => {
-                if (msg.role === 'user') {
-                    addUserMessage(msg.content);
-                } else if (msg.role === 'assistant') {
-                    addAssistantMessage(msg.content, msg.tool_traces);
+            for (const msg of messages) {
+                if (msg.role === 'user') appendUserMsg(msg.content);
+                else if (msg.role === 'assistant') appendAssistantMsg(msg.content);
+                else if (msg.role === 'tool' && msg.content) {
+                    const match = msg.content.match(/^\[(\w+)\]\s*(.*)/s);
+                    if (match) {
+                        const [, toolName, rawResult] = match;
+                        try {
+                            const r = JSON.parse(rawResult);
+                            const fp = extractFilePath(r);
+                            if (fp) appendToolTrace(toolName, fp.split(/[\\/]/).pop(), true);
+                        } catch (_) { appendToolTrace(toolName, 'file', true); }
+                    }
                 }
-            });
+            }
         }
 
         async function checkBackendAvailability() {
             try {
-                const response = await fetch('http://localhost:8765/health');
-                if (!response.ok) {
-                    throw new Error('Backend not available');
-                }
-            } catch (error) {
-                showError('Backend non disponible — Lancez main.py');
-            }
+                const res = await fetch(`${API}/health`);
+                if (!res.ok) throw new Error();
+            } catch { showError('Backend non disponible — Lancez main.py'); }
         }
 
-        function toggleTheme() {
-            light = !light;
-            body.classList.toggle('light', light);
-            document.getElementById('th-btn').textContent = light ? '☀' : '☽';
-        }
-
-        function toggleThink() {
-            think = !think;
-            document.getElementById('tgl').classList.toggle('off', !think);
-        }
-
-        function toggleDD() {
-            ddOpen = !ddOpen;
-            document.getElementById('ms-dd').classList.toggle('hidden', !ddOpen);
-            document.getElementById('ms-arr').classList.toggle('open', ddOpen);
-        }
-
-        function selectModel(name, color, event) {
-            event.stopPropagation();
-            document.getElementById('ms-name').textContent = name;
-            document.getElementById('ms-dot').style.background = color;
-            document.querySelectorAll('.ms-opt').forEach(o => o.classList.remove('on'));
-            event.currentTarget.classList.add('on');
-            toggleDD();
-        }
-
-        document.addEventListener('click', e => {
-            if (ddOpen && !document.getElementById('ms').contains(e.target)) {
-                ddOpen = false;
-                document.getElementById('ms-dd').classList.add('hidden');
-                document.getElementById('ms-arr').classList.remove('open');
-            }
-        });
+        function toggleTheme() { light = !light; document.body.classList.toggle('light', light); document.getElementById('th-btn').textContent = light ? '☀' : '☽'; }
+        function toggleThink() { think = !think; document.getElementById('tgl').classList.toggle('off', !think); }
+        function toggleDD() { ddOpen = !ddOpen; document.getElementById('ms-dd').classList.toggle('hidden', !ddOpen); document.getElementById('ms-arr').classList.toggle('open', ddOpen); }
+        function selectModel(name, color, e) { e.stopPropagation(); document.getElementById('ms-name').textContent = name; document.getElementById('ms-dot').style.background = color; document.querySelectorAll('.ms-opt').forEach(o => o.classList.remove('on')); e.currentTarget.classList.add('on'); toggleDD(); }
+        document.addEventListener('click', e => { if (ddOpen && !document.getElementById('ms').contains(e.target)) { ddOpen = false; document.getElementById('ms-dd').classList.add('hidden'); document.getElementById('ms-arr').classList.remove('open'); } });
 
         function newChat() {
             currentConversationId = null;
             document.getElementById('messages-container').innerHTML = '';
             showEmpty();
+            closeCanvas();
         }
 
-        function showEmpty() {
-            document.getElementById('empty').classList.remove('hidden');
-            document.getElementById('chat').classList.add('hidden');
-        }
-
-        function showChat() {
-            document.getElementById('empty').classList.add('hidden');
-            document.getElementById('chat').classList.remove('hidden');
-        }
-
-        function sendQuickMessage(message) {
-            document.getElementById('message-input').value = message;
-            sendMessage();
-        }
-
-        function handleInputKeydown(event) {
-            if (event.key === 'Enter' && !event.shiftKey) {
-                event.preventDefault();
-                sendMessage();
-            }
-        }
+        function showEmpty() { document.getElementById('empty').classList.remove('hidden'); document.getElementById('chat').classList.add('hidden'); }
+        function showChat() { document.getElementById('empty').classList.add('hidden'); document.getElementById('chat').classList.remove('hidden'); }
+        function sendQuickMessage(m) { document.getElementById('message-input').value = m; sendMessage(); }
+        function handleInputKeydown(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
 
         async function sendMessage() {
             const input = document.getElementById('message-input');
             const message = input.value.trim();
-            
-            if (!message) return;
-            
-            addUserMessage(message);
+            if (!message || isStreaming) return;
+
+            appendUserMsg(message);
             input.value = '';
+            input.style.height = 'auto';
             showChat();
-            
-            // Close previous event source if exists
-            if (currentEventSource) {
-                currentEventSource.close();
-            }
-            
+
+            isStreaming = true;
+            disableInput(true);
+
+            let assistantMsgEl = null;
+            let thinkingBlockEl = null;
+            let accumulatedText = '';
+            let pendingToolId = null;
+
             try {
-                const response = await fetch('http://localhost:8765/chat', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        message: message,
-                        conversation_id: currentConversationId
-                    })
-                });
-                
-                if (!response.ok) {
-                    throw new Error('Backend error');
+                const payload = { message, conversation_id: currentConversationId };
+                if (userProfile) {
+                    payload.user_name = `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim();
+                    payload.user_first_name = userProfile.first_name || '';
                 }
-                
-                // Start SSE stream
-                currentEventSource = new EventSource('http://localhost:8765/chat/stream');
-                
-                let currentMessage = '';
-                let currentToolTraces = [];
-                let thinkingBlock = null;
-                
-                currentEventSource.onmessage = function(event) {
-                    const data = JSON.parse(event.data);
-                    
-                    switch (data.type) {
-                        case 'thinking':
-                            if (think && !thinkingBlock) {
-                                thinkingBlock = addThinkingBlock(data.content);
-                            }
-                            break;
-                            
-                        case 'tool_start':
-                            addToolTrace(data.verb, data.filename, false);
-                            break;
-                            
-                        case 'tool_done':
-                            updateToolTrace(data.verb, data.filename, true);
-                            break;
-                            
-                        case 'chunk':
-                            currentMessage += data.content;
-                            updateAssistantMessage(currentMessage);
-                            break;
-                            
-                        case 'done':
-                            finalizeAssistantMessage(currentMessage, currentToolTraces);
-                            currentEventSource.close();
-                            loadConversations(); // Refresh conversation list
-                            break;
-                            
-                        case 'error':
-                            showError(data.message || 'Une erreur est survenue');
-                            currentEventSource.close();
-                            break;
-                    }
-                };
-                
-                currentEventSource.onerror = function() {
-                    currentEventSource.close();
-                    showError('Erreur de connexion avec le backend');
-                };
-                
-            } catch (error) {
-                console.error('Error sending message:', error);
-                showError('Erreur lors de l\'envoi du message');
-            }
-        }
-
-        function addUserMessage(message) {
-            const container = document.getElementById('messages-container');
-            const msgDiv = document.createElement('div');
-            msgDiv.className = 'msg-u';
-            msgDiv.textContent = message;
-            container.appendChild(msgDiv);
-            container.scrollTop = container.scrollHeight;
-        }
-
-        function addAssistantMessage(content, toolTraces = []) {
-            const container = document.getElementById('messages-container');
-            
-            if (toolTraces && toolTraces.length > 0) {
-                toolTraces.forEach(trace => {
-                    const toolDiv = document.createElement('div');
-                    toolDiv.className = 'tool-t';
-                    toolDiv.innerHTML = `<span class="t-verb">${trace.verb}</span><span>${trace.filename}</span><span class="t-ok">✓</span>`;
-                    container.appendChild(toolDiv);
+                const res = await fetch(`${API}/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
                 });
+                if (!res.ok) {
+                    const errText = await res.text().catch(() => '');
+                    throw new Error(`HTTP ${res.status}: ${errText.slice(0, 200)}`);
+                }
+                if (!res.body) throw new Error('Response body is null');
+
+                const reader = res.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop();
+
+                    for (const line of lines) {
+                        const trimmed = line.trim();
+                        if (!trimmed || !trimmed.startsWith('data:')) continue;
+                        let data;
+                        try { data = JSON.parse(trimmed.slice(5)); } catch { continue; }
+
+                        switch (data.type) {
+                            case 'thinking':
+                                if (think && !thinkingBlockEl) {
+                                    thinkingBlockEl = addThinkingBlock(data.content || '');
+                                } else if (thinkingBlockEl && data.content) {
+                                    const body = thinkingBlockEl.querySelector('.think-body');
+                                    if (body) body.textContent = data.content;
+                                }
+                                break;
+
+                            case 'tool_start': {
+                                const name = data.name || 'tool';
+                                const args = data.args || {};
+                                const fp = args.file_path || args.path || args.source || '';
+                                const shortName = fp ? fp.split(/[\\/]/).pop() : name;
+                                pendingToolId = appendToolTrace(name, shortName, false);
+                                break;
+                            }
+
+                            case 'tool_done': {
+                                const name = data.name || 'tool';
+                                let resultObj = {};
+                                try { resultObj = typeof data.result === 'string' ? JSON.parse(data.result) : (data.result || {}); } catch { /* */ }
+                                const fp = extractFilePath(resultObj);
+                                const shortName = fp ? fp.split(/[\\/]/).pop() : name;
+                                if (pendingToolId) {
+                                    updateToolTrace(pendingToolId, name, shortName, true);
+                                    pendingToolId = null;
+                                } else {
+                                    appendToolTrace(name, shortName, true);
+                                }
+                                if (fp && FILE_EXTS.some(ext => fp.toLowerCase().endsWith(ext))) {
+                                    openCanvasForFile(fp, shortName);
+                                }
+                                break;
+                            }
+
+                            case 'chunk':
+                                if (data.content) {
+                                    accumulatedText += data.content;
+                                    if (!assistantMsgEl) {
+                                        assistantMsgEl = createAssistantMsgEl('');
+                                    }
+                                    assistantMsgEl.textContent = accumulatedText;
+                                    assistantMsgEl.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                                }
+                                break;
+
+                            case 'done':
+                                if (!assistantMsgEl && accumulatedText) {
+                                    assistantMsgEl = createAssistantMsgEl(formatText(accumulatedText));
+                                } else if (assistantMsgEl && accumulatedText) {
+                                    assistantMsgEl.innerHTML = formatText(accumulatedText);
+                                }
+                                if (thinkingBlockEl) {
+                                    thinkingBlockEl.remove();
+                                    thinkingBlockEl = null;
+                                }
+                                loadConversations();
+                                break;
+
+                            case 'error':
+                                showError(data.message || 'Une erreur est survenue');
+                                if (thinkingBlockEl) thinkingBlockEl.remove();
+                                disableInput(false);
+                                break;
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error('Send message error:', e);
+                showError(`Erreur: ${e.message || 'Connexion au backend échouée.'}`);
+                if (thinkingBlockEl) thinkingBlockEl.remove();
+            } finally {
+                isStreaming = false;
+                disableInput(false);
             }
-            
-            const msgDiv = document.createElement('div');
-            msgDiv.className = 'msg-a';
-            msgDiv.id = 'current-assistant-msg';
-            msgDiv.innerHTML = content;
-            container.appendChild(msgDiv);
+        }
+
+        function disableInput(disabled) {
+            const input = document.getElementById('message-input');
+            const btn = document.querySelector('.send-btn');
+            input.disabled = disabled;
+            btn.style.opacity = disabled ? '0.4' : '1';
+            btn.style.pointerEvents = disabled ? 'none' : 'auto';
+            if (!disabled) input.focus();
+        }
+
+        function appendUserMsg(text) {
+            const container = document.getElementById('messages-container');
+            const div = document.createElement('div');
+            div.className = 'msg-u';
+            div.textContent = text;
+            container.appendChild(div);
             container.scrollTop = container.scrollHeight;
         }
 
-        function updateAssistantMessage(content) {
-            const msgDiv = document.getElementById('current-assistant-msg');
-            if (msgDiv) {
-                msgDiv.innerHTML = content;
-                const container = document.getElementById('messages-container');
-                container.scrollTop = container.scrollHeight;
-            }
+        function createAssistantMsgEl(html) {
+            const container = document.getElementById('messages-container');
+            const div = document.createElement('div');
+            div.className = 'msg-a';
+            div.innerHTML = html;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+            return div;
         }
 
-        function finalizeAssistantMessage(content, toolTraces) {
-            updateAssistantMessage(content);
-            
-            // Remove thinking block if exists
-            if (thinkingBlock) {
-                thinkingBlock.remove();
-                thinkingBlock = null;
-            }
+        function appendAssistantMsg(text) {
+            createAssistantMsgEl(formatText(text));
+        }
+
+        function formatText(text) {
+            if (!text) return '';
+            return text
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre class="code-inline">$2</pre>')
+                .replace(/`([^`]+)`/g, '<code>$1</code>')
+                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.+?)\*/g, '<em>$1</em>')
+                .replace(/\n/g, '<br>');
         }
 
         function addThinkingBlock(content) {
             const container = document.getElementById('messages-container');
-            const thinkingDiv = document.createElement('div');
-            thinkingDiv.className = 'msg-a';
-            thinkingDiv.style.opacity = '0.7';
-            thinkingDiv.style.fontStyle = 'italic';
-            thinkingDiv.innerHTML = `<em>🤔 ${content}</em>`;
-            container.appendChild(thinkingDiv);
-            return thinkingDiv;
+            const div = document.createElement('div');
+            div.className = 'msg-a';
+            div.style.cssText = 'opacity:0.55;font-size:11px;max-width:90%;';
+            div.innerHTML = `
+                <div style="display:flex;align-items:center;gap:6px;cursor:pointer;color:var(--muted);font-size:10px;margin-bottom:4px;" onclick="this.parentElement.querySelector('.think-body').classList.toggle('hidden');this.querySelector('.think-arrow').textContent=this.querySelector('.think-body').classList.contains('hidden')?'▶':'▼';">
+                    <span class="think-arrow">▼</span>
+                    <span style="font-family:'Syne',sans-serif;font-weight:600;color:var(--acc);">Thinking</span>
+                </div>
+                <div class="think-body" style="color:var(--muted);line-height:1.5;font-style:italic;">${content || ''}</div>
+            `;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+            return div;
         }
 
-        function addToolTrace(verb, filename, done) {
+        function appendToolTrace(name, filename, done) {
             const container = document.getElementById('messages-container');
-            const toolDiv = document.createElement('div');
-            toolDiv.className = 'tool-t';
-            toolDiv.id = `tool-${Date.now()}`;
-            toolDiv.innerHTML = `<span class="t-verb">${verb}</span><span>${filename}</span><span class="t-ok">${done ? '✓' : '...'}</span>`;
-            container.appendChild(toolDiv);
-            return toolDiv.id;
+            const div = document.createElement('div');
+            const id = 'tool-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
+            div.className = 'tool-t';
+            div.id = id;
+            div.innerHTML = `<span>⟳</span><span class="t-verb">${name}</span><span>${filename}</span><span class="t-ok">${done ? '✓' : '...'}</span>`;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+            return id;
         }
 
-        function updateToolTrace(verb, filename, done) {
-            // Find and update the most recent matching tool trace
-            const toolTraces = document.querySelectorAll('.tool-t');
-            for (let i = toolTraces.length - 1; i >= 0; i--) {
-                const trace = toolTraces[i];
-                if (trace.textContent.includes(verb) && trace.textContent.includes(filename)) {
-                    const okSpan = trace.querySelector('.t-ok');
-                    if (okSpan) {
-                        okSpan.textContent = done ? '✓' : '...';
-                    }
-                    break;
-                }
+        function updateToolTrace(id, name, filename, done) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.innerHTML = `<span>⟳</span><span class="t-verb">${name}</span><span>${filename}</span><span class="t-ok">✓</span>`;
+                el.style.opacity = '0.6';
             }
         }
 
-        // Canvas functions
-        function openCanvas(tab) {
-            document.getElementById('canvas').classList.add('open');
-            if (tab) swTab(tab, document.querySelector('.cv-tab'));
+        function extractFilePath(resultObj) {
+            if (!resultObj || typeof resultObj !== 'object') return null;
+            return resultObj.path || resultObj.file_path || resultObj.output?.path || resultObj.output?.file_path || null;
         }
 
-        function closeCanvas() {
-            document.getElementById('canvas').classList.remove('open');
+        async function openCanvasForFile(filePath, displayName) {
+            document.getElementById('canvas-filename').textContent = displayName;
+            const ext = filePath.toLowerCase().split('.').pop();
+            const tab = ext === 'xlsx' || ext === 'xls' ? 'tbl' : ext === 'py' ? 'code' : 'doc';
+            openCanvas(tab);
+
+            document.getElementById('doc-type').textContent = ext.toUpperCase();
+            document.getElementById('doc-name').textContent = displayName;
+
+            try {
+                if (ext === 'docx') await renderDocx(filePath);
+                else if (ext === 'xlsx' || ext === 'xls') await renderXlsx(filePath);
+                else if (ext === 'pdf') await renderPdf(filePath);
+                else if (ext === 'py') await renderPyFile(filePath);
+            } catch (e) {
+                console.error('Canvas render error:', e);
+                document.getElementById('doc-content').innerHTML = `<div class="dv-p">Erreur: ${e.message}</div>`;
+            }
         }
 
+        async function renderDocx(filePath) {
+            const result = await window.bissi.file.readBuffer(filePath);
+            if (result.error) throw new Error(result.error);
+            const uint8 = new Uint8Array(result.data);
+            const htmlResult = await mammoth.convertToHtml({ arrayBuffer: uint8.buffer });
+            document.getElementById('doc-content').innerHTML = htmlResult.value || '<div class="dv-p">Document vide</div>';
+            document.getElementById('doc-info').textContent = 'DOCX';
+            ['td','tt','tc'].forEach((id, i) => document.getElementById(id).classList.toggle('hidden', i !== 0));
+        }
+
+        async function renderXlsx(filePath) {
+            const result = await window.bissi.file.readBuffer(filePath);
+            if (result.error) throw new Error(result.error);
+            const uint8 = new Uint8Array(result.data);
+            const wb = XLSX.read(uint8, { type: 'array' });
+            const ws = wb.Sheets[wb.SheetNames[0]];
+            const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+
+            const table = document.getElementById('data-table');
+            table.innerHTML = '';
+            if (rows.length > 0) {
+                const thead = document.createElement('thead');
+                const headerRow = document.createElement('tr');
+                rows[0].forEach(cell => { const th = document.createElement('th'); th.textContent = cell != null ? String(cell) : ''; headerRow.appendChild(th); });
+                thead.appendChild(headerRow);
+                table.appendChild(thead);
+                const tbody = document.createElement('tbody');
+                rows.slice(1, 51).forEach(row => {
+                    const tr = document.createElement('tr');
+                    row.forEach(cell => { const td = document.createElement('td'); td.textContent = cell != null ? String(cell) : ''; tr.appendChild(td); });
+                    tbody.appendChild(tr);
+                });
+                table.appendChild(tbody);
+            }
+            document.getElementById('doc-info').textContent = `${rows.length - 1} lignes`;
+            ['td','tt','tc'].forEach((id, i) => document.getElementById(id).classList.toggle('hidden', i !== 1));
+        }
+
+        async function renderPdf(filePath) {
+            const result = await window.bissi.file.readBuffer(filePath);
+            if (result.error) throw new Error(result.error);
+            const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(result.data) }).promise;
+            let html = '';
+            const maxPages = Math.min(pdf.numPages, 5);
+            for (let i = 1; i <= maxPages; i++) {
+                const page = await pdf.getPage(i);
+                const content = await page.getTextContent();
+                const text = content.items.map(item => item.str).join(' ');
+                if (i > 1) html += '<div class="dv-div"></div>';
+                html += `<div class="dv-h2">Page ${i}</div><div class="dv-p">${text.slice(0, 800)}</div>`;
+            }
+            if (pdf.numPages > 5) html += `<div class="dv-p" style="color:var(--acc)">... ${pdf.numPages - 5} pages supp.</div>`;
+            document.getElementById('doc-content').innerHTML = html || '<div class="dv-p">PDF vide</div>';
+            document.getElementById('doc-info').textContent = `${pdf.numPages} pages`;
+            ['td','tt','tc'].forEach((id, i) => document.getElementById(id).classList.toggle('hidden', i !== 0));
+        }
+
+        async function renderPyFile(filePath) {
+            const content = await window.bissi.file.read(filePath);
+            if (content.error) throw new Error(content.error);
+            const escaped = content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            document.getElementById('code-content').innerHTML = `<pre style="margin:0;white-space:pre-wrap;">${escaped}</pre>`;
+            ['td','tt','tc'].forEach((id, i) => document.getElementById(id).classList.toggle('hidden', i !== 2));
+        }
+
+        function openCanvas(tab) { document.getElementById('canvas').classList.add('open'); }
+        function closeCanvas() { document.getElementById('canvas').classList.remove('open'); }
         function swTab(name, el) {
             document.querySelectorAll('.cv-tab').forEach(t => t.classList.remove('on'));
             const idx = ['doc', 'tbl', 'code'].indexOf(name);
@@ -1001,9 +1045,8 @@
             ['td', 'tt', 'tc'].forEach((id, i) => document.getElementById(id).classList.toggle('hidden', i !== idx));
         }
 
-        // Auto-resize textarea
         const textarea = document.getElementById('message-input');
-        textarea.addEventListener('input', function() {
+        textarea.addEventListener('input', function () {
             this.style.height = 'auto';
             this.style.height = Math.min(this.scrollHeight, 120) + 'px';
         });

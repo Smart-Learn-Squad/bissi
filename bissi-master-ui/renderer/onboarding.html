@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BISSI - Configuration</title>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=DM+Sans:wght@300;400;500&display=swap');
+
+      :root {
+        --acc: #7C3AED;
+        --text: #E2E8F0;
+        --muted: rgba(148,163,184,0.75);
+        --glass: rgba(255,255,255,0.05);
+        --glass-border: rgba(255,255,255,0.1);
+        --glass-hover: rgba(255,255,255,0.08);
+        --glass-acc: rgba(124,58,237,0.15);
+      }
+
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: 'DM Sans', sans-serif;
+        background: #0D0D12;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        overflow: hidden;
+        position: relative;
+      }
+
+      /* Orbs de fond */
+      .orb {
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(60px);
+        opacity: 0.35;
+        pointer-events: none;
+      }
+      .orb1 { width: 280px; height: 280px; background: #7C3AED; top: -60px; left: -60px; }
+      .orb2 { width: 200px; height: 200px; background: #4C1D95; bottom: -40px; right: -40px; }
+      .orb3 { width: 150px; height: 150px; background: #A78BFA; top: 40%; left: 55%; opacity: 0.2; }
+
+      /* Liquid Glass Card */
+      .glass-card {
+        position: relative;
+        width: 340px;
+        background: var(--glass);
+        border: 1px solid var(--glass-border);
+        border-radius: 24px;
+        padding: 36px 32px 32px;
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        box-shadow:
+          inset 0 1px 0 rgba(255,255,255,0.15),
+          inset 0 -1px 0 rgba(0,0,0,0.3),
+          0 32px 64px rgba(0,0,0,0.5),
+          0 0 0 0.5px rgba(124,58,237,0.2);
+        z-index: 1;
+      }
+
+      /* Reflet haut du verre */
+      .glass-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 16px; right: 16px;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+        border-radius: 0 0 4px 4px;
+      }
+
+      /* Logo */
+      .ob-logo {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        margin-bottom: 6px;
+      }
+
+      .ob-logo-icon {
+        width: 40px;
+        height: 40px;
+        background: rgba(124,58,237,0.8);
+        border: 1px solid rgba(255,255,255,0.2);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 16px rgba(124,58,237,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+      }
+
+      .ob-logo-name {
+        font-family: 'Syne', sans-serif;
+        font-weight: 700;
+        font-size: 22px;
+        letter-spacing: 0.06em;
+        color: var(--text);
+      }
+
+      .ob-tagline {
+        text-align: center;
+        font-size: 11.5px;
+        color: var(--muted);
+        margin-bottom: 28px;
+        letter-spacing: 0.02em;
+      }
+
+      .ob-label {
+        font-size: 10.5px;
+        font-weight: 500;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 6px;
+      }
+
+      /* Glass input */
+      .glass-input {
+        width: 100%;
+        box-sizing: border-box;
+        background: rgba(255,255,255,0.06);
+        border: 1px solid var(--glass-border);
+        border-radius: 10px;
+        padding: 10px 13px;
+        font-family: 'DM Sans', sans-serif;
+        font-size: 13px;
+        color: var(--text);
+        outline: none;
+        margin-bottom: 14px;
+        transition: border-color 0.2s, background 0.2s;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+      }
+
+      .glass-input::placeholder { color: rgba(148,163,184,0.4); }
+
+      .glass-input:focus {
+        border-color: var(--acc);
+        background: var(--glass-acc);
+        box-shadow: 0 0 0 3px rgba(124,58,237,0.12), inset 0 1px 0 rgba(255,255,255,0.05);
+      }
+
+      /* CTA button */
+      .ob-btn {
+        width: 100%;
+        padding: 11px;
+        background: rgba(124,58,237,0.85);
+        border: 1px solid rgba(255,255,255,0.15);
+        border-radius: 10px;
+        color: #fff;
+        font-family: 'DM Sans', sans-serif;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        margin-top: 4px;
+        box-shadow: 0 4px 20px rgba(124,58,237,0.35), inset 0 1px 0 rgba(255,255,255,0.2);
+        transition: background 0.2s, transform 0.15s;
+        letter-spacing: 0.01em;
+      }
+
+      .ob-btn:hover {
+        background: rgba(124,58,237,0.95);
+        transform: translateY(-1px);
+      }
+
+      .ob-btn:active { transform: translateY(0); }
+
+      .ob-btn:disabled {
+        background: rgba(148,163,184,0.3);
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .ob-footer {
+        text-align: center;
+        font-size: 10px;
+        color: rgba(148,163,184,0.4);
+        margin-top: 20px;
+        letter-spacing: 0.02em;
+      }
+
+      /* Greeting screen */
+      .greet-screen {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+      }
+
+      .greet-avatar {
+        width: 56px;
+        height: 56px;
+        background: rgba(124,58,237,0.7);
+        border: 1px solid rgba(255,255,255,0.2);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: 'Syne', sans-serif;
+        font-size: 18px;
+        font-weight: 700;
+        color: #fff;
+        margin-bottom: 18px;
+        box-shadow: 0 4px 20px rgba(124,58,237,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+      }
+
+      .greet-msg {
+        font-family: 'Syne', sans-serif;
+        font-size: 17px;
+        font-weight: 600;
+        color: var(--text);
+        line-height: 1.5;
+        margin-bottom: 10px;
+      }
+
+      .greet-sub {
+        font-size: 12px;
+        color: var(--muted);
+        line-height: 1.6;
+        margin-bottom: 24px;
+      }
+
+      .typing-dot {
+        display: inline-block;
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: var(--acc);
+        margin: 0 2px;
+        animation: blink 1.2s infinite;
+      }
+      .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+      .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+      @keyframes blink {
+        0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
+        40% { opacity: 1; transform: scale(1); }
+      }
+
+      .enter-btn {
+        padding: 10px 28px;
+        background: rgba(124,58,237,0.85);
+        border: 1px solid rgba(255,255,255,0.15);
+        border-radius: 10px;
+        color: #fff;
+        font-family: 'DM Sans', sans-serif;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        box-shadow: 0 4px 20px rgba(124,58,237,0.35), inset 0 1px 0 rgba(255,255,255,0.2);
+        display: none;
+      }
+
+      .enter-btn:hover {
+        background: rgba(124,58,237,0.95);
+        transform: translateY(-1px);
+      }
+
+      .hidden { display: none !important; }
+      .fade-in { animation: fadeIn 0.5s ease forwards; }
+      @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+      /* Error banner */
+      .error-banner {
+        position: absolute;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(239, 68, 68, 0.1);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        color: #FCA5A5;
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-size: 11px;
+        backdrop-filter: blur(8px);
+        z-index: 10;
+      }
+    </style>
+</head>
+<body>
+    <div class="error-banner hidden" id="error-banner"></div>
+    
+    <div class="orb orb1"></div>
+    <div class="orb orb2"></div>
+    <div class="orb orb3"></div>
+
+    <!-- ONBOARDING FORM -->
+    <div class="glass-card" id="form-card">
+        <div class="ob-logo">
+            <div class="ob-logo-icon">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                    <circle cx="10" cy="10" r="6.5" stroke="#fff" stroke-width="1.5" opacity="0.6"/>
+                    <path d="M10 6.5V10l2.5 1.5" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+            </div>
+            <span class="ob-logo-name">BISSI</span>
+        </div>
+
+        <div class="ob-tagline">Votre assistant IA local · Offline · Privé</div>
+
+        <div class="ob-label">Prénom</div>
+        <input class="glass-input" id="inp-first" type="text" placeholder="Sam" autocomplete="off"/>
+
+        <div class="ob-label">Nom</div>
+        <input class="glass-input" id="inp-last" type="text" placeholder="Yevi" autocomplete="off"/>
+
+        <button class="ob-btn" id="start-btn" onclick="startGreeting()">Commencer →</button>
+
+        <div class="ob-footer">Vos données restent sur votre machine · Aucune connexion requise</div>
+    </div>
+
+    <!-- GREETING SCREEN -->
+    <div class="glass-card hidden" id="greet-card">
+        <div class="greet-screen">
+            <div class="greet-avatar" id="greet-av">SY</div>
+
+            <div id="typing-state">
+                <div style="margin-bottom:12px;font-size:12px;color:var(--muted)">BISSI vous prépare une salutation...</div>
+                <div>
+                    <span class="typing-dot"></span>
+                    <span class="typing-dot"></span>
+                    <span class="typing-dot"></span>
+                </div>
+            </div>
+
+            <div class="greet-msg hidden" id="greet-msg"></div>
+            <div class="greet-sub hidden" id="greet-sub"></div>
+            <button class="enter-btn" id="enter-btn" onclick="enterApp()">Entrer dans BISSI →</button>
+        </div>
+    </div>
+
+    <script>
+        let firstName = '';
+        let lastName = '';
+
+        function showError(message) {
+            const banner = document.getElementById('error-banner');
+            banner.textContent = message;
+            banner.classList.remove('hidden');
+            setTimeout(() => {
+                banner.classList.add('hidden');
+            }, 5000);
+        }
+
+        async function startGreeting() {
+            const first = document.getElementById('inp-first').value.trim() || 'Sam';
+            const last = document.getElementById('inp-last').value.trim() || 'Yevi';
+            const initials = (first[0] + last[0]).toUpperCase();
+
+            // Disable button during processing
+            const btn = document.getElementById('start-btn');
+            btn.disabled = true;
+            btn.textContent = 'Enregistrement...';
+
+            try {
+                // Save profile via Electron API
+                const result = await window.bissi.profile.save(first, last);
+                if (!result.success) {
+                    throw new Error(result.error);
+                }
+
+                firstName = first;
+                lastName = last;
+
+                // Update UI
+                document.getElementById('greet-av').textContent = initials;
+                document.getElementById('form-card').classList.add('hidden');
+                document.getElementById('greet-card').classList.remove('hidden');
+                document.getElementById('greet-card').classList.add('fade-in');
+
+                // Generate greeting via backend
+                await generateGreeting(first);
+
+            } catch (error) {
+                console.error('Error saving profile:', error);
+                showError('Erreur lors de l\'enregistrement du profil');
+                btn.disabled = false;
+                btn.textContent = 'Commencer →';
+            }
+        }
+
+        async function generateGreeting(first) {
+            try {
+                const response = await fetch('http://localhost:8765/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: `Génère une salutation chaleureuse et personnalisée pour ${first}, en présentant BISSI comme un assistant IA local offline privé. Sois concis et amical.`,
+                        conversation_id: null
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Backend not available');
+                }
+
+                const eventSource = new EventSource('http://localhost:8765/chat/stream');
+                let fullMessage = '';
+
+                eventSource.onmessage = function(event) {
+                    const data = JSON.parse(event.data);
+                    
+                    if (data.type === 'chunk') {
+                        fullMessage += data.content;
+                    } else if (data.type === 'done') {
+                        eventSource.close();
+                        displayGreeting(fullMessage || `Bonjour ${first} ! Je suis ravi de vous rencontrer.`);
+                    } else if (data.type === 'error') {
+                        eventSource.close();
+                        displayGreeting(`Bonjour ${first} ! Je suis ravi de vous rencontrer.`);
+                    }
+                };
+
+                eventSource.onerror = function() {
+                    eventSource.close();
+                    displayGreeting(`Bonjour ${first} ! Je suis ravi de vous rencontrer.`);
+                };
+
+            } catch (error) {
+                console.error('Error generating greeting:', error);
+                // Fallback to default greeting
+                displayGreeting(`Bonjour ${first} ! Je suis ravi de vous rencontrer.`);
+            }
+        }
+
+        function displayGreeting(message) {
+            document.getElementById('typing-state').classList.add('hidden');
+            const msgEl = document.getElementById('greet-msg');
+            const subEl = document.getElementById('greet-sub');
+            const btn = document.getElementById('enter-btn');
+
+            msgEl.textContent = message;
+            msgEl.classList.remove('hidden');
+            msgEl.classList.add('fade-in');
+
+            setTimeout(() => {
+                const sub = `Je suis BISSI, votre assistant local. Je peux analyser vos documents, exécuter du code, gérer vos fichiers — le tout sans connexion internet. Tout reste sur votre machine.`;
+                subEl.textContent = sub;
+                subEl.classList.remove('hidden');
+                subEl.classList.add('fade-in');
+                setTimeout(() => {
+                    btn.style.display = 'block';
+                    btn.classList.add('fade-in');
+                }, 400);
+            }, 600);
+        }
+
+        async function enterApp() {
+            try {
+                await window.bissi.nav.goToChat();
+            } catch (error) {
+                console.error('Error navigating to chat:', error);
+                showError('Erreur lors de la navigation vers le chat');
+            }
+        }
+
+        document.getElementById('inp-last').addEventListener('keydown', e => {
+            if (e.key === 'Enter') startGreeting();
+        });
+
+        // Check backend availability on load
+        window.addEventListener('load', async () => {
+            try {
+                const response = await fetch('http://localhost:8765/health');
+                if (!response.ok) {
+                    throw new Error('Backend not available');
+                }
+            } catch (error) {
+                console.log('Backend not available, using fallback mode');
+            }
+        });
+    </script>
+</body>
+</html>

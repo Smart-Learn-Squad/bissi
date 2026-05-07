@@ -1,0 +1,39 @@
+# Python
+.venv
+__pycache__/
+*/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Node.js
+bissi-master-ui/node_modules/
+bissi-master-ui/npm-debug.log*
+bissi-master-ui/yarn-debug.log*
+bissi-master-ui/yarn-error.log*
+bissi-master-ui/dist/
+bissi-master-ui/.electron-builder/
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log

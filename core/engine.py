@@ -44,14 +44,29 @@ class BissiEngine:
         self._lock = threading.RLock()
         self._log_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="bissi-engine-log")
 
+    def _run_with_retry(self, fn, call_name="request"):
+        last_error = None
+        for attempt in range(1, self.max_retries + 1):
+            try:
+                with self._lock:
+                    fn()
+                return
+            except Exception as exc:
+                last_error = exc
+                if attempt >= self.max_retries:
+                    break
+                backoff = min(2 ** (attempt - 1), 4)
+                time.sleep(backoff)
+        assert last_error is not None
+        raise self._wrap_error(call_name, last_error)
+
     def health_check(self) -> bool:
-        """Return True when the llama.cpp health endpoint is reachable."""
-        try:
-            self._request_json("GET", "/health", call_name="health_check")
-            return True
-        except BissiEngineError as exc:
-            self._async_log_call("health_check", time.perf_counter(), 0, 0, error=str(exc))
-            return False
+        """Return True when llama.cpp API is reachable."""
+        def _ping() -> None:
+            resp = self._client.get("/v1/models")
+            resp.raise_for_status()
+        self._run_with_retry(_ping, call_name="health_check")
+        return True
 
     def ensure_model_available(self) -> bool:
         """Return True when the llama.cpp model list is reachable and non-empty."""

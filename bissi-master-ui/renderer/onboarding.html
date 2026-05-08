@@ -8,20 +8,20 @@
       @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=DM+Sans:wght@300;400;500&display=swap');
 
       :root {
-        --acc: #7C3AED;
+        --acc: #888;
         --text: #E2E8F0;
         --muted: rgba(148,163,184,0.75);
         --glass: rgba(255,255,255,0.05);
         --glass-border: rgba(255,255,255,0.1);
         --glass-hover: rgba(255,255,255,0.08);
-        --glass-acc: rgba(124,58,237,0.15);
+        --glass-acc: rgba(255,255,255,0.06);
       }
 
       body {
         margin: 0;
         padding: 0;
         font-family: 'DM Sans', sans-serif;
-        background: #0D0D12;
+        background: #0a0a0a;
         min-height: 100vh;
         display: flex;
         align-items: center;
@@ -39,9 +39,9 @@
         opacity: 0.35;
         pointer-events: none;
       }
-      .orb1 { width: 280px; height: 280px; background: #7C3AED; top: -60px; left: -60px; }
-      .orb2 { width: 200px; height: 200px; background: #4C1D95; bottom: -40px; right: -40px; }
-      .orb3 { width: 150px; height: 150px; background: #A78BFA; top: 40%; left: 55%; opacity: 0.2; }
+      .orb1 { width: 280px; height: 280px; background: #1a1a1a; top: -60px; left: -60px; }
+      .orb2 { width: 200px; height: 200px; background: #222; bottom: -40px; right: -40px; }
+      .orb3 { width: 150px; height: 150px; background: #2a2a2a; top: 40%; left: 55%; opacity: 0.2; }
 
       /* Liquid Glass Card */
       .glass-card {
@@ -57,7 +57,7 @@
           inset 0 1px 0 rgba(255,255,255,0.15),
           inset 0 -1px 0 rgba(0,0,0,0.3),
           0 32px 64px rgba(0,0,0,0.5),
-          0 0 0 0.5px rgba(124,58,237,0.2);
+          0 0 0 0.5px rgba(180,180,180,0.2);
         z-index: 1;
       }
 
@@ -83,33 +83,33 @@
       .ob-logo-icon {
         width: 40px;
         height: 40px;
-        background: rgba(124,58,237,0.8);
+        background: rgba(180,180,180,0.8);
         border: 1px solid rgba(255,255,255,0.2);
         border-radius: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 4px 16px rgba(124,58,237,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+        box-shadow: 0 4px 16px rgba(255,255,255,0.08), inset 0 1px 0 rgba(255,255,255,0.2);
       }
 
       .ob-logo-name {
         font-family: 'Syne', sans-serif;
         font-weight: 700;
-        font-size: 22px;
+        font-size: 25px;
         letter-spacing: 0.06em;
         color: var(--text);
       }
 
       .ob-tagline {
         text-align: center;
-        font-size: 11.5px;
+        font-size: 14.5px;
         color: var(--muted);
         margin-bottom: 28px;
         letter-spacing: 0.02em;
       }
 
       .ob-label {
-        font-size: 10.5px;
+        font-size: 13.5px;
         font-weight: 500;
         letter-spacing: 0.06em;
         text-transform: uppercase;
@@ -126,7 +126,7 @@
         border-radius: 10px;
         padding: 10px 13px;
         font-family: 'DM Sans', sans-serif;
-        font-size: 13px;
+        font-size: 16px;
         color: var(--text);
         outline: none;
         margin-bottom: 14px;
@@ -139,29 +139,29 @@
       .glass-input:focus {
         border-color: var(--acc);
         background: var(--glass-acc);
-        box-shadow: 0 0 0 3px rgba(124,58,237,0.12), inset 0 1px 0 rgba(255,255,255,0.05);
+        box-shadow: 0 0 0 3px rgba(180,180,180,0.12), inset 0 1px 0 rgba(255,255,255,0.05);
       }
 
       /* CTA button */
       .ob-btn {
         width: 100%;
         padding: 11px;
-        background: rgba(124,58,237,0.85);
+        background: rgba(180,180,180,0.85);
         border: 1px solid rgba(255,255,255,0.15);
         border-radius: 10px;
         color: #fff;
         font-family: 'DM Sans', sans-serif;
-        font-size: 13px;
+        font-size: 16px;
         font-weight: 500;
         cursor: pointer;
         margin-top: 4px;
-        box-shadow: 0 4px 20px rgba(124,58,237,0.35), inset 0 1px 0 rgba(255,255,255,0.2);
+        box-shadow: 0 4px 20px rgba(180,180,180,0.35), inset 0 1px 0 rgba(255,255,255,0.2);
         transition: background 0.2s, transform 0.15s;
         letter-spacing: 0.01em;
       }
 
       .ob-btn:hover {
-        background: rgba(124,58,237,0.95);
+        background: rgba(180,180,180,0.95);
         transform: translateY(-1px);
       }
 
@@ -175,7 +175,7 @@
 
       .ob-footer {
         text-align: center;
-        font-size: 10px;
+        font-size: 13px;
         color: rgba(148,163,184,0.4);
         margin-top: 20px;
         letter-spacing: 0.02em;
@@ -192,23 +192,23 @@
       .greet-avatar {
         width: 56px;
         height: 56px;
-        background: rgba(124,58,237,0.7);
+        background: rgba(180,180,180,0.7);
         border: 1px solid rgba(255,255,255,0.2);
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
         font-family: 'Syne', sans-serif;
-        font-size: 18px;
+        font-size: 21px;
         font-weight: 700;
         color: #fff;
         margin-bottom: 18px;
-        box-shadow: 0 4px 20px rgba(124,58,237,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+        box-shadow: 0 4px 20px rgba(180,180,180,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
       }
 
       .greet-msg {
         font-family: 'Syne', sans-serif;
-        font-size: 17px;
+        font-size: 20px;
         font-weight: 600;
         color: var(--text);
         line-height: 1.5;
@@ -216,7 +216,7 @@
       }
 
       .greet-sub {
-        font-size: 12px;
+        font-size: 15px;
         color: var(--muted);
         line-height: 1.6;
         margin-bottom: 24px;
@@ -241,20 +241,20 @@
 
       .enter-btn {
         padding: 10px 28px;
-        background: rgba(124,58,237,0.85);
+        background: rgba(180,180,180,0.85);
         border: 1px solid rgba(255,255,255,0.15);
         border-radius: 10px;
         color: #fff;
         font-family: 'DM Sans', sans-serif;
-        font-size: 13px;
+        font-size: 16px;
         font-weight: 500;
         cursor: pointer;
-        box-shadow: 0 4px 20px rgba(124,58,237,0.35), inset 0 1px 0 rgba(255,255,255,0.2);
+        box-shadow: 0 4px 20px rgba(180,180,180,0.35), inset 0 1px 0 rgba(255,255,255,0.2);
         display: none;
       }
 
       .enter-btn:hover {
-        background: rgba(124,58,237,0.95);
+        background: rgba(180,180,180,0.95);
         transform: translateY(-1px);
       }
 
@@ -273,7 +273,7 @@
         color: #FCA5A5;
         padding: 8px 16px;
         border-radius: 8px;
-        font-size: 11px;
+        font-size: 14px;
         backdrop-filter: blur(8px);
         z-index: 10;
       }
@@ -317,7 +317,7 @@
             <div class="greet-avatar" id="greet-av">SY</div>
 
             <div id="typing-state">
-                <div style="margin-bottom:12px;font-size:12px;color:var(--muted)">BISSI vous prépare une salutation...</div>
+                <div style="margin-bottom:12px;font-size:15px;color:var(--muted)">BISSI vous prépare une salutation...</div>
                 <div>
                     <span class="typing-dot"></span>
                     <span class="typing-dot"></span>

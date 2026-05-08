@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs').promises;
 const os = require('os');
@@ -135,6 +135,19 @@ ipcMain.handle('ollama:models', async () => {
       error: error.message
     };
   }
+});
+
+// File chooser dialog
+ipcMain.handle('file:choose', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openFile'],
+    filters: [
+      { name: 'Documents', extensions: ['docx', 'xlsx', 'pdf', 'py', 'txt', 'csv', 'json', 'md'] },
+      { name: 'Tous les fichiers', extensions: ['*'] }
+    ]
+  });
+  if (result.canceled || !result.filePaths.length) return null;
+  return result.filePaths[0];
 });
 
 // File system handlers for canvas

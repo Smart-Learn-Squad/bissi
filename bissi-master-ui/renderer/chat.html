@@ -1102,7 +1102,7 @@
         function disableInput(disabled) {
             const input = document.getElementById('message-input');
             const btn = document.querySelector('.send-btn');
-            input.disabled = disabled;
+            btn.disabled = disabled;
             btn.style.opacity = disabled ? '0.4' : '1';
             btn.style.pointerEvents = disabled ? 'none' : 'auto';
             if (!disabled) input.focus();

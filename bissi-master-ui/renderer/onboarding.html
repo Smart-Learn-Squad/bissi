@@ -11,17 +11,24 @@
         --acc: #888;
         --text: #E2E8F0;
         --muted: rgba(148,163,184,0.75);
-        --glass: rgba(255,255,255,0.05);
-        --glass-border: rgba(255,255,255,0.1);
+        --glass: rgba(18, 20, 28, 0.9);
+        --glass-border: rgba(255,255,255,0.12);
         --glass-hover: rgba(255,255,255,0.08);
         --glass-acc: rgba(255,255,255,0.06);
+        --surface: rgba(18, 20, 28, 0.94);
+        --surface-strong: rgba(24, 27, 36, 0.98);
+        --edge: rgba(255,255,255,0.16);
+        --shadow: 0 24px 60px rgba(0,0,0,0.45);
       }
 
       body {
         margin: 0;
         padding: 0;
         font-family: 'DM Sans', sans-serif;
-        background: #0a0a0a;
+        background:
+          radial-gradient(circle at 12% 12%, rgba(136, 136, 136, 0.12), transparent 22%),
+          radial-gradient(circle at 88% 18%, rgba(255, 255, 255, 0.05), transparent 18%),
+          #0a0a0a;
         min-height: 100vh;
         display: flex;
         align-items: center;
@@ -35,29 +42,28 @@
       .orb {
         position: absolute;
         border-radius: 50%;
-        filter: blur(60px);
-        opacity: 0.35;
+        filter: blur(44px);
+        opacity: 0.28;
         pointer-events: none;
       }
-      .orb1 { width: 280px; height: 280px; background: #1a1a1a; top: -60px; left: -60px; }
-      .orb2 { width: 200px; height: 200px; background: #222; bottom: -40px; right: -40px; }
-      .orb3 { width: 150px; height: 150px; background: #2a2a2a; top: 40%; left: 55%; opacity: 0.2; }
+      .orb1 { width: 260px; height: 260px; background: #1a1a1a; top: -60px; left: -60px; }
+      .orb2 { width: 180px; height: 180px; background: #222; bottom: -40px; right: -40px; }
+      .orb3 { width: 140px; height: 140px; background: #2a2a2a; top: 40%; left: 55%; opacity: 0.16; }
 
       /* Liquid Glass Card */
       .glass-card {
         position: relative;
         width: 340px;
-        background: var(--glass);
+        background: var(--surface);
         border: 1px solid var(--glass-border);
         border-radius: 24px;
         padding: 36px 32px 32px;
-        backdrop-filter: blur(24px);
-        -webkit-backdrop-filter: blur(24px);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
         box-shadow:
-          inset 0 1px 0 rgba(255,255,255,0.15),
-          inset 0 -1px 0 rgba(0,0,0,0.3),
-          0 32px 64px rgba(0,0,0,0.5),
-          0 0 0 0.5px rgba(180,180,180,0.2);
+          inset 0 1px 0 rgba(255,255,255,0.12),
+          0 28px 64px rgba(0,0,0,0.45),
+          0 0 0 1px rgba(255,255,255,0.05);
         z-index: 1;
       }
 
@@ -121,24 +127,24 @@
       .glass-input {
         width: 100%;
         box-sizing: border-box;
-        background: rgba(255,255,255,0.06);
+        background: rgba(255,255,255,0.08);
         border: 1px solid var(--glass-border);
-        border-radius: 10px;
-        padding: 10px 13px;
+        border-radius: 12px;
+        padding: 11px 13px;
         font-family: 'DM Sans', sans-serif;
         font-size: 16px;
         color: var(--text);
         outline: none;
         margin-bottom: 14px;
         transition: border-color 0.2s, background 0.2s;
-        box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
       }
 
       .glass-input::placeholder { color: rgba(148,163,184,0.4); }
 
       .glass-input:focus {
         border-color: var(--acc);
-        background: var(--glass-acc);
+        background: rgba(255,255,255,0.1);
         box-shadow: 0 0 0 3px rgba(180,180,180,0.12), inset 0 1px 0 rgba(255,255,255,0.05);
       }
 
@@ -146,16 +152,16 @@
       .ob-btn {
         width: 100%;
         padding: 11px;
-        background: rgba(180,180,180,0.85);
-        border: 1px solid rgba(255,255,255,0.15);
-        border-radius: 10px;
+        background: rgba(180,180,180,0.88);
+        border: 1px solid rgba(255,255,255,0.18);
+        border-radius: 12px;
         color: #fff;
         font-family: 'DM Sans', sans-serif;
         font-size: 16px;
         font-weight: 500;
         cursor: pointer;
         margin-top: 4px;
-        box-shadow: 0 4px 20px rgba(180,180,180,0.35), inset 0 1px 0 rgba(255,255,255,0.2);
+        box-shadow: 0 8px 24px rgba(180,180,180,0.28), inset 0 1px 0 rgba(255,255,255,0.2);
         transition: background 0.2s, transform 0.15s;
         letter-spacing: 0.01em;
       }
@@ -213,6 +219,7 @@
         color: var(--text);
         line-height: 1.5;
         margin-bottom: 10px;
+        text-wrap: balance;
       }
 
       .greet-sub {
@@ -241,15 +248,15 @@
 
       .enter-btn {
         padding: 10px 28px;
-        background: rgba(180,180,180,0.85);
-        border: 1px solid rgba(255,255,255,0.15);
-        border-radius: 10px;
+        background: rgba(180,180,180,0.88);
+        border: 1px solid rgba(255,255,255,0.18);
+        border-radius: 12px;
         color: #fff;
         font-family: 'DM Sans', sans-serif;
         font-size: 16px;
         font-weight: 500;
         cursor: pointer;
-        box-shadow: 0 4px 20px rgba(180,180,180,0.35), inset 0 1px 0 rgba(255,255,255,0.2);
+        box-shadow: 0 8px 24px rgba(180,180,180,0.28), inset 0 1px 0 rgba(255,255,255,0.2);
         display: none;
       }
 
@@ -276,6 +283,17 @@
         font-size: 14px;
         backdrop-filter: blur(8px);
         z-index: 10;
+      }
+
+      @media (prefers-reduced-transparency: reduce) {
+        .glass-card, .glass-input, .ob-btn, .enter-btn, .error-banner {
+          backdrop-filter: none !important;
+          -webkit-backdrop-filter: none !important;
+        }
+
+        .glass-card {
+          background: var(--surface-strong) !important;
+        }
       }
     </style>
 </head>

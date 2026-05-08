@@ -164,13 +164,8 @@ Tu dois prioriser des actions concrètes via tools, avec réponses claires et fi
             self.current_conversation_id = self.conversation_store.create_conversation()
 
         self.conversation_store.save_message(self.current_conversation_id, "user", user_input)
-        history = self.conversation_store.get_history(self.current_conversation_id)
+        history = self.conversation_store.get_history(self.current_conversation_id, limit=6)
         messages = self._build_messages(history)
-
-        # WHY: pre-thinking is surfaced to UI but not injected verbatim in next reasoning step.
-        think_summary = self._run_prethinking(messages, user_input, on_thinking)
-        if think_summary:
-            messages.append({"role": "assistant", "content": f"Plan interne resume: {think_summary}"})
 
         tool_results_log: List[str] = []
         final_response = ""
@@ -180,7 +175,7 @@ Tu dois prioriser des actions concrètes via tools, avec réponses claires et fi
                 return ""
 
             messages = self.context_manager.maybe_compress(messages)
-            final_response, tool_calls = self._call_llm(messages, on_chunk)
+            final_response, tool_calls = self._call_llm(messages, on_chunk, on_thinking)
 
             if not tool_calls:
                 break
@@ -243,7 +238,7 @@ Tu dois prioriser des actions concrètes via tools, avec réponses claires et fi
                     ),
                 }
             ]
-            retry_response, retry_tool_calls = self._call_llm(retry_messages, on_chunk)
+            retry_response, retry_tool_calls = self._call_llm(retry_messages, on_chunk, on_thinking)
             if retry_tool_calls:
                 retry_response = self._fallback_synthesis(retry_messages, tool_results_log)
                 if on_chunk and retry_response:
@@ -294,49 +289,73 @@ Tu dois prioriser des actions concrètes via tools, avec réponses claires et fi
 
         return None
 
-    def _run_prethinking(
-        self,
-        messages: List[Dict[str, Any]],
-        user_input: str,
-        on_thinking: Optional[Callable[[str], None]],
-    ) -> str:
-        """Generate and emit a planning thought summary."""
-        think_messages = [
-            {"role": "system", "content": "Tu preplanifies avant action."},
-            {"role": "user", "content": f"{self.THINKING_PROMPT}\n\nDemande: {user_input}"},
-        ]
-        try:
-            chunks = self.engine.chat(think_messages, tools=None, stream=False)
-            raw = ""
-            for chunk in chunks:
-                raw = chunk.get("message", {}).get("content", "")
-            thought = self._extract_think_block(raw)
-            if on_thinking and thought:
-                on_thinking(thought)
-            return self._summarize_thinking(thought)
-        except BissiEngineError as exc:
-            logger.warning("prethinking_failed %s", exc)
-            return ""
-
     def _call_llm(
         self,
         messages: List[Dict[str, Any]],
         on_chunk: Optional[Callable[[str], None]],
+        on_thinking: Optional[Callable[[str], None]],
     ) -> tuple[str, List[Dict[str, Any]]]:
-        """Call chat-completions with tool support and stream chunks."""
+        """Call chat-completions with tool support, stream chunks, and extract <think> blocks."""
         final_text = ""
         collected_tool_calls: List[Dict[str, Any]] = []
+        open_think = re.compile(r"<think>", re.IGNORECASE)
+        close_think = re.compile(r"</think>", re.IGNORECASE)
+        buffer = ""
+        thinking_buffer = ""
+        in_think = False
+
         try:
             stream = self.engine.chat(messages=messages, tools=self.tools, stream=True)
             for chunk in stream:
                 message = chunk.get("message", {}) if isinstance(chunk, dict) else {}
                 content = message.get("content") or ""
                 if content:
-                    final_text += content
-                    if on_chunk:
-                        on_chunk(content)
+                    buffer += content
+                    while buffer:
+                        if in_think:
+                            end_match = close_think.search(buffer)
+                            if end_match:
+                                thinking_buffer += buffer[: end_match.start()]
+                                thought = thinking_buffer.strip()
+                                if on_thinking and thought:
+                                    on_thinking(thought)
+                                thinking_buffer = ""
+                                buffer = buffer[end_match.end() :]
+                                in_think = False
+                                continue
+
+                            thinking_buffer += buffer
+                            buffer = ""
+                            break
+
+                        start_match = open_think.search(buffer)
+                        if start_match:
+                            chunk_text = buffer[: start_match.start()]
+                            if chunk_text:
+                                final_text += chunk_text
+                                if on_chunk:
+                                    on_chunk(chunk_text)
+                            buffer = buffer[start_match.end() :]
+                            in_think = True
+                            continue
+
+                        safe_len = max(0, len(buffer) - (len("<think>") - 1))
+                        if safe_len:
+                            chunk_text = buffer[:safe_len]
+                            final_text += chunk_text
+                            if on_chunk:
+                                on_chunk(chunk_text)
+                            buffer = buffer[safe_len:]
+                        break
+
                 for call in message.get("tool_calls", []) or []:
                     collected_tool_calls.append(self._normalize_single_tool_call(call))
+
+            if buffer and not in_think:
+                final_text += buffer
+                if on_chunk:
+                    on_chunk(buffer)
+
             return final_text, collected_tool_calls
         except BissiEngineError as exc:
             logger.exception("chat_loop_failed")
@@ -397,14 +416,6 @@ Tu dois prioriser des actions concrètes via tools, avec réponses claires et fi
         if match:
             return match.group(1).strip()
         return raw.strip()
-
-    @staticmethod
-    def _summarize_thinking(thought: str) -> str:
-        """Convert long thought content into a one-line summary."""
-        if not thought:
-            return ""
-        first_line = re.sub(r"\s+", " ", thought).strip()
-        return first_line[:180]
 
     @staticmethod
     def _normalize_single_tool_call(call: Any) -> Dict[str, Any]:

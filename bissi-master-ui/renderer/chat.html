@@ -784,6 +784,7 @@
       <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
       <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
       <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/compromise@14.14.5/builds/compromise.min.js"></script>
       <script src="https://cdn.jsdelivr.net/npm/markdown-it@14.1.0/dist/markdown-it.min.js"></script>
       <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
       <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
@@ -793,6 +794,8 @@
         let currentConversationId = null;
         let isStreaming = false;
         let userProfile = null;
+        let shouldAutoRenameConversation = false;
+        let pendingAutoTitleSource = '';
         const API = 'http://localhost:8765';
         const FILE_EXTS = ['.docx', '.xlsx', '.pdf', '.py'];
 
@@ -885,6 +888,8 @@
         async function loadConversation(id) {
             try {
                 currentConversationId = id;
+                shouldAutoRenameConversation = false;
+                pendingAutoTitleSource = '';
                 const res = await fetch(`${API}/conversations/${id}/history`);
                 if (res.ok) {
                     const messages = await res.json();
@@ -937,6 +942,8 @@
 
         function newChat() {
             currentConversationId = null;
+            shouldAutoRenameConversation = false;
+            pendingAutoTitleSource = '';
             document.getElementById('messages-container').innerHTML = '';
             showEmpty();
             closeCanvas();
@@ -951,6 +958,9 @@
             const input = document.getElementById('message-input');
             const message = input.value.trim();
             if (!message || isStreaming) return;
+
+            shouldAutoRenameConversation = currentConversationId === null;
+            pendingAutoTitleSource = shouldAutoRenameConversation ? message : '';
 
             appendUserMsg(message);
             input.value = '';
@@ -1050,6 +1060,12 @@
                                 break;
 
                             case 'done':
+                                currentConversationId = data.conversation_id || currentConversationId;
+                                if (shouldAutoRenameConversation && currentConversationId) {
+                                    await autoRenameConversation(currentConversationId, pendingAutoTitleSource);
+                                    shouldAutoRenameConversation = false;
+                                    pendingAutoTitleSource = '';
+                                }
                                 if (!assistantMsgEl && accumulatedText) {
                                     assistantMsgEl = createAssistantMsgEl(renderAssistantText(accumulatedText), accumulatedText, message);
                                 } else if (assistantMsgEl && accumulatedText) {
@@ -1267,6 +1283,56 @@
 
             document.getElementById('message-input').value = text;
             sendMessage();
+        }
+
+        async function autoRenameConversation(conversationId, sourceText) {
+            const title = buildConversationTitle(sourceText);
+            if (!title || title === 'Nouvelle conversation') return;
+
+            try {
+                const res = await fetch(`${API}/conversations/${conversationId}/title`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title })
+                });
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}`);
+                }
+                await loadConversations();
+            } catch (e) {
+                console.error('Auto-rename failed:', e);
+            }
+        }
+
+        function buildConversationTitle(text) {
+            const source = String(text || '').replace(/\s+/g, ' ').trim();
+            if (!source) return 'Nouvelle conversation';
+
+            let candidate = '';
+            if (window.nlp) {
+                try {
+                    const doc = window.nlp(source);
+                    const nounText = doc.nouns().out('text').trim();
+                    const propText = doc.match('#ProperNoun+').out('text').trim();
+                    candidate = nounText || propText || doc.sentences().first().out('text').trim();
+                } catch (e) {
+                    console.error('Compromise title error:', e);
+                }
+            }
+
+            if (!candidate) {
+                candidate = source.split(/[.!?]/)[0] || source;
+            }
+
+            candidate = candidate
+                .replace(/\b(please|merci|svp|stp|s'il vous plaît|could you|can you|peux-tu|pourrais-tu)\b/gi, '')
+                .replace(/\s+/g, ' ')
+                .trim();
+
+            const words = candidate.split(/\s+/).filter(Boolean).slice(0, 6);
+            const title = words.join(' ').trim();
+            if (!title) return 'Nouvelle conversation';
+            return title.charAt(0).toUpperCase() + title.slice(1);
         }
 
         function escapeHtml(text) {

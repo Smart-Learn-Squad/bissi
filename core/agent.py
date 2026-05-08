@@ -497,6 +497,10 @@ Tu dois prioriser des actions concrètes via tools, avec réponses claires et fi
         """Return full history for a conversation id."""
         return self.conversation_store.get_history(conversation_id)
 
+    def update_conversation_title(self, conversation_id: int, title: str) -> bool:
+        """Rename one conversation thread."""
+        return self.conversation_store.update_conversation_title(conversation_id, title)
+
     def delete_conversation(self, conversation_id: int) -> bool:
         """Delete one conversation thread permanently."""
         return self.conversation_store.delete_conversation(conversation_id)

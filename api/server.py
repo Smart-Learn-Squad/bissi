@@ -37,6 +37,12 @@ class ChatRequest(BaseModel):
     conversation_id: Optional[int] = None
 
 
+class ConversationTitleRequest(BaseModel):
+    """Incoming conversation rename payload."""
+
+    title: str
+
+
 async def _chat_stream(request: ChatRequest) -> AsyncGenerator[str, None]:
     """Run agent in worker thread and stream SSE events."""
     loop = asyncio.get_running_loop()
@@ -75,7 +81,13 @@ async def _chat_stream(request: ChatRequest) -> AsyncGenerator[str, None]:
 
     try:
         full_response = await asyncio.wait_for(task, timeout=120)
-        _send_event({"type": "done", "full_response": full_response})
+        _send_event(
+            {
+                "type": "done",
+                "full_response": full_response,
+                "conversation_id": agent.current_conversation_id,
+            }
+        )
     except asyncio.TimeoutError:
         logger.exception("chat_timeout")
         _send_event({"type": "error", "message": "Chat timeout after 120 seconds"})
@@ -131,6 +143,22 @@ async def delete_conversation(conversation_id: int) -> JSONResponse:
     except Exception as exc:
         logger.exception("delete_conversation_endpoint_error")
         return JSONResponse(status_code=500, content={"success": False, "error": str(exc)})
+
+
+@app.patch("/conversations/{conversation_id}/title")
+async def update_conversation_title(conversation_id: int, request: ConversationTitleRequest) -> JSONResponse:
+    """Rename one conversation."""
+    try:
+        title = request.title.strip()
+        if not title:
+            raise HTTPException(status_code=400, detail="Title cannot be empty")
+        success = agent.update_conversation_title(conversation_id, title)
+        return JSONResponse({"success": success, "title": title})
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("update_conversation_title_endpoint_error")
+        raise HTTPException(status_code=500, detail=f"Unable to rename conversation: {exc}") from exc
 
 
 @app.get("/health")

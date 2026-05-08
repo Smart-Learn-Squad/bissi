@@ -142,12 +142,75 @@
       .sec { padding: 8px 12px 2px; }
       .sec-lbl { font-size: 9.5px; font-weight: 500; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); margin-bottom: 3px; }
       .ci { display: flex; align-items: center; gap: 7px; padding: 6px 7px; border-radius: 7px; cursor: pointer; margin-bottom: 1px; }
+      .ci {
+        position: relative;
+        padding-right: 28px;
+      }
       .ci:hover, .ci.on { background: var(--glass-hover); }
       .ci.on .ci-t { color: var(--acc); }
       .ci-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--acc); opacity: 0.35; flex-shrink: 0; }
       .ci.on .ci-dot { opacity: 1; }
       .ci-t { font-size: 12px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .ci-ts { margin-left: auto; font-size: 9.5px; color: var(--muted); flex-shrink: 0; }
+      .ci-actions {
+        position: absolute;
+        top: 50%;
+        right: 4px;
+        transform: translateY(-50%);
+      }
+      .ci-menu-btn {
+        width: 20px;
+        height: 20px;
+        border-radius: 6px;
+        border: 1px solid transparent;
+        background: transparent;
+        color: var(--muted);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        opacity: 0;
+        transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+      }
+      .ci:hover .ci-menu-btn,
+      .ci.on .ci-menu-btn,
+      .ci-menu-open .ci-menu-btn {
+        opacity: 1;
+      }
+      .ci-menu-btn:hover {
+        background: rgba(255,255,255,0.08);
+        color: var(--text);
+        border-color: rgba(255,255,255,0.08);
+      }
+      .ci-menu {
+        position: absolute;
+        right: 24px;
+        top: 24px;
+        min-width: 150px;
+        background: var(--surface-strong);
+        border: 1px solid var(--glass-border);
+        border-radius: 10px;
+        box-shadow: 0 18px 42px rgba(0,0,0,0.35);
+        padding: 6px;
+        z-index: 30;
+      }
+      .ci-menu.hidden { display: none; }
+      .ci-menu-item {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border: 0;
+        background: transparent;
+        color: var(--text);
+        padding: 8px 10px;
+        border-radius: 8px;
+        font-size: 12px;
+        cursor: pointer;
+        text-align: left;
+      }
+      .ci-menu-item:hover { background: var(--glass-hover); }
+      .ci-menu-item.danger { color: #FCA5A5; }
 
       .sb-foot {
         margin-top: auto; padding: 10px 12px;
@@ -798,6 +861,7 @@
         let userProfile = null;
         let shouldAutoRenameConversation = false;
         let pendingAutoTitleSource = '';
+        let openConversationMenuId = null;
         const API = 'http://localhost:8765';
         const FILE_EXTS = ['.docx', '.xlsx', '.pdf', '.py'];
 
@@ -880,8 +944,39 @@
                 el.className = 'ci' + (conv.id === currentConversationId ? ' on' : '');
                 const time = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
                 const title = conv.title || (conv.first_message ? conv.first_message.slice(0, 35) : 'Nouvelle conversation');
-                el.innerHTML = `<div class="ci-dot"></div><span class="ci-t">${title}</span><span class="ci-ts">${time}</span>`;
+                el.innerHTML = `
+                    <div class="ci-dot"></div>
+                    <span class="ci-t"></span>
+                    <span class="ci-ts">${time}</span>
+                    <div class="ci-actions">
+                        <button class="ci-menu-btn" type="button" aria-label="Actions" title="Actions">⋯</button>
+                    </div>
+                    <div class="ci-menu hidden" role="menu">
+                        <button class="ci-menu-item" type="button" data-action="rename">Renommer</button>
+                        <button class="ci-menu-item" type="button" data-action="archive">Archiver</button>
+                        <button class="ci-menu-item danger" type="button" data-action="delete">Supprimer</button>
+                    </div>
+                `;
+                el.querySelector('.ci-t').textContent = title;
                 el.onclick = () => loadConversation(conv.id);
+                const menuBtn = el.querySelector('.ci-menu-btn');
+                const menu = el.querySelector('.ci-menu');
+                menuBtn.onclick = e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggleConversationMenu(conv.id, el);
+                };
+                menu.querySelectorAll('.ci-menu-item').forEach(btn => {
+                    btn.onclick = async e => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const action = btn.dataset.action;
+                        closeConversationMenus();
+                        if (action === 'rename') await renameConversation(conv.id, title);
+                        if (action === 'archive') await archiveConversation(conv.id);
+                        if (action === 'delete') await deleteConversation(conv.id);
+                    };
+                });
                 if (d.toDateString() === today) todayEl.appendChild(el);
                 else if (d >= weekAgo) weekEl.appendChild(el);
             });
@@ -901,6 +996,83 @@
             } catch (e) {
                 console.error('History load error:', e);
                 showError('Erreur lors du chargement');
+            }
+        }
+
+        function toggleConversationMenu(id, itemEl) {
+            const willOpen = openConversationMenuId !== id;
+            closeConversationMenus();
+            if (!willOpen) return;
+            const menu = itemEl.querySelector('.ci-menu');
+            if (menu) {
+                menu.classList.remove('hidden');
+                itemEl.classList.add('ci-menu-open');
+                openConversationMenuId = id;
+            }
+        }
+
+        function closeConversationMenus() {
+            document.querySelectorAll('.ci-menu').forEach(menu => menu.classList.add('hidden'));
+            document.querySelectorAll('.ci-menu-open').forEach(item => item.classList.remove('ci-menu-open'));
+            openConversationMenuId = null;
+        }
+
+        async function renameConversation(id, currentTitle) {
+            const fallback = String(currentTitle || '').trim() || 'Conversation';
+            const nextTitle = window.prompt('Nouveau titre de conversation', fallback);
+            if (nextTitle === null) return;
+            const title = nextTitle.trim();
+            if (!title) return;
+            try {
+                const res = await fetch(`${API}/conversations/${id}/title`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title })
+                });
+                if (!res.ok) {
+                    const data = await res.json().catch(() => ({}));
+                    throw new Error(data.detail || `HTTP ${res.status}`);
+                }
+                await loadConversations();
+            } catch (e) {
+                console.error('Rename conversation failed:', e);
+                showError('Renommage impossible');
+            }
+        }
+
+        async function archiveConversation(id) {
+            try {
+                const res = await fetch(`${API}/conversations/${id}/archive`, { method: 'PATCH' });
+                if (!res.ok) {
+                    const data = await res.json().catch(() => ({}));
+                    throw new Error(data.detail || `HTTP ${res.status}`);
+                }
+                if (currentConversationId === id) {
+                    newChat();
+                }
+                await loadConversations();
+            } catch (e) {
+                console.error('Archive conversation failed:', e);
+                showError('Archivage impossible');
+            }
+        }
+
+        async function deleteConversation(id) {
+            const ok = window.confirm('Supprimer cette conversation ?');
+            if (!ok) return;
+            try {
+                const res = await fetch(`${API}/conversations/${id}`, { method: 'DELETE' });
+                if (!res.ok) {
+                    const data = await res.json().catch(() => ({}));
+                    throw new Error(data.error || data.detail || `HTTP ${res.status}`);
+                }
+                if (currentConversationId === id) {
+                    newChat();
+                }
+                await loadConversations();
+            } catch (e) {
+                console.error('Delete conversation failed:', e);
+                showError('Suppression impossible');
             }
         }
 
@@ -940,7 +1112,19 @@
         function toggleThink() { think = !think; document.getElementById('tgl').classList.toggle('off', !think); }
         function toggleDD() { ddOpen = !ddOpen; document.getElementById('ms-dd').classList.toggle('hidden', !ddOpen); document.getElementById('ms-arr').classList.toggle('open', ddOpen); }
         function selectModel(name, color, e) { e.stopPropagation(); document.getElementById('ms-name').textContent = name; document.getElementById('ms-dot').style.background = color; document.querySelectorAll('.ms-opt').forEach(o => o.classList.remove('on')); e.currentTarget.classList.add('on'); toggleDD(); }
-        document.addEventListener('click', e => { if (ddOpen && !document.getElementById('ms').contains(e.target)) { ddOpen = false; document.getElementById('ms-dd').classList.add('hidden'); document.getElementById('ms-arr').classList.remove('open'); } });
+        document.addEventListener('click', e => {
+            if (ddOpen && !document.getElementById('ms').contains(e.target)) {
+                ddOpen = false;
+                document.getElementById('ms-dd').classList.add('hidden');
+                document.getElementById('ms-arr').classList.remove('open');
+            }
+            if (openConversationMenuId !== null) {
+                const openMenu = document.querySelector('.ci-menu-open');
+                if (openMenu && !openMenu.contains(e.target)) {
+                    closeConversationMenus();
+                }
+            }
+        });
 
         function newChat() {
             currentConversationId = null;

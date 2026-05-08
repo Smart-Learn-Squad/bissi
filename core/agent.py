@@ -501,6 +501,10 @@ Tu dois prioriser des actions concrètes via tools, avec réponses claires et fi
         """Rename one conversation thread."""
         return self.conversation_store.update_conversation_title(conversation_id, title)
 
+    def archive_conversation(self, conversation_id: int) -> bool:
+        """Archive one conversation thread."""
+        return self.conversation_store.archive_conversation(conversation_id)
+
     def delete_conversation(self, conversation_id: int) -> bool:
         """Delete one conversation thread permanently."""
         return self.conversation_store.delete_conversation(conversation_id)

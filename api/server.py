@@ -166,6 +166,16 @@ async def update_conversation_title(conversation_id: int, request: ConversationT
         raise HTTPException(status_code=500, detail=f"Unable to rename conversation: {exc}") from exc
 
 
+@app.patch("/conversations/{conversation_id}/archive")
+async def archive_conversation(conversation_id: int) -> JSONResponse:
+    """Archive one conversation."""
+    try:
+        return JSONResponse({"success": agent.archive_conversation(conversation_id)})
+    except Exception as exc:
+        logger.exception("archive_conversation_endpoint_error")
+        raise HTTPException(status_code=500, detail=f"Unable to archive conversation: {exc}") from exc
+
+
 @app.get("/health")
 async def health() -> JSONResponse:
     """Return backend health and model availability."""

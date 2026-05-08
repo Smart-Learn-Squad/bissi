@@ -296,6 +296,84 @@
         position: relative;
       }
 
+      .msg-a .md {
+        white-space: normal;
+        word-break: break-word;
+      }
+      .msg-a .md > *:first-child { margin-top: 0; }
+      .msg-a .md > *:last-child { margin-bottom: 0; }
+      .msg-a .md p,
+      .msg-a .md ul,
+      .msg-a .md ol,
+      .msg-a .md blockquote,
+      .msg-a .md pre,
+      .msg-a .md table {
+        margin: 0 0 0.8em 0;
+      }
+      .msg-a .md h1,
+      .msg-a .md h2,
+      .msg-a .md h3,
+      .msg-a .md h4,
+      .msg-a .md h5,
+      .msg-a .md h6 {
+        margin: 0.75em 0 0.4em;
+        font-family: 'Syne', sans-serif;
+        line-height: 1.25;
+      }
+      .msg-a .md h1 { font-size: 1.25em; }
+      .msg-a .md h2 { font-size: 1.15em; }
+      .msg-a .md h3 { font-size: 1.05em; }
+      .msg-a .md blockquote {
+        padding: 0.65em 0.85em;
+        border-left: 3px solid rgba(180,180,180,0.45);
+        background: rgba(255,255,255,0.03);
+        border-radius: 0 10px 10px 0;
+      }
+      .msg-a .md code {
+        font-family: 'DM Mono', monospace;
+        font-size: 0.92em;
+        background: rgba(255,255,255,0.08);
+        padding: 0.1em 0.3em;
+        border-radius: 5px;
+      }
+      .msg-a .md pre {
+        overflow-x: auto;
+        padding: 0.9em 1em;
+        background: rgba(0,0,0,0.35);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 12px;
+      }
+      .msg-a .md pre code {
+        display: block;
+        padding: 0;
+        background: transparent;
+        border-radius: 0;
+        white-space: pre;
+      }
+      .msg-a .md table {
+        width: 100%;
+        border-collapse: collapse;
+        display: block;
+        overflow-x: auto;
+      }
+      .msg-a .md th,
+      .msg-a .md td {
+        border: 1px solid rgba(255,255,255,0.08);
+        padding: 0.45em 0.6em;
+        text-align: left;
+      }
+      .msg-a .md th { background: rgba(255,255,255,0.05); }
+      .msg-a .md a {
+        color: var(--acc);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+      .msg-a .md hr {
+        border: 0;
+        border-top: 1px solid rgba(255,255,255,0.12);
+        margin: 0.9em 0;
+      }
+
       .tool-t {
         display: flex; align-items: center; gap: 5px;
         padding: 2px 0 7px;
@@ -612,10 +690,12 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
-    <script>
+      <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/marked@13.0.3/marked.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+      <script>
         let light = false, think = true, ddOpen = false;
         let currentConversationId = null;
         let isStreaming = false;
@@ -873,9 +953,9 @@
 
                             case 'done':
                                 if (!assistantMsgEl && accumulatedText) {
-                                    assistantMsgEl = createAssistantMsgEl(formatText(accumulatedText));
+                                    assistantMsgEl = createAssistantMsgEl(renderAssistantText(accumulatedText));
                                 } else if (assistantMsgEl && accumulatedText) {
-                                    assistantMsgEl.innerHTML = formatText(accumulatedText);
+                                    assistantMsgEl.innerHTML = `<div class="md">${renderAssistantText(accumulatedText)}</div>`;
                                 }
                                 if (thinkingBlockEl) {
                                     thinkingBlockEl.remove();
@@ -924,25 +1004,145 @@
             const container = document.getElementById('messages-container');
             const div = document.createElement('div');
             div.className = 'msg-a';
-            div.innerHTML = html;
+            div.innerHTML = `<div class="md">${html}</div>`;
             container.appendChild(div);
             container.scrollTop = container.scrollHeight;
             return div;
         }
 
         function appendAssistantMsg(text) {
-            createAssistantMsgEl(formatText(text));
+            createAssistantMsgEl(renderAssistantText(text));
         }
 
-        function formatText(text) {
-            if (!text) return '';
-            return text
-                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-                .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre class="code-inline">$2</pre>')
+        function escapeHtml(text) {
+            return String(text)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function stripThinkBlocks(text) {
+            return String(text || '').replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+        }
+
+        function fallbackMarkdown(text) {
+            const src = stripThinkBlocks(text);
+            const lines = src.split(/\r?\n/);
+            const out = [];
+            let inCode = false;
+            let codeLang = '';
+            let codeBuf = [];
+            let listTag = '';
+
+            const flushCode = () => {
+                if (!codeBuf.length) return;
+                const code = escapeHtml(codeBuf.join('\n'));
+                out.push(`<pre><code${codeLang ? ` data-lang="${escapeHtml(codeLang)}"` : ''}>${code}</code></pre>`);
+                codeBuf = [];
+                codeLang = '';
+            };
+
+            const closeList = () => {
+                if (listTag) out.push(`</${listTag}>`);
+                listTag = '';
+            };
+
+            for (const rawLine of lines) {
+                const line = rawLine.replace(/\s+$/, '');
+                const fence = line.match(/^```(\w+)?\s*$/);
+                if (fence) {
+                    if (inCode) {
+                        inCode = false;
+                        flushCode();
+                    } else {
+                        closeList();
+                        inCode = true;
+                        codeLang = fence[1] || '';
+                    }
+                    continue;
+                }
+
+                if (inCode) {
+                    codeBuf.push(line);
+                    continue;
+                }
+
+                if (!line.trim()) {
+                    closeList();
+                    continue;
+                }
+
+                const heading = line.match(/^(#{1,6})\s+(.*)$/);
+                if (heading) {
+                    closeList();
+                    const level = heading[1].length;
+                    out.push(`<h${level}>${escapeHtml(heading[2])}</h${level}>`);
+                    continue;
+                }
+
+                const quote = line.match(/^>\s?(.*)$/);
+                if (quote) {
+                    closeList();
+                    out.push(`<blockquote>${escapeHtml(quote[1])}</blockquote>`);
+                    continue;
+                }
+
+                const ul = line.match(/^[-*+]\s+(.*)$/);
+                const ol = line.match(/^\d+\.\s+(.*)$/);
+                if (ul || ol) {
+                    const nextTag = ol ? 'ol' : 'ul';
+                    if (listTag !== nextTag) {
+                        closeList();
+                        listTag = nextTag;
+                        out.push(`<${listTag}>`);
+                    }
+                    out.push(`<li>${escapeHtml((ul || ol)[1])}</li>`);
+                    continue;
+                }
+
+                closeList();
+                out.push(`<p>${escapeHtml(line)}</p>`);
+            }
+
+            if (inCode) flushCode();
+            closeList();
+
+            return out.join('\n')
                 .replace(/`([^`]+)`/g, '<code>$1</code>')
                 .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
                 .replace(/\*(.+?)\*/g, '<em>$1</em>')
+                .replace(/\[(.+?)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
+                .replace(/\n{3,}/g, '\n\n')
                 .replace(/\n/g, '<br>');
+        }
+
+        function renderAssistantText(text) {
+            const source = stripThinkBlocks(text);
+            if (!source) return '';
+
+            if (window.marked && window.DOMPurify) {
+                marked.setOptions({
+                    gfm: true,
+                    breaks: true,
+                    mangle: false,
+                    headerIds: false
+                });
+
+                const html = marked.parse(source, {
+                    mangle: false,
+                    headerIds: false
+                });
+
+                return DOMPurify.sanitize(html, {
+                    USE_PROFILES: { html: true },
+                    FORBID_TAGS: ['img', 'style'],
+                    FORBID_ATTR: ['style']
+                });
+            }
+
+            return fallbackMarkdown(source);
         }
 
         function addThinkingBlock(content) {

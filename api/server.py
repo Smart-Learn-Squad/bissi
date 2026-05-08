@@ -79,29 +79,34 @@ async def _chat_stream(request: ChatRequest) -> AsyncGenerator[str, None]:
 
     task = loop.run_in_executor(None, _run_agent)
 
-    try:
-        full_response = await asyncio.wait_for(task, timeout=120)
-        _send_event(
-            {
-                "type": "done",
-                "full_response": full_response,
-                "conversation_id": agent.current_conversation_id,
-            }
-        )
-    except asyncio.TimeoutError:
-        logger.exception("chat_timeout")
-        _send_event({"type": "error", "message": "Chat timeout after 120 seconds"})
-    except Exception as exc:
-        logger.exception("chat_failed")
-        _send_event({"type": "error", "message": str(exc)})
-    finally:
-        _send_event({"type": "_end"})
+    async def _watch_task() -> None:
+        try:
+            full_response = await asyncio.wait_for(task, timeout=120)
+            _send_event(
+                {
+                    "type": "done",
+                    "full_response": full_response,
+                    "conversation_id": agent.current_conversation_id,
+                }
+            )
+        except asyncio.TimeoutError:
+            logger.exception("chat_timeout")
+            _send_event({"type": "error", "message": "Chat timeout after 120 seconds"})
+        except Exception as exc:
+            logger.exception("chat_failed")
+            _send_event({"type": "error", "message": str(exc)})
+        finally:
+            _send_event({"type": "_end"})
+
+    watcher = asyncio.create_task(_watch_task())
 
     while True:
         event = await queue.get()
         if event.get("type") == "_end":
             break
         yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
+
+    await watcher
 
 
 @app.post("/chat")

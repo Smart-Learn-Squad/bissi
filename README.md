@@ -1,141 +1,213 @@
-# BISSI Backend (Gemma 4 Good)
+# 🤖 BISSI — Votre assistant IA local et privé
 
-Backend local-first pour un agent autonome Gemma 4 (Ollama), conçu pour une UI Electron via API FastAPI locale.
+**BISSI** est un assistant IA personnel qui fonctionne 100% sur votre machine, sans aucune connexion internet. Basé sur Gemma 4, il vous aide dans vos tâches quotidiennes tout en protégeant votre vie privée.
 
-## Objectif
+---
 
-Ce repo fournit le moteur backend de BISSI pour le hackathon **Gemma 4 Good**:
-- exécution locale (privacy-first),
-- agent avec tool-calling,
-- mémoire persistante locale,
-- API SSE prête à brancher à une UI Electron.
+## 🚀 Installation (One-liner)
 
-## Stack
-
-- Python 3.11+
-- Ollama + modèle `gemma4:e2b`
-- FastAPI + Uvicorn
-- SQLite (conversations)
-- ChromaDB (vecteurs)
-
-## Structure
-
-```text
-bissi/
-├── main.py
-├── requirements.txt
-├── api/
-│   └── server.py
-├── core/
-│   ├── agent.py
-│   ├── engine.py
-│   ├── context.py
-│   ├── config.py
-│   ├── router.py
-│   ├── types.py
-│   ├── user_profile.py
-│   └── memory/
-│       ├── conversation_store.py
-│       └── vector_store.py
-├── onboarding/
-│   ├── profile.py
-│   └── greeting.py
-├── configs/
-└── functions/
+### Windows
+```powershell
+iwr -useb https://raw.githubusercontent.com/Smart-Learn-Squad/bissi/main/install.bat | cmd
 ```
 
-## Prérequis
-
-1. Installer et lancer Ollama.
-2. Télécharger le modèle attendu:
-
+### Mac/Linux
 ```bash
-ollama pull gemma4:e2b
+curl -fsSL https://raw.githubusercontent.com/Smart-Learn-Squad/bissi/main/install.sh | sh
 ```
 
-3. Créer un environnement Python puis installer les dépendances:
+**L'installation automatique inclut :**
+- ✅ Dépendances Python et Node.js
+- ✅ Téléchargement du modèle IA (~3 GB)
+- ✅ Configuration de l'environnement
+- ✅ Lancement automatique
 
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+---
+
+## 🏆 Fonctionnalités
+
+### 🎯 Assistant Intelligent
+- **Conversation naturelle** en français et anglais
+- **Mémoire persistante** de vos discussions
+- **Contexte automatique** de vos fichiers et projets
+- **Adaptation** à votre style et préférences
+
+### 🛠️ Outils Intégrés
+- **📁 Gestion de fichiers** : lire, écrire, organiser
+- **💻 Programmation** : Python, analyse de code, debugging
+- **📊 Bureautique** : Word, Excel, PowerPoint, PDF
+- **🔍 Recherche** : navigation web, analyse de contenu
+- **📈 Données** : CSV, analyse, graphiques
+- **🖼️ Vision** : images, screenshots, OCR
+- **📋 Presse-papiers** : copier/coller intelligent
+
+### 🔒 Confidentialité
+- **100% local** : aucune donnée ne quitte votre machine
+- **Pas de tracking** : votre vie privée est respectée
+- **Chiffrement** : vos conversations sont protégées
+
+---
+
+## 🏗️ Architecture
+
+### Backend Python
+```
+core/                    # Moteur de l'agent
+├── agent.py            # Orchestrateur principal
+├── engine.py           # Interface avec le modèle
+├── memory/             # Mémoire conversationnelle
+└── context.py          # Gestion du contexte
+
+functions/              # Outils de l'agent
+├── filesystem/        # Gestion de fichiers
+├── code/              # Programmation
+├── office/            # Bureautique
+├── data/              # Analyse de données
+└── vision/            # Traitement d'images
+
+api/server.py          # API FastAPI
+main.py               # Point d'entrée
 ```
 
-## Lancement
+### Frontend Electron
+```
+bissi-master-ui/
+├── main.js            # Processus principal
+├── preload.js         # Bridge sécurisé
+└── renderer/          # Interface utilisateur
+    ├── chat.html      # Chat principal
+    └── onboarding.html # Page d'accueil
+```
 
+---
+
+## 💻 Utilisation
+
+### Démarrage Rapide
 ```bash
+# Linux/Mac
+./start.sh
+
+# Windows
+start.bat
+```
+
+### Développement
+```bash
+# Backend
 python main.py
+
+# Frontend
+cd bissi-master-ui
+npm start
 ```
 
-Au démarrage, le backend:
-1. vérifie la disponibilité d’Ollama,
-2. vérifie la présence du modèle `gemma4:e2b`,
-3. lance l’API sur `http://127.0.0.1:8765`.
-
-## API
-
-### `GET /health`
-Retourne l’état moteur/modèle.
-
-### `GET /tools`
-Retourne la liste des tools agent.
-
-### `GET /conversations`
-Retourne les conversations récentes.
-
-### `GET /conversations/{id}/history`
-Retourne l’historique complet d’une conversation.
-
-### `DELETE /conversations/{id}`
-Supprime une conversation.
-
-### `POST /chat` (SSE)
-Body JSON:
-
-```json
-{
-  "message": "Analyse ce fichier et fais un résumé",
-  "conversation_id": null
-}
-```
-
-Events SSE émis:
-- `thinking`
-- `tool_start`
-- `tool_done`
-- `chunk`
-- `done`
-- `error`
-
-## Exemple rapide (curl)
-
+### API Directe
 ```bash
-curl -N -X POST "http://127.0.0.1:8765/chat" \
+# Santé du serveur
+curl http://localhost:8765/health
+
+# Chat (Streaming)
+curl -N -X POST "http://localhost:8765/chat" \
   -H "Content-Type: application/json" \
   -d '{"message":"Bonjour BISSI","conversation_id":null}'
 ```
 
-```bash
-curl "http://127.0.0.1:8765/health"
+---
+
+## 🛠️ Configuration
+
+### Modèle IA
+- **Modèle** : `unsloth/gemma-4-E2B-it-GGUF`
+- **Quantification** : Q4_K_M (optimisée pour CPU)
+- **Contexte** : 4096 tokens
+- **Taille** : ~3 GB
+
+### Personnalisation
+```python
+# configs/personas/office_assistant.py
+# configs/personas/student.py
+# configs/personas/researcher.py
 ```
 
-## Comportement agent
+---
 
-`core/agent.py` applique une boucle en phases:
-- verrou de concurrence,
-- pré-thinking (`<think>...</think>` extrait et résumé),
-- itérations tool-calls avec validation d’arguments,
-- fallback de synthèse finale si limite d’itérations atteinte,
-- sauvegarde de réponse en mémoire conversationnelle.
+## 📚 Documentation
 
-## Données locales
+- **[squad-members.md](./squad-members.md)** — Guide pour les contributeurs
+- **[AGENTS.md](./AGENTS.md)** — Règles de contribution
+- **[install.sh](./install.sh)** — Script d'installation Linux/Mac
+- **[install.bat](./install.bat)** — Script d'installation Windows
 
-Fichiers locaux dans `~/.bissi/`:
-- `conversations.db`
-- `profile.json`
+---
 
-## Notes
+## 🤝 Contribution
 
-- Le backend est conçu pour un usage localhost (pont UI Electron).
-- Les erreurs sont normalisées côté API pour éviter les crashes UI.
-- Le repo est orienté robustesse de démonstration hackathon, pas infra distribuée.
+### Équipes
+- **🎨 Design** : Interface utilisateur, CSS, animations
+- **🔧 Backend** : Moteur IA, API, outils
+
+### Workflow
+1. Forker le repo
+2. Créer une branche : `git checkout -b feature/nom-feature`
+3. Faire les changements
+4. Tester : `npm start` (frontend) ou `python main.py` (backend)
+5. Pull Request avec review obligatoire
+
+### Permissions
+- Voir [AGENTS.md](./AGENTS.md) pour les règles détaillées
+- Voir [.github/CODEOWNERS](./.github/CODEOWNERS) pour les approbations
+
+---
+
+## 🔧 Dépannage
+
+### Problèmes Communs
+- **Modèle introuvable** : Vérifiez le téléchargement HF
+- **Port occupé** : Changez les ports dans la config
+- **Mémoire insuffisante** : Réduisez `n_ctx` dans la config
+
+### Logs
+- **Backend** : `~/.bissi/logs/`
+- **Frontend** : Console développeur Electron
+- **Système** : `/tmp/bissi-*.log` (Linux) ou `%TEMP%\bissi-*.log` (Windows)
+
+---
+
+## 📊 Stack Technique
+
+### Backend
+- **Python 3.11+** avec FastAPI
+- **llama-cpp-python** pour le modèle
+- **SQLite** pour les conversations
+- **ChromaDB** pour la mémoire vectorielle
+- **Pydantic** pour la validation
+
+### Frontend
+- **Electron** pour l'application desktop
+- **HTML/CSS/JS** natifs
+- **PDF.js**, **xlsx**, **mammoth** pour les documents
+
+### Modèle
+- **Gemma 4** (Google)
+- **GGUF** pour l'optimisation CPU
+- **Quantifié** Q4_K_M pour l'équilibre performance/taille
+
+---
+
+## 📄 Licence
+
+MIT License — Voir [LICENSE](./LICENSE) pour plus d'informations.
+
+---
+
+## 🙏 Remerciements
+
+- **Google** pour le modèle Gemma 4
+- **Hugging Face** pour l'hébergement des modèles
+- **Ollama** pour l'inférence locale
+- **Équipe Gemma 4 Good** pour le hackathon
+
+---
+
+**BISSI** — Votre assistant IA, privé et performant. 🚀

@@ -300,13 +300,23 @@
       .qa-s { font-size: 12.5px; color: var(--muted); margin-top: 1px; }
 
       /* messages */
+      .msg-u-wrap {
+        align-self: flex-end;
+        width: 72%;
+        max-width: 72%;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        margin-bottom: 8px;
+      }
       .msg-u {
-        align-self: flex-end; max-width: 72%;
+        width: 100%;
+        max-width: 100%;
         background: rgba(180,180,180,0.82);
         border: 1px solid rgba(255,255,255,0.16);
         color: #fff; padding: 8px 13px;
         border-radius: 12px 12px 3px 12px;
-        font-size: 15.5px; line-height: 1.5; margin-bottom: 8px;
+        font-size: 15.5px; line-height: 1.5;
         box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), 0 8px 18px rgba(0,0,0,0.18);
       }
       .msg-a {
@@ -422,8 +432,10 @@
       .msg-a .msg-actions {
         justify-content: flex-start;
       }
-      .msg-u .msg-actions {
+      .msg-u-wrap .msg-actions {
         justify-content: flex-end;
+        width: auto;
+        margin-top: 6px;
       }
       .msg-action-btn {
         width: 26px;
@@ -1031,7 +1043,8 @@
                                     if (!assistantMsgEl) {
                                         assistantMsgEl = createAssistantMsgEl('', '', message);
                                     }
-                                    assistantMsgEl.querySelector('.md').textContent = accumulatedText;
+                                    assistantMsgEl.querySelector('.md').innerHTML = renderAssistantText(accumulatedText);
+                                    enhanceRenderedMessage(assistantMsgEl);
                                     assistantMsgEl.scrollIntoView({ behavior: 'smooth', block: 'end' });
                                 }
                                 break;
@@ -1040,8 +1053,7 @@
                                 if (!assistantMsgEl && accumulatedText) {
                                     assistantMsgEl = createAssistantMsgEl(renderAssistantText(accumulatedText), accumulatedText, message);
                                 } else if (assistantMsgEl && accumulatedText) {
-                                    assistantMsgEl.innerHTML = `<div class="md">${renderAssistantText(accumulatedText)}</div>`;
-                                    attachMessageActions(assistantMsgEl, accumulatedText, message, 'assistant');
+                                    assistantMsgEl.querySelector('.md').innerHTML = renderAssistantText(accumulatedText);
                                     enhanceRenderedMessage(assistantMsgEl);
                                 }
                                 if (thinkingBlockEl) {
@@ -1080,11 +1092,11 @@
 
         function appendUserMsg(text) {
             const container = document.getElementById('messages-container');
-            const div = document.createElement('div');
-            div.className = 'msg-u';
-            div.dataset.messageText = text || '';
-            div.innerHTML = `
-                <div class="msg-text"></div>
+            const wrap = document.createElement('div');
+            wrap.className = 'msg-u-wrap';
+            wrap.dataset.messageText = text || '';
+            wrap.innerHTML = `
+                <div class="msg-u"><div class="msg-text"></div></div>
                 <div class="msg-actions">
                     <button class="msg-action-btn" type="button" title="Copier" aria-label="Copier">
                         ${copyIconSvg()}
@@ -1094,9 +1106,9 @@
                     </button>
                 </div>
             `;
-            div.querySelector('.msg-text').textContent = text || '';
-            attachMessageActions(div, text || '', text || '', 'user');
-            container.appendChild(div);
+            wrap.querySelector('.msg-text').textContent = text || '';
+            attachMessageActions(wrap, text || '', text || '', 'user');
+            container.appendChild(wrap);
             container.scrollTop = container.scrollHeight;
         }
 

@@ -490,7 +490,10 @@
         gap: 6px;
         justify-content: flex-end;
         margin-top: 6px;
-        opacity: 0.75;
+        opacity: 0;
+        transform: translateY(-2px);
+        pointer-events: none;
+        transition: opacity 0.15s ease, transform 0.15s ease;
       }
       .msg-a .msg-actions {
         justify-content: flex-start;
@@ -500,23 +503,30 @@
         width: auto;
         margin-top: 6px;
       }
+      .msg-a:hover .msg-actions,
+      .msg-a:focus-within .msg-actions,
+      .msg-u-wrap:hover .msg-actions,
+      .msg-u-wrap:focus-within .msg-actions {
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: auto;
+      }
       .msg-action-btn {
-        width: 26px;
-        height: 26px;
-        border-radius: 7px;
-        border: 1px solid rgba(255,255,255,0.1);
-        background: rgba(255,255,255,0.04);
+        width: 24px;
+        height: 24px;
+        border-radius: 999px;
+        border: none;
+        background: transparent;
         color: var(--muted);
         display: inline-flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
-        transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+        transition: transform 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+        opacity: 0.85;
       }
       .msg-action-btn:hover {
         transform: translateY(-1px);
-        background: rgba(180,180,180,0.12);
-        border-color: rgba(180,180,180,0.26);
         color: var(--text);
         opacity: 1;
       }
@@ -561,6 +571,12 @@
         backdrop-filter: blur(8px);
         cursor: pointer; display: flex; align-items: center; justify-content: center;
         color: var(--muted); font-size: 14px; flex-shrink: 0;
+      }
+      .in-ic.recording {
+        color: #FCA5A5;
+        border-color: rgba(252, 165, 165, 0.35);
+        background: rgba(239, 68, 68, 0.1);
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
       }
       .send-btn {
         width: 28px; height: 28px; border-radius: 8px;
@@ -767,8 +783,8 @@
                         </svg>
                     </button>
                     <textarea class="in-f" id="message-input" rows="1" placeholder="Décrivez votre tâche..." onkeydown="handleInputKeydown(event)"></textarea>
-                    <button class="in-ic">
-                        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <button class="in-ic" id="voice-btn" type="button" title="Dictée vocale" aria-label="Dictée vocale">
+                        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true" id="voice-icon">
                             <rect x="5.25" y="2" width="5.5" height="8.5" rx="2.75" stroke="currentColor" stroke-width="1.35"/>
                             <path d="M3.25 7.75a4.75 4.75 0 0 0 9.5 0" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"/>
                             <path d="M8 11.25V13.5" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"/>
@@ -854,6 +870,7 @@
       <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
       <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
       <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/highlight.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js"></script>
       <script>
         let light = false, think = true, ddOpen = false;
         let currentConversationId = null;
@@ -862,12 +879,19 @@
         let shouldAutoRenameConversation = false;
         let pendingAutoTitleSource = '';
         let openConversationMenuId = null;
+        let speechRecorder = null;
+        let speechStream = null;
+        let speechChunks = [];
+        let speechBusy = false;
+        let speechRecognizer = null;
         const API = 'http://localhost:8765';
         const FILE_EXTS = ['.docx', '.xlsx', '.pdf', '.py'];
+        const SPEECH_MODEL = 'Xenova/whisper-base';
 
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
 
         window.addEventListener('DOMContentLoaded', async () => {
+            initVoiceButton();
             await loadUserProfile();
             await loadModels();
             await loadConversations();
@@ -879,6 +903,135 @@
             banner.textContent = message;
             banner.classList.remove('hidden');
             setTimeout(() => banner.classList.add('hidden'), 5000);
+        }
+
+        function initVoiceButton() {
+            const btn = document.getElementById('voice-btn');
+            if (!btn) return;
+            btn.onclick = async () => {
+                if (speechBusy) return;
+                if (speechRecorder && speechRecorder.state === 'recording') {
+                    await stopVoiceRecording();
+                } else {
+                    await startVoiceRecording();
+                }
+            };
+        }
+
+        function setVoiceButtonState(recording) {
+            const btn = document.getElementById('voice-btn');
+            if (!btn) return;
+            btn.classList.toggle('recording', recording);
+            btn.title = recording ? 'Arrêter la dictée' : 'Dictée vocale';
+            btn.setAttribute('aria-label', recording ? 'Arrêter la dictée' : 'Dictée vocale');
+        }
+
+        function pickVoiceMimeType() {
+            const candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'];
+            for (const mimeType of candidates) {
+                if (window.MediaRecorder && MediaRecorder.isTypeSupported(mimeType)) {
+                    return mimeType;
+                }
+            }
+            return '';
+        }
+
+        async function startVoiceRecording() {
+            if (isStreaming) {
+                showError('Attendez la fin du streaming avant la dictée');
+                return;
+            }
+            if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+                showError('Dictée vocale non supportée');
+                return;
+            }
+
+            try {
+                speechStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                speechChunks = [];
+                const options = {};
+                const mimeType = pickVoiceMimeType();
+                if (mimeType) options.mimeType = mimeType;
+                speechRecorder = new MediaRecorder(speechStream, options);
+                speechRecorder.ondataavailable = event => {
+                    if (event.data && event.data.size > 0) {
+                        speechChunks.push(event.data);
+                    }
+                };
+                speechRecorder.onstop = async () => {
+                    const chunks = speechChunks.slice();
+                    cleanupVoiceStream();
+                    if (!chunks.length) return;
+                    speechBusy = true;
+                    setVoiceButtonState(false);
+                    try {
+                        const blob = new Blob(chunks, { type: chunks[0].type || 'audio/webm' });
+                        const text = await transcribeVoiceBlob(blob);
+                        if (text) {
+                            const input = document.getElementById('message-input');
+                            const prefix = input.value.trim();
+                            input.value = prefix ? `${prefix} ${text}` : text;
+                            input.dispatchEvent(new Event('input'));
+                            input.focus();
+                        } else {
+                            showError('Aucune parole détectée');
+                        }
+                    } catch (e) {
+                        console.error('Voice transcription failed:', e);
+                        showError('Transcription impossible');
+                    } finally {
+                        speechBusy = false;
+                    }
+                };
+                speechRecorder.start();
+                setVoiceButtonState(true);
+            } catch (e) {
+                console.error('Voice recording failed:', e);
+                cleanupVoiceStream();
+                showError('Micro indisponible');
+            }
+        }
+
+        async function stopVoiceRecording() {
+            if (!speechRecorder || speechRecorder.state !== 'recording') return;
+            speechRecorder.stop();
+        }
+
+        function cleanupVoiceStream() {
+            if (speechStream) {
+                speechStream.getTracks().forEach(track => track.stop());
+                speechStream = null;
+            }
+            speechRecorder = null;
+            speechChunks = [];
+            setVoiceButtonState(false);
+        }
+
+        async function getSpeechRecognizer() {
+            if (speechRecognizer) return speechRecognizer;
+            const root = window.transformers || window;
+            const pipeline = root.pipeline || window.pipeline;
+            if (!pipeline) {
+                throw new Error('Transformers not available');
+            }
+            if (root.env) {
+                root.env.allowLocalModels = true;
+                root.env.allowRemoteModels = true;
+                root.env.useBrowserCache = true;
+            }
+            speechRecognizer = await pipeline('automatic-speech-recognition', SPEECH_MODEL);
+            return speechRecognizer;
+        }
+
+        async function transcribeVoiceBlob(blob) {
+            const recognizer = await getSpeechRecognizer();
+            const result = await recognizer(blob, {
+                return_timestamps: false,
+                chunk_length_s: 30,
+                stride_length_s: 5,
+            });
+            if (typeof result === 'string') return result.trim();
+            return String(result?.text || '').trim();
         }
 
         async function loadUserProfile() {

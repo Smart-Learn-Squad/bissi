@@ -242,6 +242,33 @@
       /* MESSAGES */
       .msgs { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
       .msgs-in { padding: 16px 20px; display: flex; flex-direction: column; gap: 0; align-items: center; max-width: 820px; width: 100%; margin: 0 auto; }
+      .msgs,
+      .cv-body {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(180,180,180,0.45) transparent;
+      }
+      .msgs::-webkit-scrollbar,
+      .cv-body::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+      }
+      .msgs::-webkit-scrollbar-track,
+      .cv-body::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .msgs::-webkit-scrollbar-thumb,
+      .cv-body::-webkit-scrollbar-thumb {
+        background: linear-gradient(180deg, rgba(180,180,180,0.35), rgba(180,180,180,0.55));
+        border: 2px solid transparent;
+        background-clip: padding-box;
+        border-radius: 999px;
+      }
+      .msgs::-webkit-scrollbar-thumb:hover,
+      .cv-body::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(180deg, rgba(180,180,180,0.5), rgba(180,180,180,0.75));
+        border: 2px solid transparent;
+        background-clip: padding-box;
+      }
 
       .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; text-align: center; padding: 24px; }
       .e-ic {

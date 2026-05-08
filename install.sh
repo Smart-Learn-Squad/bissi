@@ -1,11 +1,12 @@
 #!/bin/bash
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH"
 
 echo "Bienvenue dans l'installateur de Bissi 🤖"
 echo "Voici ce qui va se passer :"
 echo "1. Vérification des outils requis"
-echo "2. Installation de huggingface-cli si absent"
-echo "3. Création du dossier projet"
-echo "4. Clonage du repo GitHub"
+echo "2. Clonage du repo GitHub"
+echo "3. Création du virtualenv Python"
+echo "4. Installation de huggingface-cli"
 echo "5. Installation des dépendances npm"
 echo "6. Téléchargement du modèle IA (~3 GB)"
 echo "7. Ouverture de VS Code"
@@ -25,35 +26,17 @@ check_tool() {
     fi
 }
 
-check_tool "git" "https://git-scm.com"
-check_tool "node" "https://nodejs.org"
-check_tool "npm" "https://nodejs.org"
-check_tool "python" "https://python.org"
-check_tool "pip" "https://python.org"
-check_tool "curl" "https://curl.se"
+check_tool "git"    "https://git-scm.com"
+check_tool "node"   "https://nodejs.org"
+check_tool "npm"    "https://nodejs.org"
+check_tool "python3" "https://python.org"
+check_tool "curl"   "https://curl.se"
 
-# ÉTAPE 2 — huggingface-cli
-if ! command -v huggingface-cli &> /dev/null; then
-    echo "→ Installation de huggingface-cli..."
-    pip install huggingface-hub -q
-    echo "✓ huggingface-cli installé"
-else
-    echo "✓ huggingface-cli déjà installé"
-fi
-
-# ÉTAPE 3 — Dossier projet
+# ÉTAPE 2 — Clone du repo
 PROJECT_DIR="$HOME/Dev/Bissi"
-if [ -d "$PROJECT_DIR" ]; then
-    echo "⚠ Le dossier existe déjà. On continue quand même."
-else
-    echo "→ Création du dossier $PROJECT_DIR..."
-    mkdir -p "$PROJECT_DIR"
-    echo "✓ Dossier créé"
-fi
-
+mkdir -p "$PROJECT_DIR"
 cd "$PROJECT_DIR"
 
-# ÉTAPE 4 — Clone du repo
 REPO_URL="https://github.com/Smart-Learn-Squad/bissi.git"
 if [ -d "bissi" ]; then
     echo "⚠ Le repo existe déjà. On continue quand même."
@@ -69,6 +52,31 @@ else
     fi
 fi
 
+# ÉTAPE 3 — Virtualenv Python
+echo "→ Création du virtualenv Python..."
+if [ -d ".venv" ]; then
+    echo "⚠ .venv existe déjà. On réutilise."
+else
+    if python3 -m venv .venv; then
+        echo "✓ .venv créé"
+    else
+        echo "❌ Échec de la création du virtualenv"
+        exit 1
+    fi
+fi
+
+source .venv/bin/activate
+echo "✓ Virtualenv activé"
+
+# ÉTAPE 4 — huggingface-cli dans le venv
+echo "→ Installation de huggingface-cli..."
+if pip install huggingface-hub -q; then
+    echo "✓ huggingface-cli installé"
+else
+    echo "❌ Échec de l'installation de huggingface-hub"
+    exit 1
+fi
+
 # ÉTAPE 5 — npm install
 echo "→ Installation des dépendances npm..."
 cd bissi-master-ui
@@ -78,6 +86,7 @@ else
     echo "❌ Échec de l'installation npm"
     exit 1
 fi
+cd ..
 
 # ÉTAPE 6 — Téléchargement modèle
 echo ""
@@ -86,7 +95,6 @@ echo "  Cela peut prendre plusieurs minutes selon votre connexion."
 echo "  Ne fermez pas ce terminal."
 echo ""
 
-cd ..
 mkdir -p models
 if huggingface-cli download unsloth/gemma-4-E2B-it-GGUF \
   gemma-4-E2B-it-Q4_K_M.gguf \
@@ -101,9 +109,6 @@ fi
 # ÉTAPE 7 — Ouverture VS Code
 echo ""
 echo "→ Ouverture de VS Code..."
-echo "  VS Code va s'ouvrir sur le projet."
-echo "  Ne fermez pas ce terminal, l'application va démarrer."
-
 if command -v code &> /dev/null; then
     code .
 else

@@ -13,7 +13,7 @@ iwr -useb https://raw.githubusercontent.com/Smart-Learn-Squad/bissi/main/install
 
 ### Mac/Linux
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Smart-Learn-Squad/bissi/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/Smart-Learn-Squad/bissi/main/install.sh | bash
 ```
 
 **L'installation automatique inclut :**

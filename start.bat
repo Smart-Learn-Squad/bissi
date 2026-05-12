@@ -13,6 +13,31 @@ if not exist ".venv" (
     exit /b 1
 )
 call .venv\Scripts\activate.bat
+if errorlevel 1 (
+    echo ❌ Failed to activate virtual environment
+    exit /b 1
+)
+
+REM Check required commands
+for %%T in (python curl uvicorn npm) do (
+    where %%T >nul 2>&1
+    if errorlevel 1 (
+        echo ❌ Missing required command: %%T
+        exit /b 1
+    )
+)
+
+REM Check model path
+set "MODEL_PATH=gemma-4-E2B-it-Q4_K_M.gguf"
+if not exist "%MODEL_PATH%" (
+    set "MODEL_PATH=models\gemma-4-E2B-it-Q4_K_M.gguf"
+)
+if not exist "%MODEL_PATH%" (
+    echo ❌ Model not found:
+    echo    - %SCRIPT_DIR%gemma-4-E2B-it-Q4_K_M.gguf
+    echo    - %SCRIPT_DIR%models\gemma-4-E2B-it-Q4_K_M.gguf
+    exit /b 1
+)
 
 REM 2. Kill stale processes
 echo → Cleaning up old processes...
@@ -22,7 +47,7 @@ timeout /T 1 /NOBREAK >nul
 REM 3. Launch llama.cpp server
 echo → Starting llama.cpp server on :8001...
 start /B python -m llama_cpp.server ^
-    --model gemma-4-E2B-it-Q4_K_M.gguf ^
+    --model "%MODEL_PATH%" ^
     --host 127.0.0.1 ^
     --port 8001 ^
     --n_ctx 4096 ^
@@ -39,6 +64,11 @@ set /a "count=0"
 :wait_llama
 set /a "count+=1"
 curl -s http://127.0.0.1:8001/v1/models >nul 2>&1
+if %errorlevel% equ 0 (
+    echo ✓ llama.cpp ready ^(PID %LLAMA_PID%^)
+    goto :llama_ready
+)
+curl -s http://127.0.0.1:8001/health >nul 2>&1
 if %errorlevel% equ 0 (
     echo ✓ llama.cpp ready ^(PID %LLAMA_PID%^)
     goto :llama_ready
@@ -93,6 +123,9 @@ REM 5. Launch Electron
 echo → Launching Electron app...
 cd bissi-master-ui
 npm start
+if errorlevel 1 (
+    echo ❌ Electron app failed to start
+)
 
 REM Cleanup on exit (when Electron closes)
 echo → Shutting down servers...

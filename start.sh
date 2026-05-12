@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
@@ -34,7 +34,8 @@ LLAMA_PID=$!
 # Wait for llama.cpp to be ready
 echo "→ Waiting for llama.cpp..."
 for i in $(seq 1 30); do
-    if curl -sf http://127.0.0.1:8001/v1/models > /dev/null 2>&1; then
+    if curl -sf --max-time 2 http://127.0.0.1:8001/v1/models > /dev/null 2>&1 \
+      || curl -sf --max-time 2 http://127.0.0.1:8001/health > /dev/null 2>&1; then
         echo "✓ llama.cpp ready (PID $LLAMA_PID)"
         break
     fi
@@ -60,7 +61,7 @@ API_PID=$!
 # Wait for FastAPI to be ready
 echo "→ Waiting for backend..."
 for i in $(seq 1 15); do
-    if curl -sf http://127.0.0.1:8765/health > /dev/null 2>&1; then
+    if curl -sf --max-time 2 http://127.0.0.1:8765/health > /dev/null 2>&1; then
         echo "✓ BISSI backend ready (PID $API_PID)"
         break
     fi

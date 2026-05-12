@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 # BISSI Master Build Script
 # This script builds the application for production
@@ -19,7 +20,10 @@ fi
 
 # Build for current platform
 echo "🔨 Building application..."
-npm run build
+if ! npm run build; then
+    echo "❌ Build failed"
+    exit 1
+fi
 
 echo "✅ Build complete! Check the 'dist' directory for output files."
 

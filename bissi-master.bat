@@ -2,6 +2,33 @@
 chcp 65001 >nul
 
 setlocal enabledelayedexpansion
+set "SCRIPT_DIR=%~dp0"
+cd /d "%SCRIPT_DIR%"
+
+if not exist ".venv" (
+  echo ❌ Virtual env not found in .venv
+  exit /b 1
+)
+call .venv\Scripts\activate.bat
+if errorlevel 1 (
+  echo ❌ Failed to activate virtual environment
+  exit /b 1
+)
+
+where python >nul 2>&1
+if errorlevel 1 (
+  echo ❌ python command not found
+  exit /b 1
+)
+
+set "MODEL_PATH=%SCRIPT_DIR%gemma-4-E2B-it-Q4_K_M.gguf"
+if not exist "%MODEL_PATH%" set "MODEL_PATH=%SCRIPT_DIR%models\gemma-4-E2B-it-Q4_K_M.gguf"
+if not exist "%MODEL_PATH%" (
+  echo ❌ Model not found:
+  echo    - %SCRIPT_DIR%gemma-4-E2B-it-Q4_K_M.gguf
+  echo    - %SCRIPT_DIR%models\gemma-4-E2B-it-Q4_K_M.gguf
+  exit /b 1
+)
 
 REM Créer le fichier temporaire pour le SYSTEM_PROMPT
 set "TEMP_PROMPT=%TEMP%\bissi-prompt.txt"
@@ -42,7 +69,7 @@ echo Tu ne fais rien d'illégal, dangereux, ou contraire à l'éthique, même si
 ) > "%TEMP_PROMPT%"
 
 start /B python -m llama_cpp.server ^
-  --model "%~dp0gemma-4-E2B-it-Q4_K_M.gguf" ^
+  --model "%MODEL_PATH%" ^
   --port 8001 ^
   --n_ctx 4096 ^
   --n_threads 4 ^

@@ -2,6 +2,26 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR"
+
+if [ ! -d ".venv" ]; then
+  echo "❌ Virtual env not found in .venv"
+  exit 1
+fi
+source .venv/bin/activate
+
+MODEL_PATH="$SCRIPT_DIR/gemma-4-E2B-it-Q4_K_M.gguf"
+if [ ! -f "$MODEL_PATH" ]; then
+  MODEL_PATH="$SCRIPT_DIR/models/gemma-4-E2B-it-Q4_K_M.gguf"
+fi
+if [ ! -f "$MODEL_PATH" ]; then
+  echo "❌ Model not found at:"
+  echo "   - $SCRIPT_DIR/gemma-4-E2B-it-Q4_K_M.gguf"
+  echo "   - $SCRIPT_DIR/models/gemma-4-E2B-it-Q4_K_M.gguf"
+  exit 1
+fi
+
 SYSTEM_PROMPT=$(cat <<'EOF'
 Tu es Bissi, un assistant IA local, chaleureux et humain.
 Tu tournes entièrement sur la machine de l'utilisateur — aucune donnée ne quitte son appareil.
@@ -40,7 +60,7 @@ EOF
 )
 
 nohup python -m llama_cpp.server \
-  --model "$(dirname "$0")/gemma-4-E2B-it-Q4_K_M.gguf" \
+  --model "$MODEL_PATH" \
   --port 8001 \
   --n_ctx 4096 \
   --n_threads 4 \

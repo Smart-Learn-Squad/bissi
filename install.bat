@@ -1,5 +1,6 @@
 @echo off
 chcp 65001 >nul
+setlocal enabledelayedexpansion
 
 echo Bienvenue dans l'installateur de Bissi 🤖
 echo Voici ce qui va se passer :
@@ -27,9 +28,22 @@ for %%T in (git node npm python curl) do (
 )
 
 REM ÉTAPE 2 — Clone du repo
-set "PROJECT_DIR=%USERPROFILE%\Documents\Projets\Bissi"
+if defined BISSI_INSTALL_DIR (
+    set "PROJECT_DIR=%BISSI_INSTALL_DIR%"
+) else (
+    set "PROJECT_DIR=%USERPROFILE%\Documents\Projets\Bissi"
+)
 if not exist "%PROJECT_DIR%" mkdir "%PROJECT_DIR%"
 cd /d "%PROJECT_DIR%"
+
+set "WRITE_TEST_FILE=%PROJECT_DIR%\.__bissi_write_test__"
+echo test>"%WRITE_TEST_FILE%" 2>nul
+if not exist "%WRITE_TEST_FILE%" (
+    echo ❌ Dossier d'installation non inscriptible: %PROJECT_DIR%
+    echo → Définit un dossier writable: set BISSI_INSTALL_DIR=%%USERPROFILE%%\Documents\Projets\Bissi
+    exit /b 1
+)
+del "%WRITE_TEST_FILE%" >nul 2>&1
 
 set "REPO_URL=https://github.com/Smart-Learn-Squad/bissi.git"
 if exist "bissi" (
@@ -101,7 +115,7 @@ REM ÉTAPE 7 — Ouverture VS Code
 echo.
 echo → Ouverture de VS Code...
 where code >nul 2>&1
-if %errorlevel% equ 0 (
+if !errorlevel! equ 0 (
     code .
 ) else (
     echo ⚠ VS Code non trouvé. Ouvre le dossier manuellement.
@@ -111,3 +125,4 @@ REM ÉTAPE 8 — Lancement
 echo.
 echo → Lancement de Bissi...
 call start.bat
+if errorlevel 1 exit /b 1

@@ -1,5 +1,6 @@
 @echo off
 chcp 65001 >nul
+setlocal enabledelayedexpansion
 
 REM BISSI Master Build Script
 REM This script builds the application for production
@@ -16,11 +17,19 @@ REM Install dependencies if needed
 if not exist "node_modules" (
     echo 📦 Installing dependencies...
     npm install
+    if errorlevel 1 (
+        echo ❌ npm install failed
+        exit /b 1
+    )
 )
 
 REM Build for current platform
 echo 🔨 Building application...
 npm run build
+if errorlevel 1 (
+    echo ❌ Build failed
+    exit /b 1
+)
 
 echo ✅ Build complete! Check the 'dist' directory for output files.
 

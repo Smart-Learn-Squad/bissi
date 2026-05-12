@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH"
 
 echo "Bienvenue dans l'installateur de Bissi 🤖"
@@ -33,9 +34,15 @@ check_tool "python3" "https://python.org"
 check_tool "curl"   "https://curl.se"
 
 # ÉTAPE 2 — Clone du repo
-PROJECT_DIR="$HOME/Dev/Bissi"
+PROJECT_DIR="${BISSI_INSTALL_DIR:-$HOME/Dev/Bissi}"
 mkdir -p "$PROJECT_DIR"
 cd "$PROJECT_DIR"
+
+if [ ! -w "$PROJECT_DIR" ]; then
+    echo "❌ Dossier d'installation non inscriptible: $PROJECT_DIR"
+    echo "→ Définit un dossier writable: export BISSI_INSTALL_DIR=~/Dev/Bissi"
+    exit 1
+fi
 
 REPO_URL="https://github.com/Smart-Learn-Squad/bissi.git"
 if [ -d "bissi" ]; then

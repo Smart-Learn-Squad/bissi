@@ -1,5 +1,6 @@
 @echo off
 chcp 65001 >nul
+setlocal enabledelayedexpansion
 
 REM 🚀 BISSI Agentic Capabilities - Quick Start
 
@@ -29,9 +30,13 @@ REM Step 2: Check pytest
 echo.
 echo 2️⃣  Checking pytest...
 python -m pip show pytest >nul 2>&1
-if %errorlevel% neq 0 (
+if !errorlevel! neq 0 (
     echo ⏳ Installing pytest...
     pip install pytest -q
+    if errorlevel 1 (
+        echo ❌ Failed to install pytest
+        exit /b 1
+    )
     echo ✅ pytest installed
 ) else (
     echo ✅ pytest already installed
@@ -42,6 +47,10 @@ echo.
 echo 3️⃣  Running tests...
 cd /d "%PROJECT_ROOT%"
 python -m pytest tests/test_agentic_capabilities.py -v --tb=short
+if errorlevel 1 (
+    echo ❌ Test suite failed
+    exit /b 1
+)
 
 echo.
 echo ╔════════════════════════════════════════════════════════╗

@@ -77,26 +77,26 @@
 ## 🎯 Architecture Overview
 
 ```text
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+┌─────────────────┐    ┌───────────────────┐    ┌─────────────────┐
 │   Renderer      │    │   Main Process    │    │   Backend       │
 │                 │    │                   │    │                 │
 │ onboarding.html │◄──►│     main.js       │◄──►│  FastAPI        │
 │ chat.html       │    │                   │    │  localhost:8765 │
 │ CSS/JS          │    │ IPC Handlers      │    │                 │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-         │                       │                       │
+└─────────────────┘    └───────────────────┘    └─────────────────┘
+         │                       │                        │
          │              ┌──────────────────┐              │
          │              │   preload.js     │              │
-         │              │  Secure Bridge    │              │
+         │              │  Secure Bridge   │              │
          │              └──────────────────┘              │
-         │                                               │
-         └───────────────────────────────────────────────┘
-                            │
-                    ┌──────────────────┐
-                    │     Ollama       │
-                    │  localhost:11434 │
-                    │   Local Models   │
-                    └──────────────────┘
+         │                                                │
+         └────────────────────────────────────────────────┘
+                                  │
+                          ┌──────────────────┐
+                          │     Ollama       │
+                          │  localhost:11434 │
+                          │   Local Models   │
+                          └──────────────────┘
 ```
 
 ## 🚀 Getting Started
@@ -135,7 +135,7 @@ npm start
 
 ## 📁 File Structure
 
-```
+```tree
 bissi-master-ui/
 ├── main.js              # Electron main process
 ├── preload.js           # Secure IPC bridge
@@ -227,7 +227,7 @@ eventSource.onmessage = function(event) {
 async function loadModels() {
   const ollamaData = await window.bissi.ollama.models();
   const modelsData = await window.bissi.models.list();
-  
+
   // Populate dropdown with available models
   // Set active model from backend health check
 }
@@ -317,4 +317,5 @@ The BISSI Electron desktop application successfully provides:
 6. **Developer Experience**: Comprehensive documentation and tooling
 7. **Production Ready**: Build configuration for multiple platforms
 
-The application is now ready for testing, deployment, and further development!
+The application is now ready for testing, deployment, and further
+development!

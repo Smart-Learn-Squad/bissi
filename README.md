@@ -8,7 +8,7 @@
 
 ### Windows
 ```powershell
-iwr -useb https://raw.githubusercontent.com/Smart-Learn-Squad/bissi/main/install.bat -OutFile install.bat; .\install.bat
+iwr https://raw.githubusercontent.com/Smart-Learn-Squad/bissi/main/install.bat -OutFile "$env:TEMP\bissi_install.bat"; cmd /c "$env:TEMP\bissi_install.bat"
 ```
 
 ### Mac/Linux

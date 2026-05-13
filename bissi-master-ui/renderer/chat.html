@@ -135,6 +135,17 @@
       .ci-menu-item:hover { background: var(--glass-hover); }
       .ci-menu-item.danger { color: #dc2626; }
 
+      /* Floating cloned menu (appended to body) to avoid stacking/overflow issues */
+      .floating-ci-menu {
+        position: fixed !important;
+        z-index: 10000 !important;
+        min-width: 150px; max-width: 320px;
+        background: var(--surface-strong);
+        border: 1px solid var(--glass-border);
+        border-radius: 10px; box-shadow: 0 18px 48px rgba(0,0,0,0.18);
+        padding: 6px; overflow: visible;
+      }
+
       .sb-foot {
         margin-top: auto; padding: 10px 12px;
         border-top: 1px solid var(--glass-border);
@@ -603,18 +614,58 @@
         }
 
         function toggleConversationMenu(id, itemEl) {
+            // Use a floating cloned menu appended to document.body to avoid stacking / overflow issues
             const willOpen = openConversationMenuId !== id;
             closeConversationMenus();
             if (!willOpen) return;
             const menu = itemEl.querySelector('.ci-menu');
-            if (menu) {
-                menu.classList.remove('hidden');
-                itemEl.classList.add('ci-menu-open');
-                openConversationMenuId = id;
-            }
+            const menuBtn = itemEl.querySelector('.ci-menu-btn');
+            if (!menu || !menuBtn) return;
+
+            // Clone and append to body
+            const clone = menu.cloneNode(true);
+            clone.classList.add('floating-ci-menu');
+            clone.classList.remove('hidden');
+            clone.style.visibility = 'hidden';
+            document.body.appendChild(clone);
+
+            // Position near the button
+            const btnRect = menuBtn.getBoundingClientRect();
+            const cw = clone.offsetWidth;
+            const ch = clone.offsetHeight;
+            let left = Math.min(Math.max(8, Math.round(btnRect.right - cw)), Math.max(8, window.innerWidth - cw - 8));
+            let top = Math.round(btnRect.bottom + 6);
+            if (top + ch > window.innerHeight - 8) top = Math.round(btnRect.top - ch - 6);
+            clone.style.left = left + 'px';
+            clone.style.top = top + 'px';
+            clone.style.visibility = 'visible';
+
+            itemEl.classList.add('ci-menu-open');
+            openConversationMenuId = id;
+
+            // Prevent bubbling to underlying elements
+            clone.addEventListener('mousedown', e => e.stopPropagation());
+            clone.addEventListener('touchstart', e => e.stopPropagation());
+
+            // Attach handlers to cloned items
+            clone.querySelectorAll('.ci-menu-item').forEach(btn => {
+                btn.addEventListener('mousedown', e => e.stopPropagation());
+                btn.addEventListener('touchstart', e => e.stopPropagation());
+                btn.addEventListener('click', async e => {
+                    e.preventDefault(); e.stopPropagation();
+                    const action = btn.dataset.action;
+                    closeConversationMenus();
+                    if (action === 'rename') await renameConversation(id, itemEl.querySelector('.ci-t').textContent);
+                    if (action === 'archive') await archiveConversation(id);
+                    if (action === 'delete') await deleteConversation(id);
+                });
+            });
         }
 
         function closeConversationMenus() {
+            // remove floating clones
+            document.querySelectorAll('.floating-ci-menu').forEach(n => n.remove());
+            // hide inline menus and clear open markers
             document.querySelectorAll('.ci-menu').forEach(menu => menu.classList.add('hidden'));
             document.querySelectorAll('.ci-menu-open').forEach(item => item.classList.remove('ci-menu-open'));
             openConversationMenuId = null;

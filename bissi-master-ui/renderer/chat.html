@@ -811,12 +811,17 @@
         }
 
         function appendUserMsg(text) {
+            console.log('appendUserMsg:', text);
             const container = document.getElementById('messages-container');
+            if (!container) { console.warn('messages-container not found'); return; }
             const wrap = document.createElement('div');
             wrap.className = 'msg-u-wrap';
             wrap.innerHTML = `<div class="msg-u">${text}</div>`;
             container.appendChild(wrap);
-            container.scrollTop = container.scrollHeight;
+            // ensure chat area is visible when adding a message
+            showChat();
+            // small visual aid while debugging: focus newly added message
+            try { wrap.scrollIntoView({ behavior: 'smooth', block: 'end' }); } catch (e) { container.scrollTop = container.scrollHeight; }
         }
 
         function createAssistantMsgEl(html) {

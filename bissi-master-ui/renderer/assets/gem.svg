@@ -1,0 +1,28 @@
+<svg viewBox="0 0 680 480" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <defs>
+    <linearGradient id="lg-table" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#9333ea"/><stop offset="100%" stop-color="#7c3aed"/></linearGradient>
+    <linearGradient id="lg-left" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#c084fc"/><stop offset="100%" stop-color="#9333ea"/></linearGradient>
+    <linearGradient id="lg-right" x1="1" y1="0" x2="0" y2="0"><stop offset="0%" stop-color="#c084fc"/><stop offset="100%" stop-color="#9333ea"/></linearGradient>
+    <linearGradient id="lg-cl" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#8b5cf6"/><stop offset="100%" stop-color="#3b0764"/></linearGradient>
+    <linearGradient id="lg-cr" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#8b5cf6"/><stop offset="100%" stop-color="#3b0764"/></linearGradient>
+    <linearGradient id="lg-cc" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#4c1d95"/></linearGradient>
+    <linearGradient id="lg-hl" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#e9d5ff" stop-opacity="0.85"/><stop offset="100%" stop-color="#a855f7" stop-opacity="0"/></linearGradient>
+    <linearGradient id="lg-hr" x1="1" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#e9d5ff" stop-opacity="0.85"/><stop offset="100%" stop-color="#a855f7" stop-opacity="0"/></linearGradient>
+  </defs>
+  <polygon points="340,172 262,198 340,190 418,198" fill="url(#lg-table)" stroke="#a855f7" stroke-width="0.8"/>
+  <polygon points="232,145 262,198 340,190 340,172 308,108" fill="url(#lg-left)" stroke="#c084fc" stroke-width="0.8"/>
+  <polygon points="448,145 372,108 340,172 340,190 418,198" fill="url(#lg-right)" stroke="#c084fc" stroke-width="0.8"/>
+  <polygon points="308,108 340,172 340,148" fill="#9b59f5" stroke="#a855f7" stroke-width="0.6"/>
+  <polygon points="372,108 340,148 340,172" fill="#9b59f5" stroke="#a855f7" stroke-width="0.6"/>
+  <polygon points="210,162 232,145 262,198" fill="#a855f7" stroke="#9333ea" stroke-width="0.8"/>
+  <polygon points="470,162 418,198 448,145" fill="#a855f7" stroke="#9333ea" stroke-width="0.8"/>
+  <polygon points="210,162 262,198 340,190 305,318 340,410" fill="url(#lg-cl)" stroke="#7c3aed" stroke-width="0.8"/>
+  <polygon points="470,162 340,410 375,318 340,190 418,198" fill="url(#lg-cr)" stroke="#7c3aed" stroke-width="0.8"/>
+  <polygon points="262,198 340,190 418,198 375,318 340,410 305,318" fill="url(#lg-cc)" stroke="#7c3aed" stroke-width="0.6"/>
+  <polygon points="232,145 210,162 262,198 340,172 308,108" fill="url(#lg-hl)" stroke="none"/>
+  <polygon points="448,145 372,108 340,172 418,198 470,162" fill="url(#lg-hr)" stroke="none"/>
+  <ellipse cx="272" cy="148" rx="20" ry="14" fill="white" opacity="0.28" transform="rotate(-10,272,148)"/>
+  <ellipse cx="264" cy="140" rx="8" ry="6" fill="white" opacity="0.58" transform="rotate(-10,264,140)"/>
+  <ellipse cx="408" cy="148" rx="20" ry="14" fill="white" opacity="0.28" transform="rotate(10,408,148)"/>
+  <ellipse cx="416" cy="140" rx="8" ry="6" fill="white" opacity="0.58" transform="rotate(10,416,140)"/>
+</svg>

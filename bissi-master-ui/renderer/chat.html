@@ -8,229 +8,349 @@
       @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap');
 
       :root {
-        --acc: #888;
-        --text: #E2E8F0;
-        --muted: rgba(66, 66, 66, 0.75);
-        --glass: rgba(66, 66, 66, 0.88);
-        --glass-border: rgba(255,255,255,0.12);
-        --glass-hover: rgba(255,255,255,0.08);
-        --glass-acc: rgba(255,255,255,0.06);
-        --surface: rgba(18, 20, 28, 0.94);
-        --surface-strong: rgba(24, 27, 36, 0.98);
-        --surface-soft: rgba(255,255,255,0.04);
-        --edge: rgba(255,255,255,0.16);
-        --shadow: 0 24px 60px rgba(0,0,0,0.45);
-        --tool-line: rgba(255,255,255,0.08);
+        --acc: #7c3aed;
+        --acc-light: #ede9fe;
+        --acc-mid: #a78bfa;
+        --text: #1a1a2e;
+        --muted: rgba(100, 90, 130, 0.75);
+        --surface: #ffffff;
+        --surface-soft: #faf8ff;
+        --surface-strong: #f5f0ff;
+        --glass-border: rgba(124, 58, 237, 0.12);
+        --glass-hover: rgba(124, 58, 237, 0.06);
+        --glass-acc: rgba(124, 58, 237, 0.08);
+        --edge: rgba(124, 58, 237, 0.18);
+        --shadow: 0 4px 24px rgba(124, 58, 237, 0.08);
+        --tool-line: rgba(124, 58, 237, 0.10);
       }
+
+      * { box-sizing: border-box; }
 
       body {
         font-family: 'DM Sans', sans-serif;
-        background:
-          radial-gradient(circle at 12% 12%, rgba(94, 114, 228, 0.10), transparent 22%),
-          radial-gradient(circle at 88% 18%, rgba(255, 255, 255, 0.05), transparent 18%),
-          #080810;
+        background: #f7f4ff;
         color: var(--text);
-        margin: 0;
-        padding: 0;
+        margin: 0; padding: 0;
         display: flex;
         flex-direction: column;
         height: 100vh;
         border-radius: 14px;
         overflow: hidden;
-        position: relative;
-        border: 1px solid rgba(255,255,255,0.08);
-      }
-
-      body.light {
-        --acc: #111827;
-        --text: #111827;
-        --muted: rgba(75, 85, 99, 0.88);
-        --glass: rgba(255,255,255,0.96);
-        --glass-border: rgba(17,24,39,0.08);
-        --glass-hover: rgba(17,24,39,0.05);
-        --glass-acc: rgba(17,24,39,0.06);
-        --surface: rgba(255,255,255,0.98);
-        --surface-strong: rgba(255,255,255,1);
-        --surface-soft: rgba(17,24,39,0.03);
-        --edge: rgba(17,24,39,0.12);
-        --shadow: 0 18px 40px rgba(15,23,42,0.08);
-        --tool-line: rgba(17,24,39,0.08);
-        background:
-          radial-gradient(circle at 12% 12%, rgba(17, 24, 39, 0.05), transparent 24%),
-          radial-gradient(circle at 88% 18%, rgba(17, 24, 39, 0.03), transparent 18%),
-          #f4f5ef;
-        color: var(--text);
-        border-color: rgba(17,24,39,0.08);
-      }
-
-      .orb { position: absolute; border-radius: 50%; filter: blur(48px); pointer-events: none; z-index: 0; }
-      .o1 { width: 300px; height: 300px; background: #1a1a1a; opacity: 0.28; top: -70px; left: -70px; }
-      .o2 { width: 200px; height: 200px; background: #222; opacity: 0.25; bottom: -50px; right: 220px; }
-      .o3 { width: 150px; height: 150px; background: #2a2a2a; opacity: 0.16; top: 34%; right: -30px; }
-
-      .body { display: flex; flex: 1; min-height: 0; position: relative; z-index: 1; }
-
-      .glass {
-        background: var(--surface);
         border: 1px solid var(--glass-border);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        box-shadow: var(--shadow);
       }
 
-      .glass::before {
-        content: ''; position: absolute; top: 0; left: 12px; right: 12px; height: 1px;
-        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent);
-        pointer-events: none;
-      }
+      .body { display: flex; flex: 1; min-height: 0; }
 
+      /* ── SIDEBAR ── */
       .sb {
-        width: 252px; min-width: 252px; position: relative; background: var(--surface);
-        border-right: 1px solid var(--glass-border); backdrop-filter: blur(18px);
-        display: flex; flex-direction: column; transition: width 0.25s, min-width 0.25s, opacity 0.2s; overflow: visible;
+        width: 248px; min-width: 248px;
+        background: var(--surface);
+        border-right: 1px solid var(--glass-border);
+        display: flex; flex-direction: column;
+        transition: width 0.25s, min-width 0.25s, opacity 0.2s;
+        overflow: hidden;
       }
-      .sb.collapsed { width: 0; min-width: 0; opacity: 0; border-right: none; overflow: hidden; }
+      .sb.collapsed { width: 0; min-width: 0; opacity: 0; border-right: none; }
 
       .sb-top {
-        margin: 12px 12px 8px; padding: 14px 12px 12px; border: 1px solid var(--glass-border);
-        border-radius: 18px; background: linear-gradient(180deg, rgba(255,255,255,0.04), transparent);
-        box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+        margin: 12px 12px 8px;
+        padding: 14px 12px 12px;
+        border: 1px solid var(--glass-border);
+        border-radius: 16px;
+        background: var(--surface-soft);
       }
+
       .logo { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
-      .logo-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; letter-spacing: 0.05em; color: var(--text); }
-      .logo-badge { margin-left: auto; font-size: 12px; font-weight: 500; letter-spacing: 0.08em; color: var(--acc); background: var(--glass-acc); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(180,180,180,0.25); }
+      .logo-gem { width: 28px; height: 28px; flex-shrink: 0; }
+      .logo-name {
+        font-family: 'Syne', sans-serif; font-weight: 700;
+        font-size: 15px; letter-spacing: 0.06em; color: var(--acc);
+      }
+      .logo-badge {
+        margin-left: auto; font-size: 11px; font-weight: 500;
+        letter-spacing: 0.08em; color: var(--acc-mid);
+        background: var(--acc-light); padding: 2px 7px;
+        border-radius: 5px; border: 1px solid rgba(124,58,237,0.15);
+      }
 
       .new-btn {
-        width: 100%; padding: 10px 12px; background: linear-gradient(135deg, rgba(112,123,255,0.98), rgba(83,99,255,0.92));
-        border: 1px solid rgba(255,255,255,0.15); border-radius: 14px; font-family: 'DM Sans', sans-serif; font-size: 12.5px; font-weight: 500; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), 0 10px 20px rgba(83,99,255,0.28);
+        width: 100%; padding: 9px 12px;
+        background: var(--acc);
+        border: none; border-radius: 12px;
+        font-family: 'DM Sans', sans-serif; font-size: 12.5px;
+        font-weight: 500; color: #fff; cursor: pointer;
+        display: flex; align-items: center; justify-content: center; gap: 5px;
+        box-shadow: 0 4px 14px rgba(124,58,237,0.30);
+        transition: transform 0.15s, box-shadow 0.15s;
       }
-      .new-btn:hover { transform: translateY(-1px); }
+      .new-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(124,58,237,0.38); }
 
       .sec { padding: 8px 12px 2px; }
-      .sec-lbl { font-size: 9.5px; font-weight: 600; letter-spacing: 0.11em; text-transform: uppercase; color: var(--muted); margin: 0 0 5px 2px; }
-      .ci { display: flex; align-items: center; gap: 7px; min-height: 34px; padding: 7px 8px; border-radius: 10px; cursor: pointer; margin-bottom: 2px; position: relative; padding-right: 28px; }
+      .sec-lbl {
+        font-size: 9.5px; font-weight: 600; letter-spacing: 0.12em;
+        text-transform: uppercase; color: var(--muted); margin: 0 0 5px 2px;
+      }
+      .ci {
+        display: flex; align-items: center; gap: 7px; min-height: 32px;
+        padding: 6px 8px; border-radius: 10px; cursor: pointer;
+        margin-bottom: 2px; position: relative;
+        transition: background 0.12s, transform 0.12s;
+      }
       .ci:hover, .ci.on { background: var(--glass-hover); transform: translateX(1px); }
-      .ci.on .ci-t { color: var(--acc); }
-      .ci-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--acc); opacity: 0.35; flex-shrink: 0; }
-      .ci.on .ci-dot { opacity: 1; }
+      .ci.on .ci-t { color: var(--acc); font-weight: 500; }
+      .ci-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--acc-mid); opacity: 0.35; flex-shrink: 0; }
+      .ci.on .ci-dot { opacity: 1; background: var(--acc); }
       .ci-t { font-size: 12px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .ci-ts { margin-left: auto; font-size: 9.5px; color: var(--muted); flex-shrink: 0; }
-      
-      .ci-actions { position: absolute; top: 50%; right: 4px; transform: translateY(-50%); }
-      .ci-menu-btn { width: 20px; height: 20px; border-radius: 6px; border: 1px solid transparent; background: transparent; color: var(--muted); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; opacity: 0; }
-      .ci:hover .ci-menu-btn, .ci.on .ci-menu-btn { opacity: 1; }
-      .ci-menu { position: absolute; right: 24px; top: 24px; min-width: 150px; background: var(--surface-strong); border: 1px solid var(--glass-border); border-radius: 10px; box-shadow: 0 18px 42px rgba(0,0,0,0.35); padding: 6px; z-index: 120; }
-      .ci-menu.hidden { display: none; }
-      .ci-menu-item { width: 100%; display: flex; align-items: center; gap: 8px; border: 0; background: transparent; color: var(--text); padding: 8px 10px; border-radius: 8px; font-size: 12px; cursor: pointer; text-align: left; }
-      .ci-menu-item:hover { background: var(--glass-hover); }
-      .ci-menu-item.danger { color: #FCA5A5; }
 
-      .sb-foot { margin-top: auto; padding: 10px 12px; border-top: 1px solid var(--glass-border); display: flex; align-items: center; gap: 8px; }
-      .av { width: 28px; height: 28px; border-radius: 50%; background: rgba(180,180,180,0.7); border: 1px solid rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; color: #fff; flex-shrink: 0; }
+      .ci-actions { position: absolute; top: 50%; right: 4px; transform: translateY(-50%); }
+      .ci-menu-btn {
+        width: 20px; height: 20px; border-radius: 6px; border: 1px solid transparent;
+        background: transparent; color: var(--muted);
+        display: inline-flex; align-items: center; justify-content: center;
+        cursor: pointer; opacity: 0;
+        transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+      }
+      .ci:hover .ci-menu-btn,
+      .ci.on .ci-menu-btn,
+      .ci-menu-open .ci-menu-btn { opacity: 1; }
+      .ci-menu-btn:hover {
+        background: rgba(255,255,255,0.08);
+        color: var(--text);
+        border-color: rgba(255,255,255,0.08);
+      }
+      .ci-menu {
+        position: absolute; right: 24px; top: 24px; min-width: 150px;
+        background: var(--surface-strong); border: 1px solid var(--glass-border);
+        border-radius: 10px; box-shadow: 0 18px 42px rgba(0,0,0,0.12);
+        padding: 6px; z-index: 120;
+      }
+      .ci-menu.hidden { display: none; }
+      .ci-menu-item {
+        width: 100%; display: flex; align-items: center; gap: 8px;
+        border: 0; background: transparent; color: var(--text);
+        padding: 8px 10px; border-radius: 8px; font-size: 12px; cursor: pointer; text-align: left;
+        transition: background 0.12s;
+      }
+      .ci-menu-item:hover { background: var(--glass-hover); }
+      .ci-menu-item.danger { color: #dc2626; }
+
+      .sb-foot {
+        margin-top: auto; padding: 10px 12px;
+        border-top: 1px solid var(--glass-border);
+        display: flex; align-items: center; gap: 8px;
+      }
+      .av {
+        width: 28px; height: 28px; border-radius: 50%;
+        background: var(--acc); border: 2px solid var(--acc-light);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 10px; font-weight: 600; color: #fff; flex-shrink: 0;
+      }
       .u-name { font-size: 12px; font-weight: 500; color: var(--text); }
       .u-sub { font-size: 9.5px; color: var(--muted); }
-      .ic-btn { width: 26px; height: 26px; border-radius: 6px; border: 1px solid var(--glass-border); background: var(--glass); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 12px; flex-shrink: 0; }
+      .ic-btn {
+        width: 26px; height: 26px; border-radius: 8px;
+        border: 1px solid var(--glass-border);
+        background: var(--surface-soft); cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        color: var(--muted); font-size: 13px; flex-shrink: 0;
+        transition: background 0.12s;
+      }
+      .ic-btn:hover { background: var(--acc-light); color: var(--acc); }
 
-      .main { flex: 1; display: flex; flex-direction: column; min-width: 0; background: transparent; }
-      .m-head { padding: 10px 16px; background: var(--surface); border-bottom: 1px solid var(--glass-border); display: flex; align-items: center; gap: 8px; position: relative; }
+      /* ── MAIN ── */
+      .main { flex: 1; display: flex; flex-direction: column; min-width: 0; background: #f7f4ff; }
 
-      .ms { display: flex; align-items: center; gap: 6px; padding: 5px 10px; background: var(--glass-acc); border: 1px solid rgba(180,180,180,0.22); border-radius: 10px; cursor: pointer; font-size: 14px; color: var(--text); font-family: 'DM Sans', sans-serif; position: relative; }
-      .ms-arrow { font-size: 11px; color: var(--muted); transition: transform 0.15s; }
+      .m-head {
+        padding: 10px 16px;
+        background: var(--surface);
+        border-bottom: 1px solid var(--glass-border);
+        display: flex; align-items: center; gap: 8px;
+      }
+
+      .ms {
+        display: flex; align-items: center; gap: 6px;
+        padding: 5px 10px;
+        background: var(--surface-soft);
+        border: 1px solid var(--glass-border);
+        border-radius: 10px; cursor: pointer;
+        font-size: 13.5px; color: var(--text);
+        font-family: 'DM Sans', sans-serif; position: relative;
+      }
+      .ms-arrow { font-size: 10px; color: var(--muted); transition: transform 0.15s; }
       .ms-arrow.open { transform: rotate(180deg); }
-      .ms-dd { position: absolute; top: calc(100% + 5px); left: 0; background: rgba(15,12,28,0.9); border: 1px solid var(--glass-border); border-radius: 10px; min-width: 210px; z-index: 20; box-shadow: 0 16px 40px rgba(0,0,0,0.5); }
+      .ms-dd {
+        position: absolute; top: calc(100% + 5px); left: 0;
+        background: var(--surface);
+        border: 1px solid var(--glass-border);
+        border-radius: 10px; min-width: 210px; z-index: 20;
+        box-shadow: 0 12px 32px rgba(124,58,237,0.12);
+      }
       .ms-dd.hidden { display: none; }
-      .ms-glbl { font-size: 15px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); padding: 8px 10px 3px; }
-      .ms-opt { display: flex; align-items: center; gap: 8px; padding: 7px 10px; cursor: pointer; font-size: 15px; color: var(--text); }
+      .ms-glbl {
+        font-size: 11px; font-weight: 600; letter-spacing: 0.1em;
+        text-transform: uppercase; color: var(--muted); padding: 8px 10px 3px;
+      }
+      .ms-opt { display: flex; align-items: center; gap: 8px; padding: 7px 10px; cursor: pointer; font-size: 13.5px; color: var(--text); border-radius: 8px; margin: 2px 4px; }
       .ms-opt:hover { background: var(--glass-hover); }
       .m-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-      .m-sz { font-size: 12.5px; color: var(--muted); margin-left: auto; }
+      .m-sz { font-size: 12px; color: var(--muted); margin-left: auto; }
 
-      .think-w { margin-left: auto; display: flex; align-items: center; gap: 5px; font-size: 13.5px; color: var(--muted); cursor: pointer; padding: 3px 9px; border-radius: 6px; border: 1px solid var(--glass-border); background: var(--glass); }
+      .think-w {
+        margin-left: auto; display: flex; align-items: center; gap: 6px;
+        font-size: 13px; color: var(--muted); cursor: pointer;
+        padding: 4px 10px; border-radius: 8px;
+        border: 1px solid var(--glass-border); background: var(--surface-soft);
+        transition: background 0.12s;
+      }
+      .think-w:hover { background: var(--acc-light); }
       .tgl { width: 22px; height: 12px; background: var(--acc); border-radius: 6px; position: relative; transition: background 0.2s; }
       .tgl::after { content: ''; position: absolute; width: 8px; height: 8px; background: #fff; border-radius: 50%; top: 2px; right: 2px; transition: right 0.2s; }
-      .tgl.off { background: rgba(148,163,184,0.25); }
+      .tgl.off { background: rgba(148,163,184,0.3); }
       .tgl.off::after { right: 12px; }
 
-      .msgs { flex: 1; overflow-y: auto; display: flex; flex-direction: column; scrollbar-width: thin; scrollbar-color: rgba(180,180,180,0.45) transparent; }
+      /* ── EMPTY STATE ── */
+      .empty {
+        display: flex; flex-direction: column; align-items: center;
+        justify-content: center; flex: 1; text-align: center; padding: 32px 24px;
+      }
+      .e-gem { margin-bottom: 24px; filter: drop-shadow(0 8px 24px rgba(124,58,237,0.22)); }
+      .e-title {
+        font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 600;
+        color: var(--text); margin-bottom: 6px;
+      }
+      .e-sub { font-size: 15px; color: var(--muted); line-height: 1.6; }
+
+      /* ── MESSAGES ── */
+      .msgs { flex: 1; overflow-y: auto; display: flex; flex-direction: column; scrollbar-width: thin; scrollbar-color: rgba(124,58,237,0.2) transparent; }
       .msgs-in { padding: 28px 20px 18px; display: flex; flex-direction: column; align-items: center; max-width: 860px; width: 100%; margin: 0 auto; }
 
-      .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; text-align: center; padding: 32px 24px 24px; }
-      .e-title { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
-      .e-sub { font-size: 15px; color: var(--muted); margin-bottom: 22px; line-height: 1.6; }
-
-      .qa-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; max-width: 392px; }
-      .qa { background: var(--glass); border: 1px solid var(--glass-border); border-radius: 14px; padding: 10px 12px; min-height: 84px; cursor: pointer; text-align: left; transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease; }
-      .qa:hover { background: var(--glass-hover); border-color: rgba(180,180,180,0.3); transform: translateY(-1px); }
-      .qa-ic { font-size: 13px; margin-bottom: 5px; display: block; }
-      .qa-t { font-size: 14px; font-weight: 500; color: var(--text); line-height: 1.4; }
-      .qa-s { font-size: 12.5px; color: var(--muted); margin-top: 3px; }
-
       .msg-u-wrap { align-self: flex-end; width: 70%; display: flex; flex-direction: column; align-items: flex-end; margin-bottom: 8px; }
-      .msg-u { width: 100%; background: rgba(180,180,180,0.82); border: 1px solid rgba(255,255,255,0.16); color: #fff; padding: 8px 13px; border-radius: 12px 12px 3px 12px; font-size: 15.5px; line-height: 1.5; }
-      .msg-a { align-self: stretch; width: 100%; padding: 0 2px 6px; font-size: 15.5px; line-height: 1.6; color: var(--text); margin-bottom: 8px; }
+      .msg-u {
+        width: 100%; background: var(--acc); color: #fff;
+        padding: 9px 14px; border-radius: 14px 14px 3px 14px;
+        font-size: 15px; line-height: 1.5;
+      }
+      .msg-a {
+        align-self: stretch; width: 100%;
+        padding: 0 2px 6px; font-size: 15px; line-height: 1.6;
+        color: var(--text); margin-bottom: 8px;
+      }
       .msg-a .md p { margin: 0 0 0.8em 0; }
-      .msg-a .md pre { background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.08); padding: 0.9em; border-radius: 12px; overflow-x: auto; }
+      .msg-a .md pre {
+        background: var(--surface-strong);
+        border: 1px solid var(--glass-border);
+        padding: 0.9em; border-radius: 12px; overflow-x: auto;
+        font-family: 'DM Mono', monospace; font-size: 13px;
+      }
 
-      .msg-actions { display: flex; gap: 6px; margin-top: 6px; opacity: 0; transition: opacity 0.15s ease; }
+      .msg-actions { display: flex; gap: 6px; margin-top: 6px; opacity: 0; transition: opacity 0.15s; }
       .msg-a:hover .msg-actions, .msg-u-wrap:hover .msg-actions { opacity: 1; }
       .msg-action-btn { width: 24px; height: 24px; border: none; background: transparent; color: var(--muted); cursor: pointer; }
-      .msg-action-btn:hover { color: var(--text); }
+      .msg-action-btn:hover { color: var(--acc); }
       .msg-action-btn svg { width: 13px; height: 13px; display: block; }
 
-      .tool-t { display: flex; align-items: center; gap: 5px; padding: 2px 0 7px; color: var(--muted); font-size: 13.5px; font-family: 'DM Mono', monospace; }
+      .tool-t {
+        display: flex; align-items: center; gap: 5px;
+        padding: 2px 0 7px; color: var(--muted);
+        font-size: 13px; font-family: 'DM Mono', monospace;
+      }
       .tool-t::before, .tool-t::after { content: ''; flex: 1; height: 1px; background: var(--tool-line); }
       .t-verb { color: var(--acc); }
 
-      .in-area { padding: 10px 14px 12px; }
+      /* ── INPUT ── */
+      .in-area { padding: 10px 14px 12px; background: #f7f4ff; }
       .in-area-in { max-width: 860px; margin: 0 auto; }
-      .in-pill { background: var(--surface); border: 1px solid var(--glass-border); border-radius: 18px; padding: 10px 12px; display: flex; align-items: center; gap: 7px; }
-      .in-f { flex: 1; background: transparent; border: none; outline: none; font-family: 'DM Sans', sans-serif; font-size: 15.5px; color: var(--text); resize: none; line-height: 1.45; }
-      .in-ic { width: 28px; height: 28px; border-radius: 10px; background: var(--glass); border: 1px solid var(--glass-border); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--muted); }
-      .send-btn { width: 32px; height: 32px; border-radius: 12px; background: linear-gradient(135deg, rgba(112,123,255,0.98), rgba(83,99,255,0.92)); border: 1px solid rgba(255,255,255,0.15); cursor: pointer; display: flex; align-items: center; justify-content: center; }
-      
-      .disc { text-align: center; font-size: 13px; color: rgba(148,163,184,0.35); padding: 4px 14px 8px; }
+      .in-pill {
+        background: var(--surface);
+        border: 1px solid var(--glass-border);
+        border-radius: 18px; padding: 10px 12px;
+        display: flex; align-items: center; gap: 7px;
+        box-shadow: 0 2px 12px rgba(124,58,237,0.06);
+      }
+      .in-f {
+        flex: 1; background: transparent; border: none; outline: none;
+        font-family: 'DM Sans', sans-serif; font-size: 15px;
+        color: var(--text); resize: none; line-height: 1.45;
+      }
+      .in-f::placeholder { color: var(--muted); }
+      .in-ic {
+        width: 28px; height: 28px; border-radius: 10px;
+        background: var(--surface-soft); border: 1px solid var(--glass-border);
+        cursor: pointer; display: flex; align-items: center; justify-content: center;
+        color: var(--muted); transition: background 0.12s;
+      }
+      .in-ic:hover { background: var(--acc-light); color: var(--acc); }
+      .send-btn {
+        width: 32px; height: 32px; border-radius: 12px;
+        background: var(--acc); border: none; cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        box-shadow: 0 4px 12px rgba(124,58,237,0.30);
+        transition: transform 0.12s, box-shadow 0.12s;
+      }
+      .send-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(124,58,237,0.38); }
 
+      .disc { text-align: center; font-size: 12px; color: rgba(124,58,237,0.25); padding: 4px 14px 8px; }
+
+      /* ── CANVAS ── */
       .canvas { width: 0; overflow: hidden; display: flex; flex-direction: column; background: var(--surface); border-left: 1px solid var(--glass-border); }
       .canvas.open { width: 290px; min-width: 290px; }
-      .cv-h { padding: 9px 12px; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; }
+      .cv-h { padding: 9px 12px; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; }
+      .cv-title { font-size: 13px; font-weight: 600; color: var(--text); }
+      .cv-fname { font-size: 11px; color: var(--muted); }
       .cv-tabs { display: flex; border-bottom: 1px solid var(--glass-border); }
       .cv-tab { flex: 1; padding: 6px 8px; font-size: 13px; text-align: center; cursor: pointer; color: var(--muted); }
-      .cv-tab.on { color: var(--acc); border-bottom: 2px solid var(--acc); }
+      .cv-tab.on { color: var(--acc); border-bottom: 2px solid var(--acc); font-weight: 500; }
       .cv-body { flex: 1; overflow-y: auto; padding: 12px; }
-      
-      .dv { background: var(--surface-strong); border: 1px solid var(--edge); border-radius: 9px; overflow: hidden; }
-      .dv-tb { padding: 7px 11px; border-bottom: 1px solid var(--glass-border); display: flex; gap: 6px; }
-      .dv-body { padding: 11px; }
+      .dv { background: var(--surface-soft); border: 1px solid var(--glass-border); border-radius: 9px; overflow: hidden; }
+      .dv-tb { padding: 7px 11px; border-bottom: 1px solid var(--glass-border); display: flex; gap: 6px; font-size: 12px; color: var(--muted); }
+      .dv-body { padding: 11px; font-size: 13px; color: var(--text); }
 
       .hidden { display: none !important; }
-      .error-banner { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #FCA5A5; padding: 8px 16px; border-radius: 8px; z-index: 10; }
+      .error-banner {
+        position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+        background: rgba(220,38,38,0.08); border: 1px solid rgba(220,38,38,0.25);
+        color: #dc2626; padding: 8px 16px; border-radius: 8px; z-index: 10;
+      }
     </style>
 </head>
 <body>
     <div class="error-banner hidden" id="error-banner"></div>
-    <div class="orb o1"></div>
-    <div class="orb o2"></div>
-    <div class="orb o3"></div>
 
     <div class="body">
+        <!-- SIDEBAR -->
         <div class="sb">
             <div class="sb-top">
                 <div class="logo">
-                    <div style="background: transparent; border: none; box-shadow: none; display:flex; align-items:center;">
-                        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 28px; height: 28px; filter: drop-shadow(0px 0px 5px rgba(0, 229, 255, 0.6));">
-                            <path d="M50 10 L85 35 L50 90 L15 35 Z" fill="url(#glass1)"/>
-                            <path d="M50 10 L85 35 L50 90 L15 35 Z" stroke="#00E5FF" stroke-width="4" stroke-linejoin="round"/>
-                            <path d="M15 35 L85 35" stroke="#00E5FF" stroke-width="3"/>
-                            <path d="M50 10 L50 90" stroke="#00E5FF" stroke-width="3"/>
-                            <circle cx="50" cy="45" r="9" fill="#00E5FF" filter="blur(2px)"/>
-                            <defs>
-                                <linearGradient id="glass1" x1="50" y1="10" x2="50" y2="90" gradientUnits="userSpaceOnUse">
-                                    <stop offset="0%" stop-color="#00E5FF" stop-opacity="0.6"/>
-                                    <stop offset="100%" stop-color="#0B0E14" stop-opacity="0.8"/>
-                                </linearGradient>
-                            </defs>
-                        </svg>
-                    </div>
+                    <!-- Gemme SVG violette -->
+                    <svg class="logo-gem" viewBox="0 0 680 480" xmlns="http://www.w3.org/2000/svg">
+                      <defs>
+                        <linearGradient id="lg-table" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#9333ea"/><stop offset="100%" stop-color="#7c3aed"/></linearGradient>
+                        <linearGradient id="lg-left" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#c084fc"/><stop offset="100%" stop-color="#9333ea"/></linearGradient>
+                        <linearGradient id="lg-right" x1="1" y1="0" x2="0" y2="0"><stop offset="0%" stop-color="#c084fc"/><stop offset="100%" stop-color="#9333ea"/></linearGradient>
+                        <linearGradient id="lg-cl" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#8b5cf6"/><stop offset="100%" stop-color="#3b0764"/></linearGradient>
+                        <linearGradient id="lg-cr" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#8b5cf6"/><stop offset="100%" stop-color="#3b0764"/></linearGradient>
+                        <linearGradient id="lg-cc" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#4c1d95"/></linearGradient>
+                        <linearGradient id="lg-hl" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#e9d5ff" stop-opacity="0.85"/><stop offset="100%" stop-color="#a855f7" stop-opacity="0"/></linearGradient>
+                        <linearGradient id="lg-hr" x1="1" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#e9d5ff" stop-opacity="0.85"/><stop offset="100%" stop-color="#a855f7" stop-opacity="0"/></linearGradient>
+                      </defs>
+                      <polygon points="340,172 262,198 340,190 418,198" fill="url(#lg-table)" stroke="#a855f7" stroke-width="0.8"/>
+                      <polygon points="232,145 262,198 340,190 340,172 308,108" fill="url(#lg-left)" stroke="#c084fc" stroke-width="0.8"/>
+                      <polygon points="448,145 372,108 340,172 340,190 418,198" fill="url(#lg-right)" stroke="#c084fc" stroke-width="0.8"/>
+                      <polygon points="308,108 340,172 340,148" fill="#9b59f5" stroke="#a855f7" stroke-width="0.6"/>
+                      <polygon points="372,108 340,148 340,172" fill="#9b59f5" stroke="#a855f7" stroke-width="0.6"/>
+                      <polygon points="210,162 232,145 262,198" fill="#a855f7" stroke="#9333ea" stroke-width="0.8"/>
+                      <polygon points="470,162 418,198 448,145" fill="#a855f7" stroke="#9333ea" stroke-width="0.8"/>
+                      <polygon points="210,162 262,198 340,190 305,318 340,410" fill="url(#lg-cl)" stroke="#7c3aed" stroke-width="0.8"/>
+                      <polygon points="470,162 340,410 375,318 340,190 418,198" fill="url(#lg-cr)" stroke="#7c3aed" stroke-width="0.8"/>
+                      <polygon points="262,198 340,190 418,198 375,318 340,410 305,318" fill="url(#lg-cc)" stroke="#7c3aed" stroke-width="0.6"/>
+                      <polygon points="232,145 210,162 262,198 340,172 308,108" fill="url(#lg-hl)" stroke="none"/>
+                      <polygon points="448,145 372,108 340,172 418,198 470,162" fill="url(#lg-hr)" stroke="none"/>
+                      <ellipse cx="272" cy="148" rx="20" ry="14" fill="white" opacity="0.28" transform="rotate(-10,272,148)"/>
+                      <ellipse cx="264" cy="140" rx="8" ry="6" fill="white" opacity="0.58" transform="rotate(-10,264,140)"/>
+                      <ellipse cx="408" cy="148" rx="20" ry="14" fill="white" opacity="0.28" transform="rotate(10,408,148)"/>
+                      <ellipse cx="416" cy="140" rx="8" ry="6" fill="white" opacity="0.58" transform="rotate(10,416,140)"/>
+                    </svg>
                     <span class="logo-name">BISSI</span>
                     <span class="logo-badge">Master</span>
                 </div>
@@ -255,17 +375,18 @@
                     <div class="u-name" id="user-name">Sam Yevi</div>
                     <div class="u-sub">Local · Offline</div>
                 </div>
-                <button class="ic-btn" id="th-btn" style="margin-left:auto" onclick="toggleTheme()">☽</button>
+                <button class="ic-btn" id="th-btn" style="margin-left:auto" onclick="toggleTheme()">☀</button>
             </div>
         </div>
 
+        <!-- MAIN -->
         <div class="main">
             <div class="m-head">
-                <button class="ic-btn" onclick="toggleSidebar()" title="Toggle sidebar" style="margin-right:4px">
+                <button class="ic-btn" onclick="toggleSidebar()" title="Sidebar">
                     <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2h3v10H2zM7 2h5v10H7z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 </button>
                 <div class="ms" id="ms" onclick="toggleDD()">
-                    <div class="m-dot" id="ms-dot" style="background:#888"></div>
+                    <div class="m-dot" id="ms-dot" style="background:var(--acc)"></div>
                     <span id="ms-name">Chargement...</span>
                     <span class="ms-arrow" id="ms-arr">▼</span>
                     <div class="ms-dd hidden" id="ms-dd">
@@ -278,30 +399,38 @@
                 </button>
             </div>
 
+            <!-- EMPTY STATE — sans cards -->
             <div class="empty" id="empty">
-                <div style="background: transparent; border: none; box-shadow: none; margin-bottom: 20px;">
-                    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 72px; height: 72px; filter: drop-shadow(0px 0px 12px rgba(0, 229, 255, 0.7));">
-                        <path d="M50 10 L85 35 L50 90 L15 35 Z" fill="url(#glass2)"/>
-                        <path d="M50 10 L85 35 L50 90 L15 35 Z" stroke="#00E5FF" stroke-width="4" stroke-linejoin="round"/>
-                        <path d="M15 35 L85 35" stroke="#00E5FF" stroke-width="3"/>
-                        <path d="M50 10 L50 90" stroke="#00E5FF" stroke-width="3"/>
-                        <circle cx="50" cy="45" r="10" fill="#00E5FF" filter="blur(3px)"/>
-                        <defs>
-                            <linearGradient id="glass2" x1="50" y1="10" x2="50" y2="90" gradientUnits="userSpaceOnUse">
-                                <stop offset="0%" stop-color="#00E5FF" stop-opacity="0.6"/>
-                                <stop offset="100%" stop-color="#0B0E14" stop-opacity="0.8"/>
-                            </linearGradient>
-                        </defs>
-                    </svg>
-                </div>
+                <svg class="e-gem" viewBox="0 0 680 480" width="80" height="80" xmlns="http://www.w3.org/2000/svg">
+                  <defs>
+                    <linearGradient id="eg-table" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#9333ea"/><stop offset="100%" stop-color="#7c3aed"/></linearGradient>
+                    <linearGradient id="eg-left" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#c084fc"/><stop offset="100%" stop-color="#9333ea"/></linearGradient>
+                    <linearGradient id="eg-right" x1="1" y1="0" x2="0" y2="0"><stop offset="0%" stop-color="#c084fc"/><stop offset="100%" stop-color="#9333ea"/></linearGradient>
+                    <linearGradient id="eg-cl" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#8b5cf6"/><stop offset="100%" stop-color="#3b0764"/></linearGradient>
+                    <linearGradient id="eg-cr" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#8b5cf6"/><stop offset="100%" stop-color="#3b0764"/></linearGradient>
+                    <linearGradient id="eg-cc" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#4c1d95"/></linearGradient>
+                    <linearGradient id="eg-hl" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#e9d5ff" stop-opacity="0.85"/><stop offset="100%" stop-color="#a855f7" stop-opacity="0"/></linearGradient>
+                    <linearGradient id="eg-hr" x1="1" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#e9d5ff" stop-opacity="0.85"/><stop offset="100%" stop-color="#a855f7" stop-opacity="0"/></linearGradient>
+                  </defs>
+                  <polygon points="340,172 262,198 340,190 418,198" fill="url(#eg-table)" stroke="#a855f7" stroke-width="0.8"/>
+                  <polygon points="232,145 262,198 340,190 340,172 308,108" fill="url(#eg-left)" stroke="#c084fc" stroke-width="0.8"/>
+                  <polygon points="448,145 372,108 340,172 340,190 418,198" fill="url(#eg-right)" stroke="#c084fc" stroke-width="0.8"/>
+                  <polygon points="308,108 340,172 340,148" fill="#9b59f5" stroke="#a855f7" stroke-width="0.6"/>
+                  <polygon points="372,108 340,148 340,172" fill="#9b59f5" stroke="#a855f7" stroke-width="0.6"/>
+                  <polygon points="210,162 232,145 262,198" fill="#a855f7" stroke="#9333ea" stroke-width="0.8"/>
+                  <polygon points="470,162 418,198 448,145" fill="#a855f7" stroke="#9333ea" stroke-width="0.8"/>
+                  <polygon points="210,162 262,198 340,190 305,318 340,410" fill="url(#eg-cl)" stroke="#7c3aed" stroke-width="0.8"/>
+                  <polygon points="470,162 340,410 375,318 340,190 418,198" fill="url(#eg-cr)" stroke="#7c3aed" stroke-width="0.8"/>
+                  <polygon points="262,198 340,190 418,198 375,318 340,410 305,318" fill="url(#eg-cc)" stroke="#7c3aed" stroke-width="0.6"/>
+                  <polygon points="232,145 210,162 262,198 340,172 308,108" fill="url(#eg-hl)" stroke="none"/>
+                  <polygon points="448,145 372,108 340,172 418,198 470,162" fill="url(#eg-hr)" stroke="none"/>
+                  <ellipse cx="272" cy="148" rx="20" ry="14" fill="white" opacity="0.28" transform="rotate(-10,272,148)"/>
+                  <ellipse cx="264" cy="140" rx="8" ry="6" fill="white" opacity="0.58" transform="rotate(-10,264,140)"/>
+                  <ellipse cx="408" cy="148" rx="20" ry="14" fill="white" opacity="0.28" transform="rotate(10,408,148)"/>
+                  <ellipse cx="416" cy="140" rx="8" ry="6" fill="white" opacity="0.58" transform="rotate(10,416,140)"/>
+                </svg>
                 <div class="e-title">Comment puis-je vous aider ?</div>
                 <div class="e-sub">Agent local · Vos fichiers restent sur votre machine</div>
-                <div class="qa-grid">
-                    <button class="qa" onclick="sendQuickMessage('Analyser un document')"><span class="qa-ic">📄</span><div class="qa-t">Analyser un document</div><div class="qa-s">Word, Excel, PDF...</div></button>
-                    <button class="qa" onclick="sendQuickMessage('Exécuter du code Python')"><span class="qa-ic">⚡</span><div class="qa-t">Exécuter du code Python</div><div class="qa-s">Calculs, scripts...</div></button>
-                    <button class="qa" onclick="sendQuickMessage('Explorer les fichiers')"><span class="qa-ic">🗂️</span><div class="qa-t">Explorer les fichiers</div><div class="qa-s">Recherche, navigation...</div></button>
-                    <button class="qa" onclick="sendQuickMessage('Rédiger un document')"><span class="qa-ic">✍️</span><div class="qa-t">Rédiger un document</div><div class="qa-s">Rapport, présentation...</div></button>
-                </div>
             </div>
 
             <div class="msgs hidden" id="chat">
@@ -310,39 +439,36 @@
 
             <div class="in-area">
                 <div class="in-area-in">
-                <div class="in-pill">
-                    <button class="in-ic">
-                        <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
-                            <path d="M9.5 5.5L5.5 9.5A2.83 2.83 0 011.5 5.5L5.5 1.5A1.89 1.89 0 018.5 4.5L4.5 8A.94.94 0 013.5 7l3-3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>
-                        </svg>
-                    </button>
-                    <textarea class="in-f" id="message-input" rows="1" placeholder="Décrivez votre tâche..." onkeydown="handleInputKeydown(event)"></textarea>
-                    <button class="in-ic" id="voice-btn" type="button" title="Dictée vocale">
-                        <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
-                            <rect x="5.25" y="2" width="5.5" height="8.5" rx="2.75" stroke="currentColor" stroke-width="1.35"/>
-                            <path d="M3.25 7.75a4.75 4.75 0 0 0 9.5 0" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"/>
-                            <path d="M8 11.25V13.5" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"/>
-                            <path d="M5.75 13.5h4.5" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"/>
-                        </svg>
-                    </button>
-                    <button class="send-btn" onclick="sendMessage()">
-                        <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
-                            <path d="M5.5 9V2M2.5 5L5.5 2 8.5 5" stroke="#fff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                    </button>
-                </div>
+                    <div class="in-pill">
+                        <button class="in-ic">
+                            <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M9.5 5.5L5.5 9.5A2.83 2.83 0 011.5 5.5L5.5 1.5A1.89 1.89 0 018.5 4.5L4.5 8A.94.94 0 013.5 7l3-3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>
+                        </button>
+                        <textarea class="in-f" id="message-input" rows="1" placeholder="Décrivez votre tâche..." onkeydown="handleInputKeydown(event)"></textarea>
+                        <button class="in-ic" id="voice-btn" type="button" title="Dictée vocale">
+                            <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+                                <rect x="5.25" y="2" width="5.5" height="8.5" rx="2.75" stroke="currentColor" stroke-width="1.35"/>
+                                <path d="M3.25 7.75a4.75 4.75 0 0 0 9.5 0" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"/>
+                                <path d="M8 11.25V13.5" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"/>
+                                <path d="M5.75 13.5h4.5" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"/>
+                            </svg>
+                        </button>
+                        <button class="send-btn" onclick="sendMessage()">
+                            <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M5.5 9V2M2.5 5L5.5 2 8.5 5" stroke="#fff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </button>
+                    </div>
                 </div>
             </div>
             <div class="disc">AI generated · for reference only</div>
         </div>
 
+        <!-- CANVAS -->
         <div class="canvas" id="canvas">
             <div class="cv-h">
                 <div>
                     <div class="cv-title">Canvas</div>
                     <div class="cv-fname" id="canvas-filename">Document</div>
                 </div>
-                <button class="in-ic" onclick="closeCanvas()">✕</button>
+                <button class="ic-btn" onclick="closeCanvas()">✕</button>
             </div>
             <div class="cv-tabs">
                 <div class="cv-tab on" onclick="swTab('doc',this)">Document</div>
@@ -350,19 +476,20 @@
                 <div class="cv-tab" onclick="swTab('code',this)">Code</div>
             </div>
             <div class="cv-body">
-                <div id="td"><div class="dv"><div class="dv-tb"><span class="dv-type" id="doc-type">DOCX</span><span style="font-size:13px;color:var(--muted);margin-left:5px" id="doc-name">document.docx</span></div><div class="dv-body" id="doc-content"><div class="dv-p">En attente...</div></div></div></div>
-                <div id="tt" class="hidden"><div class="dv"><div class="dv-tb"><span class="dv-type">XLSX</span></div><div class="tbl-w"><table class="mt" id="data-table"><tr><td>En attente...</td></tr></table></div></div></div>
-                <div id="tc" class="hidden"><div class="dv"><div class="dv-tb"><span class="dv-type">PY</span></div><div class="code-b" id="code-content">En attente...</div></div></div>
+                <div id="td"><div class="dv"><div class="dv-tb"><span>DOCX</span><span id="doc-name" style="margin-left:5px">document.docx</span></div><div class="dv-body" id="doc-content">En attente...</div></div></div>
+                <div id="tt" class="hidden"><div class="dv"><div class="dv-tb"><span>XLSX</span></div><div class="dv-body"><table id="data-table"><tr><td>En attente...</td></tr></table></div></div></div>
+                <div id="tc" class="hidden"><div class="dv"><div class="dv-tb"><span>PY</span></div><div class="dv-body" id="code-content">En attente...</div></div></div>
             </div>
         </div>
     </div>
 
     <script src="./vendor/markdown-it.min.js"></script>
     <script>
-        let light = false, think = true, ddOpen = false;
+        let light = true, think = true, ddOpen = false;
         let currentConversationId = null;
         let isStreaming = false;
         let userProfile = null;
+        let openConversationMenuId = null;
         const API = 'http://localhost:8765';
 
         window.addEventListener('DOMContentLoaded', async () => {
@@ -392,12 +519,12 @@
                     ollamaData.models.forEach(model => {
                         const opt = document.createElement('div');
                         opt.className = 'ms-opt';
-                        opt.innerHTML = `<div class="m-dot" style="background:#888"></div>${model.name}`;
-                        opt.onclick = (e) => { e.stopPropagation(); selectModel(model.name, e); };
+                        opt.innerHTML = `<div class="m-dot" style="background:var(--acc)"></div>${model.name}`;
+                        opt.onclick = (e) => { e.stopPropagation(); selectModel(model.name); };
                         modelsList.appendChild(opt);
                     });
-                    document.getElementById('ms-name').textContent = modelsData.activeModel || (ollamaData.models[0]?.name) || 'Model';
                 }
+                document.getElementById('ms-name').textContent = modelsData.activeModel || (ollamaData.models?.[0]?.name) || 'Prêt';
             } catch (e) {
                 document.getElementById('ms-name').textContent = 'Prêt';
             }
@@ -416,10 +543,40 @@
             conversations.forEach(conv => {
                 const el = document.createElement('div');
                 el.className = 'ci' + (conv.id === currentConversationId ? ' on' : '');
-                const title = conv.title || (conv.first_message ? conv.first_message.slice(0, 35) : 'Nouveau chat');
-                el.innerHTML = `<div class="ci-dot"></div><span class="ci-t">${title}</span>`;
-                el.onclick = () => loadConversation(conv.id);
-                todayEl.appendChild(el);
+              const title = conv.title || (conv.first_message ? conv.first_message.slice(0, 35) : 'Nouveau chat');
+              el.innerHTML = `
+                  <div class="ci-dot"></div>
+                  <span class="ci-t"></span>
+                  <div class="ci-actions">
+                      <button class="ci-menu-btn" type="button" aria-label="Actions" title="Actions">⋯</button>
+                  </div>
+                  <div class="ci-menu hidden" role="menu">
+                      <button class="ci-menu-item" type="button" data-action="rename">Renommer</button>
+                      <button class="ci-menu-item" type="button" data-action="archive">Archiver</button>
+                      <button class="ci-menu-item danger" type="button" data-action="delete">Supprimer</button>
+                  </div>
+              `;
+              el.querySelector('.ci-t').textContent = title;
+              el.onclick = () => loadConversation(conv.id);
+              const menuBtn = el.querySelector('.ci-menu-btn');
+              const menu = el.querySelector('.ci-menu');
+              menuBtn.onclick = e => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  toggleConversationMenu(conv.id, el);
+              };
+              menu.querySelectorAll('.ci-menu-item').forEach(btn => {
+                  btn.onclick = async e => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      const action = btn.dataset.action;
+                      closeConversationMenus();
+                      if (action === 'rename') await renameConversation(conv.id, title);
+                      if (action === 'archive') await archiveConversation(conv.id);
+                      if (action === 'delete') await deleteConversation(conv.id);
+                  };
+              });
+              todayEl.appendChild(el);
             });
         }
 
@@ -427,12 +584,85 @@
             currentConversationId = id;
             try {
                 const res = await fetch(`${API}/conversations/${id}/history`);
-                if (res.ok) {
-                    const messages = await res.json();
-                    renderHistory(messages);
-                    showChat();
-                }
+                if (res.ok) { renderHistory(await res.json()); showChat(); }
             } catch (e) {}
+        }
+
+        function toggleConversationMenu(id, itemEl) {
+            const willOpen = openConversationMenuId !== id;
+            closeConversationMenus();
+            if (!willOpen) return;
+            const menu = itemEl.querySelector('.ci-menu');
+            if (menu) {
+                menu.classList.remove('hidden');
+                itemEl.classList.add('ci-menu-open');
+                openConversationMenuId = id;
+            }
+        }
+
+        function closeConversationMenus() {
+            document.querySelectorAll('.ci-menu').forEach(menu => menu.classList.add('hidden'));
+            document.querySelectorAll('.ci-menu-open').forEach(item => item.classList.remove('ci-menu-open'));
+            openConversationMenuId = null;
+        }
+
+        async function renameConversation(id, currentTitle) {
+            const fallback = String(currentTitle || '').trim() || 'Conversation';
+            const nextTitle = window.prompt('Nouveau titre de conversation', fallback);
+            if (nextTitle === null) return;
+            const title = nextTitle.trim();
+            if (!title) return;
+            try {
+                const res = await fetch(`${API}/conversations/${id}/title`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title })
+                });
+                if (!res.ok) {
+                    const data = await res.json().catch(() => ({}));
+                    throw new Error(data.detail || `HTTP ${res.status}`);
+                }
+                await loadConversations();
+            } catch (e) {
+                console.error('Rename conversation failed:', e);
+                alert('Renommage impossible');
+            }
+        }
+
+        async function archiveConversation(id) {
+            try {
+                const res = await fetch(`${API}/conversations/${id}/archive`, { method: 'PATCH' });
+                if (!res.ok) {
+                    const data = await res.json().catch(() => ({}));
+                    throw new Error(data.detail || `HTTP ${res.status}`);
+                }
+                if (currentConversationId === id) {
+                    newChat();
+                }
+                await loadConversations();
+            } catch (e) {
+                console.error('Archive conversation failed:', e);
+                alert('Archivage impossible');
+            }
+        }
+
+        async function deleteConversation(id) {
+            const ok = confirm('Supprimer la conversation ? Cette action supprimera définitivement la conversation et tous ses messages.');
+            if (!ok) return;
+            try {
+                const res = await fetch(`${API}/conversations/${id}`, { method: 'DELETE' });
+                if (!res.ok) {
+                    const data = await res.json().catch(() => ({}));
+                    throw new Error(data.error || data.detail || `HTTP ${res.status}`);
+                }
+                if (currentConversationId === id) {
+                    newChat();
+                }
+                await loadConversations();
+            } catch (e) {
+                console.error('Delete conversation failed:', e);
+                alert('Suppression impossible');
+            }
         }
 
         function renderHistory(messages) {
@@ -444,16 +674,32 @@
             }
         }
 
-        function toggleTheme() { light = !light; document.body.classList.toggle('light', light); document.getElementById('th-btn').textContent = light ? '☀' : '☽'; }
+        function toggleTheme() {
+            light = !light;
+            document.body.style.background = light ? '#f7f4ff' : '#0d0d16';
+            document.getElementById('th-btn').textContent = light ? '☀' : '☽';
+        }
         function toggleSidebar() { document.querySelector('.sb').classList.toggle('collapsed'); }
         function toggleThink() { think = !think; document.getElementById('tgl').classList.toggle('off', !think); }
         function toggleDD() { ddOpen = !ddOpen; document.getElementById('ms-dd').classList.toggle('hidden', !ddOpen); }
-        function selectModel(name, e) { document.getElementById('ms-name').textContent = name; toggleDD(); }
+
+        document.addEventListener('click', e => {
+            if (ddOpen && !document.getElementById('ms').contains(e.target)) {
+                ddOpen = false;
+                document.getElementById('ms-dd').classList.add('hidden');
+            }
+            if (openConversationMenuId !== null) {
+                const openMenu = document.querySelector('.ci-menu-open');
+                if (openMenu && !openMenu.contains(e.target)) {
+                    closeConversationMenus();
+                }
+            }
+        });
+        function selectModel(name) { document.getElementById('ms-name').textContent = name; toggleDD(); }
 
         function newChat() { currentConversationId = null; document.getElementById('messages-container').innerHTML = ''; showEmpty(); closeCanvas(); }
         function showEmpty() { document.getElementById('empty').classList.remove('hidden'); document.getElementById('chat').classList.add('hidden'); }
         function showChat() { document.getElementById('empty').classList.add('hidden'); document.getElementById('chat').classList.remove('hidden'); }
-        function sendQuickMessage(m) { document.getElementById('message-input').value = m; sendMessage(); }
         function handleInputKeydown(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
 
         async function sendMessage() {
@@ -495,9 +741,8 @@
                         } catch (e) {}
                     }
                 }
-            } catch (e) {
-                console.error(e);
-            } finally { isStreaming = false; }
+            } catch (e) { console.error(e); }
+            finally { isStreaming = false; }
         }
 
         function appendUserMsg(text) {
@@ -528,10 +773,9 @@
 
         function openCanvas(tab) { document.getElementById('canvas').classList.add('open'); }
         function closeCanvas() { document.getElementById('canvas').classList.remove('open'); }
-        function swTab(name, el) {
-            document.querySelectorAll('.cv-tab').forEach(t => t.classList.remove('on'));
+        function swTab(name) {
             const idx = ['doc', 'tbl', 'code'].indexOf(name);
-            document.querySelectorAll('.cv-tab')[idx].classList.add('on');
+            document.querySelectorAll('.cv-tab').forEach((t, i) => t.classList.toggle('on', i === idx));
             ['td', 'tt', 'tc'].forEach((id, i) => document.getElementById(id).classList.toggle('hidden', i !== idx));
         }
     </script>

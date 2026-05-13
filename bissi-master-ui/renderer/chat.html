@@ -399,7 +399,6 @@
                     <div class="u-name" id="user-name">Sam Yevi</div>
                     <div class="u-sub">Local · Offline</div>
                 </div>
-                <button class="ic-btn" id="th-btn" style="margin-left:auto" onclick="toggleTheme()">☀</button>
             </div>
         </div>
 
@@ -752,11 +751,8 @@
             }
         }
 
-        function toggleTheme() {
-            light = !light;
-            document.body.style.background = light ? '#f7f4ff' : '#0d0d16';
-            document.getElementById('th-btn').textContent = light ? '☀' : '☽';
-        }
+        // Theme toggle removed — themes are now fixed. kept 'light' flag for compatibility
+        function toggleTheme() { /* removed */ }
         function toggleSidebar() { document.querySelector('.sb').classList.toggle('collapsed'); }
         function toggleThink() { think = !think; document.getElementById('tgl').classList.toggle('off', !think); }
         function toggleDD() { ddOpen = !ddOpen; document.getElementById('ms-dd').classList.toggle('hidden', !ddOpen); }

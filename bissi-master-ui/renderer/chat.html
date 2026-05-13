@@ -63,13 +63,18 @@
         border-color: rgba(17,24,39,0.08);
       }
 
+      /* BG orbs */
       .orb { position: absolute; border-radius: 50%; filter: blur(48px); pointer-events: none; z-index: 0; }
       .o1 { width: 300px; height: 300px; background: #1a1a1a; opacity: 0.28; top: -70px; left: -70px; }
       .o2 { width: 200px; height: 200px; background: #222; opacity: 0.25; bottom: -50px; right: 220px; }
       .o3 { width: 150px; height: 150px; background: #2a2a2a; opacity: 0.16; top: 34%; right: -30px; }
+      .light .o1 { background: #e0e0e0; opacity: 0.5; }
+      .light .o2 { background: #d0d0d0; opacity: 0.35; }
+      .light .o3 { background: #e8e8e8; opacity: 0.3; }
 
       .body { display: flex; flex: 1; min-height: 0; position: relative; z-index: 1; }
 
+      /* GLASS MIXIN via shared classes */
       .glass {
         background: var(--surface);
         border: 1px solid var(--glass-border);
@@ -79,156 +84,809 @@
       }
 
       .glass::before {
-        content: ''; position: absolute; top: 0; left: 12px; right: 12px; height: 1px;
+        content: '';
+        position: absolute;
+        top: 0; left: 12px; right: 12px;
+        height: 1px;
         background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent);
         pointer-events: none;
       }
 
+      /* SIDEBAR */
       .sb {
-        width: 252px; min-width: 252px; position: relative; background: var(--surface);
-        border-right: 1px solid var(--glass-border); backdrop-filter: blur(18px);
-        display: flex; flex-direction: column; transition: width 0.25s, min-width 0.25s, opacity 0.2s; overflow: visible;
+        width: 252px; min-width: 252px;
+        position: relative;
+        background: var(--surface);
+        border-right: 1px solid var(--glass-border);
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+        display: flex; flex-direction: column;
+        transition: width 0.25s ease, min-width 0.25s ease, opacity 0.2s ease;
+        overflow: visible;
       }
       .sb.collapsed { width: 0; min-width: 0; opacity: 0; border-right: none; overflow: hidden; }
+      .sb::before {
+        content: '';
+        position: absolute;
+        top: 0; right: 0; bottom: 0;
+        width: 1px;
+        background: linear-gradient(180deg, rgba(255,255,255,0.15), transparent 60%);
+        pointer-events: none;
+      }
 
       .sb-top {
-        margin: 12px 12px 8px; padding: 14px 12px 12px; border: 1px solid var(--glass-border);
-        border-radius: 18px; background: linear-gradient(180deg, rgba(255,255,255,0.04), transparent);
+        margin: 12px 12px 8px;
+        padding: 14px 12px 12px;
+        border: 1px solid var(--glass-border);
+        border-radius: 18px;
+        background: linear-gradient(180deg, rgba(255,255,255,0.04), transparent);
         box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
       }
+      body.light .sb-top {
+        background: linear-gradient(180deg, rgba(255,255,255,0.8), rgba(17,24,39,0.015));
+      }
       .logo { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+      .logo-ic {
+        width: 30px; height: 30px;
+        background: linear-gradient(180deg, rgba(112,123,255,0.88), rgba(83,99,255,0.78));
+        border: 1px solid rgba(255,255,255,0.2);
+        border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 8px 18px rgba(83,99,255,0.25);
+        flex-shrink: 0;
+      }
       .logo-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; letter-spacing: 0.05em; color: var(--text); }
-      .logo-badge { margin-left: auto; font-size: 12px; font-weight: 500; letter-spacing: 0.08em; color: var(--acc); background: var(--glass-acc); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(180,180,180,0.25); }
+      .logo-badge {
+        margin-left: auto; font-size: 12px; font-weight: 500; letter-spacing: 0.08em;
+        color: var(--acc); background: var(--glass-acc);
+        padding: 2px 6px; border-radius: 4px;
+        border: 1px solid rgba(180,180,180,0.25);
+      }
 
       .new-btn {
-        width: 100%; padding: 10px 12px; background: linear-gradient(135deg, rgba(112,123,255,0.98), rgba(83,99,255,0.92));
-        border: 1px solid rgba(255,255,255,0.15); border-radius: 14px; font-family: 'DM Sans', sans-serif; font-size: 12.5px; font-weight: 500; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), 0 10px 20px rgba(83,99,255,0.28);
+        width: 100%; padding: 10px 12px;
+        background: linear-gradient(135deg, rgba(112,123,255,0.98), rgba(83,99,255,0.92));
+        border: 1px solid rgba(255,255,255,0.15);
+        border-radius: 14px;
+        font-family: 'DM Sans', sans-serif; font-size: 12.5px; font-weight: 500;
+        color: #fff; cursor: pointer;
+        display: flex; align-items: center; justify-content: center; gap: 5px;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), 0 10px 20px rgba(83,99,255,0.28);
       }
       .new-btn:hover { transform: translateY(-1px); }
 
       .sec { padding: 8px 12px 2px; }
       .sec-lbl { font-size: 9.5px; font-weight: 600; letter-spacing: 0.11em; text-transform: uppercase; color: var(--muted); margin: 0 0 5px 2px; }
-      .ci { display: flex; align-items: center; gap: 7px; min-height: 34px; padding: 7px 8px; border-radius: 10px; cursor: pointer; margin-bottom: 2px; position: relative; padding-right: 28px; }
+      .ci {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        min-height: 34px;
+        padding: 7px 8px;
+        border-radius: 10px;
+        cursor: pointer;
+        margin-bottom: 2px;
+        transition: background 0.15s ease, transform 0.15s ease;
+      }
+      .ci {
+        position: relative;
+        padding-right: 28px;
+      }
+      .ci-menu-open { z-index: 40; }
       .ci:hover, .ci.on { background: var(--glass-hover); transform: translateX(1px); }
       .ci.on .ci-t { color: var(--acc); }
       .ci-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--acc); opacity: 0.35; flex-shrink: 0; }
       .ci.on .ci-dot { opacity: 1; }
       .ci-t { font-size: 12px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .ci-ts { margin-left: auto; font-size: 9.5px; color: var(--muted); flex-shrink: 0; }
-      
-      .ci-actions { position: absolute; top: 50%; right: 4px; transform: translateY(-50%); }
-      .ci-menu-btn { width: 20px; height: 20px; border-radius: 6px; border: 1px solid transparent; background: transparent; color: var(--muted); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; opacity: 0; }
-      .ci:hover .ci-menu-btn, .ci.on .ci-menu-btn { opacity: 1; }
-      .ci-menu { position: absolute; right: 24px; top: 24px; min-width: 150px; background: var(--surface-strong); border: 1px solid var(--glass-border); border-radius: 10px; box-shadow: 0 18px 42px rgba(0,0,0,0.35); padding: 6px; z-index: 120; }
+      .ci-actions {
+        position: absolute;
+        top: 50%;
+        right: 4px;
+        transform: translateY(-50%);
+      }
+      .ci-menu-btn {
+        width: 20px;
+        height: 20px;
+        border-radius: 6px;
+        border: 1px solid transparent;
+        background: transparent;
+        color: var(--muted);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        opacity: 0;
+        transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+      }
+      .ci:hover .ci-menu-btn,
+      .ci.on .ci-menu-btn,
+      .ci-menu-open .ci-menu-btn {
+        opacity: 1;
+      }
+      .ci-menu-btn:hover {
+        background: rgba(255,255,255,0.08);
+        color: var(--text);
+        border-color: rgba(255,255,255,0.08);
+      }
+      .ci-menu {
+        position: absolute;
+        right: 24px;
+        top: 24px;
+        min-width: 150px;
+        background: var(--surface-strong);
+        border: 1px solid var(--glass-border);
+        border-radius: 10px;
+        box-shadow: 0 18px 42px rgba(0,0,0,0.35);
+        padding: 6px;
+        z-index: 120;
+      }
       .ci-menu.hidden { display: none; }
-      .ci-menu-item { width: 100%; display: flex; align-items: center; gap: 8px; border: 0; background: transparent; color: var(--text); padding: 8px 10px; border-radius: 8px; font-size: 12px; cursor: pointer; text-align: left; }
+      .ci-menu-item {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border: 0;
+        background: transparent;
+        color: var(--text);
+        padding: 8px 10px;
+        border-radius: 8px;
+        font-size: 12px;
+        cursor: pointer;
+        text-align: left;
+      }
       .ci-menu-item:hover { background: var(--glass-hover); }
       .ci-menu-item.danger { color: #FCA5A5; }
 
-      .sb-foot { margin-top: auto; padding: 10px 12px; border-top: 1px solid var(--glass-border); display: flex; align-items: center; gap: 8px; }
-      .av { width: 28px; height: 28px; border-radius: 50%; background: rgba(180,180,180,0.7); border: 1px solid rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; color: #fff; flex-shrink: 0; }
+      .sb-foot {
+        margin-top: auto; padding: 10px 12px;
+        border-top: 1px solid var(--glass-border);
+        display: flex; align-items: center; gap: 8px;
+      }
+      .av {
+        width: 28px; height: 28px; border-radius: 50%;
+        background: rgba(180,180,180,0.7);
+        border: 1px solid rgba(255,255,255,0.2);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 10px; font-weight: 600; color: #fff; flex-shrink: 0;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.2);
+      }
       .u-name { font-size: 12px; font-weight: 500; color: var(--text); }
       .u-sub { font-size: 9.5px; color: var(--muted); }
-      .ic-btn { width: 26px; height: 26px; border-radius: 6px; border: 1px solid var(--glass-border); background: var(--glass); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 12px; flex-shrink: 0; }
+      .ic-btn {
+        width: 26px; height: 26px; border-radius: 6px;
+        border: 1px solid var(--glass-border);
+        background: var(--glass);
+        backdrop-filter: blur(8px);
+        cursor: pointer; display: flex; align-items: center; justify-content: center;
+        color: var(--muted); font-size: 12px; flex-shrink: 0;
+      }
 
+      /* MAIN */
       .main { flex: 1; display: flex; flex-direction: column; min-width: 0; background: transparent; }
-      .m-head { padding: 10px 16px; background: var(--surface); border-bottom: 1px solid var(--glass-border); display: flex; align-items: center; gap: 8px; position: relative; }
 
-      .ms { display: flex; align-items: center; gap: 6px; padding: 5px 10px; background: var(--glass-acc); border: 1px solid rgba(180,180,180,0.22); border-radius: 10px; cursor: pointer; font-size: 14px; color: var(--text); font-family: 'DM Sans', sans-serif; position: relative; }
+      /* HEADER */
+      .m-head {
+        padding: 10px 16px;
+        background: var(--surface);
+        border-bottom: 1px solid var(--glass-border);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        display: flex; align-items: center; gap: 8px;
+        position: relative;
+      }
+      .m-head::after {
+        content: '';
+        position: absolute;
+        bottom: 0; left: 16px; right: 16px; height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(180,180,180,0.2), transparent);
+      }
+
+      /* Model selector */
+      .ms {
+        display: flex; align-items: center; gap: 6px;
+        padding: 5px 10px;
+        background: var(--glass-acc);
+        border: 1px solid rgba(180,180,180,0.22);
+        border-radius: 10px; cursor: pointer;
+        font-size: 14px; color: var(--text);
+        font-family: 'DM Sans', sans-serif;
+        position: relative;
+        backdrop-filter: blur(8px);
+      }
+      .ms:hover { background: rgba(180,180,180,0.2); }
       .ms-arrow { font-size: 11px; color: var(--muted); transition: transform 0.15s; }
       .ms-arrow.open { transform: rotate(180deg); }
-      .ms-dd { position: absolute; top: calc(100% + 5px); left: 0; background: rgba(15,12,28,0.9); border: 1px solid var(--glass-border); border-radius: 10px; min-width: 210px; z-index: 20; box-shadow: 0 16px 40px rgba(0,0,0,0.5); }
+      .ms-dd {
+        position: absolute; top: calc(100% + 5px); left: 0;
+        background: rgba(15,12,28,0.9);
+        border: 1px solid var(--glass-border);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        border-radius: 10px; min-width: 210px; z-index: 20; overflow: hidden;
+        box-shadow: 0 16px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08);
+      }
+      .light .ms-dd { background: rgba(240,237,255,0.92); }
       .ms-dd.hidden { display: none; }
       .ms-glbl { font-size: 15px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); padding: 8px 10px 3px; }
       .ms-opt { display: flex; align-items: center; gap: 8px; padding: 7px 10px; cursor: pointer; font-size: 15px; color: var(--text); }
       .ms-opt:hover { background: var(--glass-hover); }
+      .ms-opt.on { color: var(--acc); }
       .m-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
       .m-sz { font-size: 12.5px; color: var(--muted); margin-left: auto; }
 
-      .think-w { margin-left: auto; display: flex; align-items: center; gap: 5px; font-size: 13.5px; color: var(--muted); cursor: pointer; padding: 3px 9px; border-radius: 6px; border: 1px solid var(--glass-border); background: var(--glass); }
+      .think-w {
+        margin-left: auto; display: flex; align-items: center; gap: 5px;
+        font-size: 13.5px; color: var(--muted); cursor: pointer;
+        padding: 3px 9px; border-radius: 6px;
+        border: 1px solid var(--glass-border);
+        background: var(--glass);
+        backdrop-filter: blur(8px);
+      }
       .tgl { width: 22px; height: 12px; background: var(--acc); border-radius: 6px; position: relative; transition: background 0.2s; }
       .tgl::after { content: ''; position: absolute; width: 8px; height: 8px; background: #fff; border-radius: 50%; top: 2px; right: 2px; transition: right 0.2s; }
       .tgl.off { background: rgba(148,163,184,0.25); }
       .tgl.off::after { right: 12px; }
 
-      .msgs { flex: 1; overflow-y: auto; display: flex; flex-direction: column; scrollbar-width: thin; scrollbar-color: rgba(180,180,180,0.45) transparent; }
-      .msgs-in { padding: 28px 20px 18px; display: flex; flex-direction: column; align-items: center; max-width: 860px; width: 100%; margin: 0 auto; }
+      /* MESSAGES */
+      .msgs { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+      .msgs-in { padding: 28px 20px 18px; display: flex; flex-direction: column; gap: 0; align-items: center; max-width: 860px; width: 100%; margin: 0 auto; }
+      .msgs,
+      .cv-body {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(180,180,180,0.45) transparent;
+      }
+      .msgs::-webkit-scrollbar,
+      .cv-body::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+      }
+      .msgs::-webkit-scrollbar-track,
+      .cv-body::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .msgs::-webkit-scrollbar-thumb,
+      .cv-body::-webkit-scrollbar-thumb {
+        background: linear-gradient(180deg, rgba(180,180,180,0.35), rgba(180,180,180,0.55));
+        border: 2px solid transparent;
+        background-clip: padding-box;
+        border-radius: 999px;
+      }
+      .msgs::-webkit-scrollbar-thumb:hover,
+      .cv-body::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(180deg, rgba(180,180,180,0.5), rgba(180,180,180,0.75));
+        border: 2px solid transparent;
+        background-clip: padding-box;
+      }
 
       .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; text-align: center; padding: 32px 24px 24px; }
+      .e-ic {
+        width: 52px; height: 52px;
+        background: var(--glass-acc);
+        border: 1px solid rgba(180,180,180,0.2);
+        border-radius: 16px;
+        display: flex; align-items: center; justify-content: center;
+        margin-bottom: 14px;
+        backdrop-filter: blur(8px);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);
+      }
       .e-title { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
       .e-sub { font-size: 15px; color: var(--muted); margin-bottom: 22px; line-height: 1.6; }
 
       .qa-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; max-width: 392px; }
-      .qa { background: var(--glass); border: 1px solid var(--glass-border); border-radius: 14px; padding: 10px 12px; min-height: 84px; cursor: pointer; text-align: left; transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease; }
+      .qa {
+        background: var(--glass);
+        border: 1px solid var(--glass-border);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-radius: 14px;
+        padding: 10px 12px;
+        min-height: 84px;
+        cursor: pointer;
+        text-align: left;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.07);
+        position: relative;
+        transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+      }
       .qa:hover { background: var(--glass-hover); border-color: rgba(180,180,180,0.3); transform: translateY(-1px); }
       .qa-ic { font-size: 13px; margin-bottom: 5px; display: block; }
       .qa-t { font-size: 14px; font-weight: 500; color: var(--text); line-height: 1.4; }
       .qa-s { font-size: 12.5px; color: var(--muted); margin-top: 3px; }
 
-      .msg-u-wrap { align-self: flex-end; width: 70%; display: flex; flex-direction: column; align-items: flex-end; margin-bottom: 8px; }
-      .msg-u { width: 100%; background: rgba(180,180,180,0.82); border: 1px solid rgba(255,255,255,0.16); color: #fff; padding: 8px 13px; border-radius: 12px 12px 3px 12px; font-size: 15.5px; line-height: 1.5; }
-      .msg-a { align-self: stretch; width: 100%; padding: 0 2px 6px; font-size: 15.5px; line-height: 1.6; color: var(--text); margin-bottom: 8px; }
-      .msg-a .md p { margin: 0 0 0.8em 0; }
-      .msg-a .md pre { background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.08); padding: 0.9em; border-radius: 12px; overflow-x: auto; }
+      /* messages */
+      .msg-u-wrap {
+        align-self: flex-end;
+        width: 70%;
+        max-width: 70%;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        margin-bottom: 8px;
+      }
+      .msg-u {
+        width: 100%;
+        max-width: 100%;
+        background: rgba(180,180,180,0.82);
+        border: 1px solid rgba(255,255,255,0.16);
+        color: #fff; padding: 8px 13px;
+        border-radius: 12px 12px 3px 12px;
+        font-size: 15.5px; line-height: 1.5;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), 0 8px 18px rgba(0,0,0,0.18);
+      }
+      .msg-a {
+        align-self: stretch;
+        width: 100%;
+        max-width: 100%;
+        background: transparent;
+        border: none;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        padding: 0 2px 6px;
+        border-radius: 0;
+        font-size: 15.5px; line-height: 1.6; color: var(--text);
+        margin-bottom: 8px;
+        box-shadow: none;
+        position: relative;
+      }
 
-      .msg-actions { display: flex; gap: 6px; margin-top: 6px; opacity: 0; transition: opacity 0.15s ease; }
-      .msg-a:hover .msg-actions, .msg-u-wrap:hover .msg-actions { opacity: 1; }
-      .msg-action-btn { width: 24px; height: 24px; border: none; background: transparent; color: var(--muted); cursor: pointer; }
-      .msg-action-btn:hover { color: var(--text); }
-      .msg-action-btn svg { width: 13px; height: 13px; display: block; }
+      .msg-a .md {
+        white-space: normal;
+        word-break: break-word;
+        padding: 0;
+      }
+      .msg-a .md > *:first-child { margin-top: 0; }
+      .msg-a .md > *:last-child { margin-bottom: 0; }
+      .msg-a .md p,
+      .msg-a .md ul,
+      .msg-a .md ol,
+      .msg-a .md blockquote,
+      .msg-a .md pre,
+      .msg-a .md table {
+        margin: 0 0 0.8em 0;
+      }
+      .msg-a .md h1,
+      .msg-a .md h2,
+      .msg-a .md h3,
+      .msg-a .md h4,
+      .msg-a .md h5,
+      .msg-a .md h6 {
+        margin: 0.75em 0 0.4em;
+        font-family: 'Syne', sans-serif;
+        line-height: 1.25;
+      }
+      .msg-a .md h1 { font-size: 1.25em; }
+      .msg-a .md h2 { font-size: 1.15em; }
+      .msg-a .md h3 { font-size: 1.05em; }
+      .msg-a .md blockquote {
+        padding: 0.65em 0.85em;
+        border-left: 3px solid rgba(180,180,180,0.45);
+        background: rgba(255,255,255,0.03);
+        border-radius: 0 10px 10px 0;
+      }
+      .msg-a .md code {
+        font-family: 'DM Mono', monospace;
+        font-size: 0.92em;
+        background: rgba(255,255,255,0.08);
+        padding: 0.1em 0.3em;
+        border-radius: 5px;
+      }
+      .msg-a .md pre {
+        overflow-x: auto;
+        padding: 0.9em 1em;
+        background: rgba(0,0,0,0.35);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 12px;
+      }
+      .msg-a .md pre code {
+        display: block;
+        padding: 0;
+        background: transparent;
+        border-radius: 0;
+        white-space: pre;
+      }
+      .msg-a .md pre code.hljs {
+        background: transparent;
+      }
+      .msg-a .md .katex-display {
+        margin: 0.9em 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+      }
+      .msg-a .md table {
+        width: 100%;
+        border-collapse: collapse;
+        display: block;
+        overflow-x: auto;
+      }
+      .msg-a .md th,
+      .msg-a .md td {
+        border: 1px solid rgba(255,255,255,0.08);
+        padding: 0.45em 0.6em;
+        text-align: left;
+      }
+      .msg-a .md th { background: rgba(255,255,255,0.05); }
+      .msg-a .md a {
+        color: var(--acc);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+      .msg-a .md hr {
+        border: 0;
+        border-top: 1px solid rgba(255,255,255,0.12);
+        margin: 0.9em 0;
+      }
 
-      .tool-t { display: flex; align-items: center; gap: 5px; padding: 2px 0 7px; color: var(--muted); font-size: 13.5px; font-family: 'DM Mono', monospace; }
+      .msg-actions {
+        display: flex;
+        gap: 6px;
+        justify-content: flex-end;
+        margin-top: 6px;
+        opacity: 0;
+        transform: translateY(-2px);
+        pointer-events: none;
+        transition: opacity 0.15s ease, transform 0.15s ease;
+      }
+      .msg-a .msg-actions {
+        justify-content: flex-start;
+      }
+      .msg-u-wrap .msg-actions {
+        justify-content: flex-end;
+        width: auto;
+        margin-top: 6px;
+      }
+      .msg-a:hover .msg-actions,
+      .msg-a:focus-within .msg-actions,
+      .msg-u-wrap:hover .msg-actions,
+      .msg-u-wrap:focus-within .msg-actions {
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: auto;
+      }
+      .msg-action-btn {
+        width: 24px;
+        height: 24px;
+        border-radius: 999px;
+        border: none;
+        background: transparent;
+        color: var(--muted);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: transform 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+        opacity: 0.85;
+      }
+      .msg-action-btn:hover {
+        transform: translateY(-1px);
+        color: var(--text);
+        opacity: 1;
+      }
+      .msg-action-btn svg {
+        width: 13px;
+        height: 13px;
+        display: block;
+      }
+
+      .tool-t {
+        display: flex; align-items: center; gap: 5px;
+        padding: 2px 0 7px;
+        color: var(--muted); font-size: 13.5px;
+        font-family: 'DM Mono', monospace;
+      }
       .tool-t::before, .tool-t::after { content: ''; flex: 1; height: 1px; background: var(--tool-line); }
       .t-verb { color: var(--acc); }
+      .t-ok { color: #888; font-size: 12.5px; }
 
+      /* INPUT */
       .in-area { padding: 10px 14px 12px; }
       .in-area-in { max-width: 860px; margin: 0 auto; }
-      .in-pill { background: var(--surface); border: 1px solid var(--glass-border); border-radius: 18px; padding: 10px 12px; display: flex; align-items: center; gap: 7px; }
+      .in-pill {
+        background: var(--surface);
+        border: 1px solid var(--glass-border);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        border-radius: 18px; padding: 10px 12px;
+        display: flex; align-items: center; gap: 7px;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.07), 0 14px 28px rgba(0,0,0,0.10);
+        position: relative;
+      }
+      .in-pill:focus-within {
+        border-color: rgba(180,180,180,0.5);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.07), 0 0 0 3px rgba(180,180,180,0.1);
+      }
       .in-f { flex: 1; background: transparent; border: none; outline: none; font-family: 'DM Sans', sans-serif; font-size: 15.5px; color: var(--text); resize: none; line-height: 1.45; }
-      .in-ic { width: 28px; height: 28px; border-radius: 10px; background: var(--glass); border: 1px solid var(--glass-border); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--muted); }
-      .send-btn { width: 32px; height: 32px; border-radius: 12px; background: linear-gradient(135deg, rgba(112,123,255,0.98), rgba(83,99,255,0.92)); border: 1px solid rgba(255,255,255,0.15); cursor: pointer; display: flex; align-items: center; justify-content: center; }
-      
-      .disc { text-align: center; font-size: 13px; color: rgba(148,163,184,0.35); padding: 4px 14px 8px; }
+      .in-f::placeholder { color: var(--muted); }
+      .in-ic {
+        width: 28px; height: 28px; border-radius: 10px;
+        background: var(--glass); border: 1px solid var(--glass-border);
+        backdrop-filter: blur(8px);
+        cursor: pointer; display: flex; align-items: center; justify-content: center;
+        color: var(--muted); font-size: 14px; flex-shrink: 0;
+      }
+      .in-ic.recording {
+        color: #FCA5A5;
+        border-color: rgba(252, 165, 165, 0.35);
+        background: rgba(239, 68, 68, 0.1);
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+      }
+      .send-btn {
+        width: 32px; height: 32px; border-radius: 12px;
+        background: linear-gradient(135deg, rgba(112,123,255,0.98), rgba(83,99,255,0.92));
+        border: 1px solid rgba(255,255,255,0.15);
+        cursor: pointer; display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 10px 20px rgba(83,99,255,0.28);
+      }
+      body.light .sb,
+      body.light .m-head,
+      body.light .canvas,
+      body.light .in-pill,
+      body.light .dv,
+      body.light .ci-menu,
+      body.light .ms-dd {
+        background: var(--surface);
+        border-color: var(--glass-border);
+        box-shadow: var(--shadow);
+      }
+      body.light .sb {
+        background: rgba(255,255,255,0.88);
+      }
+      body.light .new-btn {
+        background: linear-gradient(135deg, rgba(17,24,39,0.96), rgba(17,24,39,0.88));
+        box-shadow: 0 10px 20px rgba(17,24,39,0.16);
+      }
+      body.light .logo-ic {
+        background: linear-gradient(180deg, rgba(17,24,39,0.12), rgba(17,24,39,0.08));
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 8px 16px rgba(17,24,39,0.08);
+      }
+      body.light .qa {
+        background: rgba(255,255,255,0.9);
+      }
+      body.light .qa:hover {
+        background: rgba(255,255,255,1);
+      }
+      body.light .msg-u {
+        background: linear-gradient(180deg, #111827, #0f172a);
+        border-color: #111827;
+        color: #fff;
+        box-shadow: 0 10px 24px rgba(17,24,39,0.14);
+      }
+      body.light .msg-a {
+        background: rgba(255,255,255,0.92);
+        border: 1px solid var(--glass-border);
+        box-shadow: 0 10px 24px rgba(17,24,39,0.06);
+      }
+      body.light .msg-a .md code,
+      body.light .code-b {
+        background: rgba(17,24,39,0.05);
+        color: #111827;
+        border-color: rgba(17,24,39,0.08);
+      }
+      body.light .msg-a .md pre {
+        background: rgba(17,24,39,0.04);
+        border-color: rgba(17,24,39,0.08);
+      }
+      body.light pre.hljs,
+      body.light .hljs {
+        background: rgba(17,24,39,0.04) !important;
+        color: #111827 !important;
+      }
+      body.light .msg-action-btn {
+        color: rgba(17,24,39,0.55);
+      }
+      body.light .msg-action-btn:hover {
+        color: #111827;
+      }
+      body.light .send-btn {
+        background: linear-gradient(180deg, #111827, #0f172a);
+        border-color: #111827;
+        box-shadow: 0 8px 18px rgba(17,24,39,0.16);
+      }
+      body.light .send-btn svg path {
+        stroke: #fff;
+      }
+      body.light .in-ic {
+        background: rgba(255,255,255,0.96);
+        border-color: var(--glass-border);
+        color: #111827;
+      }
+      body.light .in-ic.recording {
+        background: rgba(239, 68, 68, 0.08);
+        border-color: rgba(239, 68, 68, 0.2);
+        color: #b91c1c;
+      }
 
-      .canvas { width: 0; overflow: hidden; display: flex; flex-direction: column; background: var(--surface); border-left: 1px solid var(--glass-border); }
+      /* DISCLAIMER */
+      .disc {
+        text-align: center; font-size: 13px;
+        color: rgba(148,163,184,0.35);
+        padding: 4px 14px 8px;
+        letter-spacing: 0.02em;
+        max-width: 820px; margin: 0 auto;
+      }
+      body.light .disc { color: rgba(71,85,105,0.5); }
+
+      /* CANVAS */
+      .canvas {
+        width: 0; overflow: hidden;
+        transition: width 0.25s ease;
+        display: flex; flex-direction: column;
+        position: relative;
+        background: var(--surface);
+        border-left: 1px solid var(--glass-border);
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+      }
+      .canvas::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; bottom: 0; width: 1px;
+        background: linear-gradient(180deg, rgba(255,255,255,0.12), transparent 70%);
+        pointer-events: none;
+      }
       .canvas.open { width: 290px; min-width: 290px; }
-      .cv-h { padding: 9px 12px; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; }
-      .cv-tabs { display: flex; border-bottom: 1px solid var(--glass-border); }
-      .cv-tab { flex: 1; padding: 6px 8px; font-size: 13px; text-align: center; cursor: pointer; color: var(--muted); }
-      .cv-tab.on { color: var(--acc); border-bottom: 2px solid var(--acc); }
+      .cv-h {
+        padding: 9px 12px;
+        border-bottom: 1px solid var(--glass-border);
+        display: flex; align-items: center; justify-content: space-between;
+        flex-shrink: 0;
+      }
+      .cv-title { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
+      .cv-fname { font-size: 13.5px; color: var(--text); margin-top: 1px; }
+      .cv-tabs { display: flex; border-bottom: 1px solid var(--glass-border); flex-shrink: 0; }
+      .cv-tab { flex: 1; padding: 6px 8px; font-size: 13px; text-align: center; cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent; }
+      .cv-tab.on { color: var(--acc); border-bottom-color: var(--acc); }
       .cv-body { flex: 1; overflow-y: auto; padding: 12px; }
-      
-      .dv { background: var(--surface-strong); border: 1px solid var(--edge); border-radius: 9px; overflow: hidden; }
-      .dv-tb { padding: 7px 11px; border-bottom: 1px solid var(--glass-border); display: flex; gap: 6px; }
+
+      /* Doc viewer glass */
+      .dv {
+        background: var(--surface-strong);
+        border: 1px solid var(--edge);
+        border-radius: 9px; overflow: hidden;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 10px 24px rgba(0,0,0,0.18);
+      }
+      .dv-tb { padding: 7px 11px; border-bottom: 1px solid var(--glass-border); display: flex; align-items: center; gap: 6px; }
+      .dv-type { font-size: 15px; font-weight: 500; letter-spacing: 0.07em; text-transform: uppercase; padding: 2px 5px; border-radius: 3px; background: var(--glass-acc); color: var(--acc); }
+      .dv-pages { font-size: 13px; color: var(--muted); margin-left: auto; }
       .dv-body { padding: 11px; }
+      .dv-h1 { font-family: 'Syne', sans-serif; font-size: 15.5px; font-weight: 600; color: var(--text); margin-bottom: 7px; }
+      .dv-p { font-size: 13.5px; color: var(--muted); line-height: 1.7; margin-bottom: 7px; }
+      .dv-div { height: 1px; background: var(--glass-border); margin: 8px 0; }
+      .dv-h2 { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 5px; }
+
+      .tbl-w { overflow-x: auto; padding: 10px; }
+      .mt { width: 100%; border-collapse: collapse; font-size: 13px; }
+      .mt th { padding: 5px 7px; background: var(--glass-acc); color: var(--acc); font-weight: 500; text-align: left; border-bottom: 1px solid var(--glass-border); }
+      .mt td { padding: 5px 7px; color: var(--muted); border-bottom: 1px solid var(--glass-border); }
+      .mt tr:last-child td { border-bottom: none; }
+
+      .code-b { background: rgba(0,0,0,0.3); border-radius: 6px; padding: 10px; margin: 8px; font-family: 'DM Mono', monospace; font-size: 13px; color: #aaa; line-height: 1.7; border: 1px solid var(--glass-border); }
+
+      @media (prefers-reduced-transparency: reduce) {
+        .glass, .sb, .m-head, .canvas, .in-pill, .qa, .msg-a, .dv, .ms-dd, .think-w, .in-ic, .ic-btn {
+          backdrop-filter: none !important;
+          -webkit-backdrop-filter: none !important;
+        }
+
+        .glass, .sb, .m-head, .canvas, .in-pill, .qa, .msg-a, .dv, .ms-dd, .think-w {
+          background: var(--surface-strong) !important;
+        }
+      }
 
       .hidden { display: none !important; }
-      .error-banner { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #FCA5A5; padding: 8px 16px; border-radius: 8px; z-index: 10; }
+
+      /* Error banner */
+      .error-banner {
+        position: absolute;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(239, 68, 68, 0.1);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        color: #FCA5A5;
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-size: 14px;
+        backdrop-filter: blur(8px);
+        z-index: 10;
+      }
+      .confirm-modal {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(15, 23, 42, 0.28);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        z-index: 80;
+        padding: 24px;
+      }
+      body.light .confirm-modal {
+        background: rgba(255, 255, 255, 0.45);
+      }
+      .confirm-modal.hidden { display: none !important; }
+      .confirm-card {
+        width: min(100%, 420px);
+        background: var(--surface-strong);
+        border: 1px solid var(--glass-border);
+        border-radius: 18px;
+        padding: 18px;
+        box-shadow: 0 24px 70px rgba(15, 23, 42, 0.18);
+      }
+      .confirm-title {
+        font-family: 'Syne', sans-serif;
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--text);
+        margin-bottom: 6px;
+      }
+      .confirm-body {
+        font-size: 14px;
+        line-height: 1.6;
+        color: var(--muted);
+        margin-bottom: 16px;
+      }
+      .confirm-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+      .confirm-btn {
+        border: 1px solid var(--glass-border);
+        background: var(--surface);
+        color: var(--text);
+        border-radius: 10px;
+        padding: 8px 12px;
+        font-size: 13px;
+        cursor: pointer;
+      }
+      .confirm-btn:hover { background: var(--glass-hover); }
+      .confirm-btn.primary {
+        background: #111827;
+        color: #fff;
+        border-color: #111827;
+      }
+      body.light .confirm-btn.primary {
+        background: #111827;
+        color: #fff;
+      }
+      .confirm-btn.danger {
+        background: #dc2626;
+        border-color: #dc2626;
+        color: #fff;
+      }
     </style>
 </head>
 <body>
     <div class="error-banner hidden" id="error-banner"></div>
+    <div class="confirm-modal hidden" id="confirm-modal" aria-hidden="true">
+        <div class="confirm-card" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+            <div class="confirm-title" id="confirm-title">Confirmer</div>
+            <div class="confirm-body" id="confirm-body"></div>
+            <div class="confirm-actions">
+                <button class="confirm-btn" id="confirm-cancel" type="button">Annuler</button>
+                <button class="confirm-btn danger" id="confirm-ok" type="button">Confirmer</button>
+            </div>
+        </div>
+    </div>
+    
     <div class="orb o1"></div>
     <div class="orb o2"></div>
     <div class="orb o3"></div>
 
     <div class="body">
+        <!-- SIDEBAR -->
         <div class="sb">
             <div class="sb-top">
                 <div class="logo">
-                    <div style="background: transparent; border: none; box-shadow: none; display:flex; align-items:center;">
-                        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 28px; height: 28px; filter: drop-shadow(0px 0px 5px rgba(0, 229, 255, 0.6));">
-                            <path d="M50 10 L85 35 L50 90 L15 35 Z" fill="url(#glass1)"/>
-                            <path d="M50 10 L85 35 L50 90 L15 35 Z" stroke="#00E5FF" stroke-width="4" stroke-linejoin="round"/>
-                            <path d="M15 35 L85 35" stroke="#00E5FF" stroke-width="3"/>
-                            <path d="M50 10 L50 90" stroke="#00E5FF" stroke-width="3"/>
-                            <circle cx="50" cy="45" r="9" fill="#00E5FF" filter="blur(2px)"/>
-                            <defs>
-                                <linearGradient id="glass1" x1="50" y1="10" x2="50" y2="90" gradientUnits="userSpaceOnUse">
-                                    <stop offset="0%" stop-color="#00E5FF" stop-opacity="0.6"/>
-                                    <stop offset="100%" stop-color="#0B0E14" stop-opacity="0.8"/>
-                                </linearGradient>
-                            </defs>
+                    <div class="logo-ic">
+                        <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+                            <circle cx="7.5" cy="7.5" r="5" stroke="#fff" stroke-width="1.3" opacity="0.7"/>
+                            <path d="M7.5 4.5V7.5l2 1.2" stroke="#fff" stroke-width="1.3" stroke-linecap="round"/>
                         </svg>
                     </div>
                     <span class="logo-name">BISSI</span>
@@ -259,6 +917,7 @@
             </div>
         </div>
 
+        <!-- MAIN -->
         <div class="main">
             <div class="m-head">
                 <button class="ic-btn" onclick="toggleSidebar()" title="Toggle sidebar" style="margin-right:4px">
@@ -278,20 +937,12 @@
                 </button>
             </div>
 
+            <!-- EMPTY -->
             <div class="empty" id="empty">
-                <div style="background: transparent; border: none; box-shadow: none; margin-bottom: 20px;">
-                    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 72px; height: 72px; filter: drop-shadow(0px 0px 12px rgba(0, 229, 255, 0.7));">
-                        <path d="M50 10 L85 35 L50 90 L15 35 Z" fill="url(#glass2)"/>
-                        <path d="M50 10 L85 35 L50 90 L15 35 Z" stroke="#00E5FF" stroke-width="4" stroke-linejoin="round"/>
-                        <path d="M15 35 L85 35" stroke="#00E5FF" stroke-width="3"/>
-                        <path d="M50 10 L50 90" stroke="#00E5FF" stroke-width="3"/>
-                        <circle cx="50" cy="45" r="10" fill="#00E5FF" filter="blur(3px)"/>
-                        <defs>
-                            <linearGradient id="glass2" x1="50" y1="10" x2="50" y2="90" gradientUnits="userSpaceOnUse">
-                                <stop offset="0%" stop-color="#00E5FF" stop-opacity="0.6"/>
-                                <stop offset="100%" stop-color="#0B0E14" stop-opacity="0.8"/>
-                            </linearGradient>
-                        </defs>
+                <div class="e-ic">
+                    <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                        <circle cx="11" cy="11" r="7.5" stroke="#888" stroke-width="1.4" opacity="0.5"/>
+                        <path d="M11 7V11l3 1.5" stroke="#888" stroke-width="1.4" stroke-linecap="round"/>
                     </svg>
                 </div>
                 <div class="e-title">Comment puis-je vous aider ?</div>
@@ -304,6 +955,7 @@
                 </div>
             </div>
 
+            <!-- CHAT -->
             <div class="msgs hidden" id="chat">
                 <div class="msgs-in" id="messages-container"></div>
             </div>
@@ -317,8 +969,8 @@
                         </svg>
                     </button>
                     <textarea class="in-f" id="message-input" rows="1" placeholder="Décrivez votre tâche..." onkeydown="handleInputKeydown(event)"></textarea>
-                    <button class="in-ic" id="voice-btn" type="button" title="Dictée vocale">
-                        <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+                    <button class="in-ic" id="voice-btn" type="button" title="Dictée vocale" aria-label="Dictée vocale">
+                        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true" id="voice-icon">
                             <rect x="5.25" y="2" width="5.5" height="8.5" rx="2.75" stroke="currentColor" stroke-width="1.35"/>
                             <path d="M3.25 7.75a4.75 4.75 0 0 0 9.5 0" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"/>
                             <path d="M8 11.25V13.5" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"/>
@@ -336,6 +988,7 @@
             <div class="disc">AI generated · for reference only</div>
         </div>
 
+        <!-- CANVAS -->
         <div class="canvas" id="canvas">
             <div class="cv-h">
                 <div>
@@ -350,26 +1003,270 @@
                 <div class="cv-tab" onclick="swTab('code',this)">Code</div>
             </div>
             <div class="cv-body">
-                <div id="td"><div class="dv"><div class="dv-tb"><span class="dv-type" id="doc-type">DOCX</span><span style="font-size:13px;color:var(--muted);margin-left:5px" id="doc-name">document.docx</span></div><div class="dv-body" id="doc-content"><div class="dv-p">En attente...</div></div></div></div>
-                <div id="tt" class="hidden"><div class="dv"><div class="dv-tb"><span class="dv-type">XLSX</span></div><div class="tbl-w"><table class="mt" id="data-table"><tr><td>En attente...</td></tr></table></div></div></div>
-                <div id="tc" class="hidden"><div class="dv"><div class="dv-tb"><span class="dv-type">PY</span></div><div class="code-b" id="code-content">En attente...</div></div></div>
+                <div id="td">
+                    <div class="dv">
+                        <div class="dv-tb">
+                            <span class="dv-type" id="doc-type">DOCX</span>
+                            <span style="font-size:13px;color:var(--muted);margin-left:5px" id="doc-name">document.docx</span>
+                            <span class="dv-pages" id="doc-info">3 pages</span>
+                        </div>
+                        <div class="dv-body" id="doc-content">
+                            <div class="dv-h1">Chargement...</div>
+                            <div class="dv-p">Le document est en cours de chargement.</div>
+                        </div>
+                    </div>
+                </div>
+                <div id="tt" class="hidden">
+                    <div class="dv">
+                        <div class="dv-tb">
+                            <span class="dv-type">XLSX</span>
+                            <span style="font-size:13px;color:var(--muted);margin-left:5px">données.xlsx</span>
+                            <span class="dv-pages">48 lignes</span>
+                        </div>
+                        <div class="tbl-w">
+                            <table class="mt" id="data-table">
+                                <tr><th>Chargement...</th></tr>
+                                <tr><td>Veuillez patienter</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div id="tc" class="hidden">
+                    <div class="dv">
+                        <div class="dv-tb">
+                            <span class="dv-type">PY</span>
+                            <span style="font-size:13px;color:var(--muted);margin-left:5px">script.py</span>
+                        </div>
+                        <div class="code-b" id="code-content">
+                            Chargement du code...
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <script src="./vendor/markdown-it.min.js"></script>
-    <script>
+      <link rel="stylesheet" href="./vendor/katex/katex.min.css">
+      <link rel="stylesheet" href="./vendor/highlightjs/github-dark.min.css">
+      <script src="./vendor/mammoth.browser.min.js"></script>
+      <script src="./vendor/xlsx.full.min.js"></script>
+      <script src="./vendor/pdfjs-dist/pdf.min.js"></script>
+      <script src="./vendor/compromise.min.js"></script>
+      <script src="./vendor/markdown-it.min.js"></script>
+      <script src="./vendor/katex.min.js"></script>
+      <script src="./vendor/auto-render.min.js"></script>
+      <script src="./vendor/highlight.min.js"></script>
+      <script src="./vendor/transformers.min.js"></script>
+      <script>
         let light = false, think = true, ddOpen = false;
         let currentConversationId = null;
         let isStreaming = false;
         let userProfile = null;
+        let shouldAutoRenameConversation = false;
+        let pendingAutoTitleSource = '';
+        let openConversationMenuId = null;
+        let speechRecorder = null;
+        let speechStream = null;
+        let speechChunks = [];
+        let speechBusy = false;
+        let speechRecognizer = null;
+        let confirmDialogResolver = null;
         const API = 'http://localhost:8765';
+        const FILE_EXTS = ['.docx', '.xlsx', '.pdf', '.py'];
+        const SPEECH_MODEL = 'Xenova/whisper-base';
+
+      pdfjsLib.GlobalWorkerOptions.workerSrc = './vendor/pdfjs-dist/pdf.worker.min.js';
 
         window.addEventListener('DOMContentLoaded', async () => {
+            initConfirmDialog();
+            initVoiceButton();
             await loadUserProfile();
             await loadModels();
             await loadConversations();
+            await checkBackendAvailability();
         });
+
+        function showError(message) {
+            const banner = document.getElementById('error-banner');
+            banner.textContent = message;
+            banner.classList.remove('hidden');
+            setTimeout(() => banner.classList.add('hidden'), 5000);
+        }
+
+        function initConfirmDialog() {
+            const modal = document.getElementById('confirm-modal');
+            const cancelBtn = document.getElementById('confirm-cancel');
+            const okBtn = document.getElementById('confirm-ok');
+
+            const close = (result) => {
+                modal.classList.add('hidden');
+                modal.setAttribute('aria-hidden', 'true');
+                document.body.classList.remove('dialog-open');
+                const resolve = confirmDialogResolver;
+                confirmDialogResolver = null;
+                if (resolve) resolve(result);
+            };
+
+            modal.addEventListener('click', e => {
+                if (e.target === modal) close(false);
+            });
+            cancelBtn.addEventListener('click', () => close(false));
+            okBtn.addEventListener('click', () => close(true));
+            document.addEventListener('keydown', e => {
+                if (!modal.classList.contains('hidden') && e.key === 'Escape') {
+                    close(false);
+                }
+            });
+        }
+
+        function showConfirmDialog({ title, message, confirmLabel = 'Confirmer', danger = false }) {
+            const modal = document.getElementById('confirm-modal');
+            const titleEl = document.getElementById('confirm-title');
+            const bodyEl = document.getElementById('confirm-body');
+            const okBtn = document.getElementById('confirm-ok');
+
+            titleEl.textContent = title;
+            bodyEl.textContent = message;
+            okBtn.textContent = confirmLabel;
+            okBtn.classList.toggle('danger', danger);
+
+            modal.classList.remove('hidden');
+            modal.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('dialog-open');
+
+            return new Promise(resolve => {
+                confirmDialogResolver = resolve;
+            });
+        }
+
+        function initVoiceButton() {
+            const btn = document.getElementById('voice-btn');
+            if (!btn) return;
+            btn.onclick = async () => {
+                if (speechBusy) return;
+                if (speechRecorder && speechRecorder.state === 'recording') {
+                    await stopVoiceRecording();
+                } else {
+                    await startVoiceRecording();
+                }
+            };
+        }
+
+        function setVoiceButtonState(recording) {
+            const btn = document.getElementById('voice-btn');
+            if (!btn) return;
+            btn.classList.toggle('recording', recording);
+            btn.title = recording ? 'Arrêter la dictée' : 'Dictée vocale';
+            btn.setAttribute('aria-label', recording ? 'Arrêter la dictée' : 'Dictée vocale');
+        }
+
+        function pickVoiceMimeType() {
+            const candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'];
+            for (const mimeType of candidates) {
+                if (window.MediaRecorder && MediaRecorder.isTypeSupported(mimeType)) {
+                    return mimeType;
+                }
+            }
+            return '';
+        }
+
+        async function startVoiceRecording() {
+            if (isStreaming) {
+                showError('Attendez la fin du streaming avant la dictée');
+                return;
+            }
+            if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+                showError('Dictée vocale non supportée');
+                return;
+            }
+
+            try {
+                speechStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                speechChunks = [];
+                const options = {};
+                const mimeType = pickVoiceMimeType();
+                if (mimeType) options.mimeType = mimeType;
+                speechRecorder = new MediaRecorder(speechStream, options);
+                speechRecorder.ondataavailable = event => {
+                    if (event.data && event.data.size > 0) {
+                        speechChunks.push(event.data);
+                    }
+                };
+                speechRecorder.onstop = async () => {
+                    const chunks = speechChunks.slice();
+                    cleanupVoiceStream();
+                    if (!chunks.length) return;
+                    speechBusy = true;
+                    setVoiceButtonState(false);
+                    try {
+                        const blob = new Blob(chunks, { type: chunks[0].type || 'audio/webm' });
+                        const text = await transcribeVoiceBlob(blob);
+                        if (text) {
+                            const input = document.getElementById('message-input');
+                            const prefix = input.value.trim();
+                            input.value = prefix ? `${prefix} ${text}` : text;
+                            input.dispatchEvent(new Event('input'));
+                            input.focus();
+                        } else {
+                            showError('Aucune parole détectée');
+                        }
+                    } catch (e) {
+                        console.error('Voice transcription failed:', e);
+                        showError('Transcription impossible');
+                    } finally {
+                        speechBusy = false;
+                    }
+                };
+                speechRecorder.start();
+                setVoiceButtonState(true);
+            } catch (e) {
+                console.error('Voice recording failed:', e);
+                cleanupVoiceStream();
+                showError('Micro indisponible');
+            }
+        }
+
+        async function stopVoiceRecording() {
+            if (!speechRecorder || speechRecorder.state !== 'recording') return;
+            speechRecorder.stop();
+        }
+
+        function cleanupVoiceStream() {
+            if (speechStream) {
+                speechStream.getTracks().forEach(track => track.stop());
+                speechStream = null;
+            }
+            speechRecorder = null;
+            speechChunks = [];
+            setVoiceButtonState(false);
+        }
+
+        async function getSpeechRecognizer() {
+            if (speechRecognizer) return speechRecognizer;
+            const root = window.transformers || window;
+            const pipeline = root.pipeline || window.pipeline;
+            if (!pipeline) {
+                throw new Error('Transformers not available');
+            }
+            if (root.env) {
+                root.env.allowLocalModels = true;
+                root.env.allowRemoteModels = true;
+                root.env.useBrowserCache = true;
+            }
+            speechRecognizer = await pipeline('automatic-speech-recognition', SPEECH_MODEL);
+            return speechRecognizer;
+        }
+
+        async function transcribeVoiceBlob(blob) {
+            const recognizer = await getSpeechRecognizer();
+            const result = await recognizer(blob, {
+                return_timestamps: false,
+                chunk_length_s: 30,
+                stride_length_s: 5,
+            });
+            if (typeof result === 'string') return result.trim();
+            return String(result?.text || '').trim();
+        }
 
         async function loadUserProfile() {
             try {
@@ -380,77 +1277,256 @@
                     document.getElementById('user-avatar').textContent = initials;
                     document.getElementById('user-name').textContent = `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
                 }
-            } catch (e) {}
+            } catch (e) { console.error('Profile load error:', e); }
         }
 
         async function loadModels() {
             try {
-                const [ollamaData, modelsData] = await Promise.all([window.bissi.ollama.models(), window.bissi.models.list()]);
+                const [ollamaData, modelsData] = await Promise.all([
+                    window.bissi.ollama.models(),
+                    window.bissi.models.list()
+                ]);
                 const modelsList = document.getElementById('models-list');
                 modelsList.innerHTML = '';
                 if (ollamaData.available && ollamaData.models) {
                     ollamaData.models.forEach(model => {
                         const opt = document.createElement('div');
                         opt.className = 'ms-opt';
-                        opt.innerHTML = `<div class="m-dot" style="background:#888"></div>${model.name}`;
-                        opt.onclick = (e) => { e.stopPropagation(); selectModel(model.name, e); };
+                        const color = getModelColor(model.name);
+                        opt.innerHTML = `<div class="m-dot" style="background:${color}"></div>${model.name}<span class="m-sz">${formatSize(model.size || 0)}</span>`;
+                        opt.onclick = (e) => { e.stopPropagation(); selectModel(model.name, color, e); };
                         modelsList.appendChild(opt);
                     });
                     document.getElementById('ms-name').textContent = modelsData.activeModel || (ollamaData.models[0]?.name) || 'Model';
+                } else {
+                    document.getElementById('ms-name').textContent = modelsData.activeModel || 'Non disponible';
                 }
             } catch (e) {
-                document.getElementById('ms-name').textContent = 'Prêt';
+                console.error('Models load error:', e);
+                document.getElementById('ms-name').textContent = 'Erreur';
             }
         }
+
+        function getModelColor(n) { return n.includes('gemma') ? '#888' : n.includes('llama') ? '#777' : n.includes('phi') ? '#999' : '#666'; }
+        function formatSize(bytes) { const s = ['B','KB','MB','GB']; if (!bytes) return '0 B'; const i = Math.floor(Math.log(bytes) / Math.log(1024)); return (bytes / Math.pow(1024, i)).toFixed(1) + ' ' + s[i]; }
 
         async function loadConversations() {
             try {
                 const res = await fetch(`${API}/conversations`);
                 if (res.ok) displayConversations(await res.json());
-            } catch (e) {}
+            } catch (e) { console.error('Conversations load error:', e); }
         }
 
         function displayConversations(conversations) {
             const todayEl = document.getElementById('conversations-today');
+            const weekEl = document.getElementById('conversations-week');
             todayEl.innerHTML = '';
+            weekEl.innerHTML = '';
+            const now = new Date();
+            const today = now.toDateString();
+            const weekAgo = new Date(now.getTime() - 7 * 86400000);
             conversations.forEach(conv => {
+                const d = new Date(conv.created_at || conv.updated_at);
                 const el = document.createElement('div');
                 el.className = 'ci' + (conv.id === currentConversationId ? ' on' : '');
-                const title = conv.title || (conv.first_message ? conv.first_message.slice(0, 35) : 'Nouveau chat');
-                el.innerHTML = `<div class="ci-dot"></div><span class="ci-t">${title}</span>`;
+                const time = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+                const title = conv.title || (conv.first_message ? conv.first_message.slice(0, 35) : 'Nouvelle conversation');
+                el.innerHTML = `
+                    <div class="ci-dot"></div>
+                    <span class="ci-t"></span>
+                    <span class="ci-ts">${time}</span>
+                    <div class="ci-actions">
+                        <button class="ci-menu-btn" type="button" aria-label="Actions" title="Actions">⋯</button>
+                    </div>
+                    <div class="ci-menu hidden" role="menu">
+                        <button class="ci-menu-item" type="button" data-action="rename">Renommer</button>
+                        <button class="ci-menu-item" type="button" data-action="archive">Archiver</button>
+                        <button class="ci-menu-item danger" type="button" data-action="delete">Supprimer</button>
+                    </div>
+                `;
+                el.querySelector('.ci-t').textContent = title;
                 el.onclick = () => loadConversation(conv.id);
-                todayEl.appendChild(el);
+                const menuBtn = el.querySelector('.ci-menu-btn');
+                const menu = el.querySelector('.ci-menu');
+                menuBtn.onclick = e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggleConversationMenu(conv.id, el);
+                };
+                menu.querySelectorAll('.ci-menu-item').forEach(btn => {
+                    btn.onclick = async e => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const action = btn.dataset.action;
+                        closeConversationMenus();
+                        if (action === 'rename') await renameConversation(conv.id, title);
+                        if (action === 'archive') await archiveConversation(conv.id);
+                        if (action === 'delete') await deleteConversation(conv.id);
+                    };
+                });
+                if (d.toDateString() === today) todayEl.appendChild(el);
+                else if (d >= weekAgo) weekEl.appendChild(el);
             });
         }
 
         async function loadConversation(id) {
-            currentConversationId = id;
             try {
+                currentConversationId = id;
+                shouldAutoRenameConversation = false;
+                pendingAutoTitleSource = '';
                 const res = await fetch(`${API}/conversations/${id}/history`);
                 if (res.ok) {
                     const messages = await res.json();
                     renderHistory(messages);
                     showChat();
                 }
-            } catch (e) {}
+            } catch (e) {
+                console.error('History load error:', e);
+                showError('Erreur lors du chargement');
+            }
+        }
+
+        function toggleConversationMenu(id, itemEl) {
+            const willOpen = openConversationMenuId !== id;
+            closeConversationMenus();
+            if (!willOpen) return;
+            const menu = itemEl.querySelector('.ci-menu');
+            if (menu) {
+                menu.classList.remove('hidden');
+                itemEl.classList.add('ci-menu-open');
+                openConversationMenuId = id;
+            }
+        }
+
+        function closeConversationMenus() {
+            document.querySelectorAll('.ci-menu').forEach(menu => menu.classList.add('hidden'));
+            document.querySelectorAll('.ci-menu-open').forEach(item => item.classList.remove('ci-menu-open'));
+            openConversationMenuId = null;
+        }
+
+        async function renameConversation(id, currentTitle) {
+            const fallback = String(currentTitle || '').trim() || 'Conversation';
+            const nextTitle = window.prompt('Nouveau titre de conversation', fallback);
+            if (nextTitle === null) return;
+            const title = nextTitle.trim();
+            if (!title) return;
+            try {
+                const res = await fetch(`${API}/conversations/${id}/title`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title })
+                });
+                if (!res.ok) {
+                    const data = await res.json().catch(() => ({}));
+                    throw new Error(data.detail || `HTTP ${res.status}`);
+                }
+                await loadConversations();
+            } catch (e) {
+                console.error('Rename conversation failed:', e);
+                showError('Renommage impossible');
+            }
+        }
+
+        async function archiveConversation(id) {
+            try {
+                const res = await fetch(`${API}/conversations/${id}/archive`, { method: 'PATCH' });
+                if (!res.ok) {
+                    const data = await res.json().catch(() => ({}));
+                    throw new Error(data.detail || `HTTP ${res.status}`);
+                }
+                if (currentConversationId === id) {
+                    newChat();
+                }
+                await loadConversations();
+            } catch (e) {
+                console.error('Archive conversation failed:', e);
+                showError('Archivage impossible');
+            }
+        }
+
+        async function deleteConversation(id) {
+            const ok = await showConfirmDialog({
+                title: 'Supprimer la conversation ?',
+                message: 'Cette action supprimera définitivement la conversation et tous ses messages.',
+                confirmLabel: 'Supprimer',
+                danger: true
+            });
+            if (!ok) return;
+            try {
+                const res = await fetch(`${API}/conversations/${id}`, { method: 'DELETE' });
+                if (!res.ok) {
+                    const data = await res.json().catch(() => ({}));
+                    throw new Error(data.error || data.detail || `HTTP ${res.status}`);
+                }
+                if (currentConversationId === id) {
+                    newChat();
+                }
+                await loadConversations();
+            } catch (e) {
+                console.error('Delete conversation failed:', e);
+                showError('Suppression impossible');
+            }
         }
 
         function renderHistory(messages) {
             const container = document.getElementById('messages-container');
             container.innerHTML = '';
+            let lastUserMessage = '';
             for (const msg of messages) {
-                if (msg.role === 'user') appendUserMsg(msg.content);
-                else if (msg.role === 'assistant') appendAssistantMsg(msg.content);
+                if (msg.role === 'user') {
+                    lastUserMessage = msg.content || '';
+                    appendUserMsg(msg.content);
+                }
+                else if (msg.role === 'assistant') appendAssistantMsg(msg.content, lastUserMessage);
+                else if (msg.role === 'tool' && msg.content) {
+                    const match = msg.content.match(/^\[(\w+)\]\s*(.*)/s);
+                    if (match) {
+                        const [, toolName, rawResult] = match;
+                        try {
+                            const r = JSON.parse(rawResult);
+                            const fp = extractFilePath(r);
+                            if (fp) appendToolTrace(toolName, fp.split(/[\\/]/).pop(), true);
+                        } catch (_) { appendToolTrace(toolName, 'file', true); }
+                    }
+                }
             }
+        }
+
+        async function checkBackendAvailability() {
+            try {
+                const res = await fetch(`${API}/health`);
+                if (!res.ok) throw new Error();
+            } catch { showError('Backend non disponible — Lancez main.py'); }
         }
 
         function toggleTheme() { light = !light; document.body.classList.toggle('light', light); document.getElementById('th-btn').textContent = light ? '☀' : '☽'; }
         function toggleSidebar() { document.querySelector('.sb').classList.toggle('collapsed'); }
         function toggleThink() { think = !think; document.getElementById('tgl').classList.toggle('off', !think); }
-        function toggleDD() { ddOpen = !ddOpen; document.getElementById('ms-dd').classList.toggle('hidden', !ddOpen); }
-        function selectModel(name, e) { document.getElementById('ms-name').textContent = name; toggleDD(); }
+        function toggleDD() { ddOpen = !ddOpen; document.getElementById('ms-dd').classList.toggle('hidden', !ddOpen); document.getElementById('ms-arr').classList.toggle('open', ddOpen); }
+        function selectModel(name, color, e) { e.stopPropagation(); document.getElementById('ms-name').textContent = name; document.getElementById('ms-dot').style.background = color; document.querySelectorAll('.ms-opt').forEach(o => o.classList.remove('on')); e.currentTarget.classList.add('on'); toggleDD(); }
+        document.addEventListener('click', e => {
+            if (ddOpen && !document.getElementById('ms').contains(e.target)) {
+                ddOpen = false;
+                document.getElementById('ms-dd').classList.add('hidden');
+                document.getElementById('ms-arr').classList.remove('open');
+            }
+            if (openConversationMenuId !== null) {
+                const openMenu = document.querySelector('.ci-menu-open');
+                if (openMenu && !openMenu.contains(e.target)) {
+                    closeConversationMenus();
+                }
+            }
+        });
 
-        function newChat() { currentConversationId = null; document.getElementById('messages-container').innerHTML = ''; showEmpty(); closeCanvas(); }
+        function newChat() {
+            currentConversationId = null;
+            shouldAutoRenameConversation = false;
+            pendingAutoTitleSource = '';
+            document.getElementById('messages-container').innerHTML = '';
+            showEmpty();
+            closeCanvas();
+        }
+
         function showEmpty() { document.getElementById('empty').classList.remove('hidden'); document.getElementById('chat').classList.add('hidden'); }
         function showChat() { document.getElementById('empty').classList.add('hidden'); document.getElementById('chat').classList.remove('hidden'); }
         function sendQuickMessage(m) { document.getElementById('message-input').value = m; sendMessage(); }
@@ -460,70 +1536,624 @@
             const input = document.getElementById('message-input');
             const message = input.value.trim();
             if (!message || isStreaming) return;
+
+            shouldAutoRenameConversation = currentConversationId === null;
+            pendingAutoTitleSource = shouldAutoRenameConversation ? message : '';
+
             appendUserMsg(message);
             input.value = '';
             input.style.height = 'auto';
             showChat();
+
             isStreaming = true;
+            disableInput(true);
+
             let assistantMsgEl = null;
+            let thinkingBlockEl = null;
             let accumulatedText = '';
+            let pendingToolId = null;
+
             try {
                 const payload = { message, conversation_id: currentConversationId };
-                const res = await fetch(`${API}/chat`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                if (userProfile) {
+                    payload.user_name = `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim();
+                    payload.user_first_name = userProfile.first_name || '';
+                }
+                const res = await fetch(`${API}/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!res.ok) {
+                    const errText = await res.text().catch(() => '');
+                    throw new Error(`HTTP ${res.status}: ${errText.slice(0, 200)}`);
+                }
+                if (!res.body) throw new Error('Response body is null');
+
                 const reader = res.body.getReader();
                 const decoder = new TextDecoder();
                 let buffer = '';
+
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
+
                     buffer += decoder.decode(value, { stream: true });
                     const lines = buffer.split('\n');
                     buffer = lines.pop();
+
                     for (const line of lines) {
-                        if (!line.trim().startsWith('data:')) continue;
-                        try {
-                            const data = JSON.parse(line.trim().slice(5));
-                            if (data.type === 'chunk' && data.content) {
-                                accumulatedText += data.content;
-                                if (!assistantMsgEl) assistantMsgEl = createAssistantMsgEl('');
-                                assistantMsgEl.querySelector('.md').innerHTML = renderAssistantText(accumulatedText);
-                                assistantMsgEl.scrollIntoView();
-                            } else if (data.type === 'done') {
-                                currentConversationId = data.conversation_id || currentConversationId;
-                                loadConversations();
+                        const trimmed = line.trim();
+                        if (!trimmed || !trimmed.startsWith('data:')) continue;
+                        let data;
+                        try { data = JSON.parse(trimmed.slice(5)); } catch { continue; }
+
+                        switch (data.type) {
+                            case 'thinking':
+                                if (think && !thinkingBlockEl) {
+                                    thinkingBlockEl = addThinkingBlock(data.content || '');
+                                } else if (thinkingBlockEl && data.content) {
+                                    const body = thinkingBlockEl.querySelector('.think-body');
+                                    if (body) body.textContent = data.content;
+                                }
+                                break;
+
+                            case 'tool_start': {
+                                const name = data.name || 'tool';
+                                const args = data.args || {};
+                                const fp = args.file_path || args.path || args.source || '';
+                                const shortName = fp ? fp.split(/[\\/]/).pop() : name;
+                                pendingToolId = appendToolTrace(name, shortName, false);
+                                break;
                             }
-                        } catch (e) {}
+
+                            case 'tool_done': {
+                                const name = data.name || 'tool';
+                                let resultObj = {};
+                                try { resultObj = typeof data.result === 'string' ? JSON.parse(data.result) : (data.result || {}); } catch { /* */ }
+                                const fp = extractFilePath(resultObj);
+                                const shortName = fp ? fp.split(/[\\/]/).pop() : name;
+                                if (pendingToolId) {
+                                    updateToolTrace(pendingToolId, name, shortName, true);
+                                    pendingToolId = null;
+                                } else {
+                                    appendToolTrace(name, shortName, true);
+                                }
+                                if (fp && FILE_EXTS.some(ext => fp.toLowerCase().endsWith(ext))) {
+                                    openCanvasForFile(fp, shortName);
+                                }
+                                break;
+                            }
+
+                            case 'chunk':
+                                if (data.content) {
+                                    accumulatedText += data.content;
+                                    if (!assistantMsgEl) {
+                                        assistantMsgEl = createAssistantMsgEl('', '', message);
+                                    }
+                                    assistantMsgEl.querySelector('.md').innerHTML = renderAssistantText(accumulatedText);
+                                    enhanceRenderedMessage(assistantMsgEl);
+                                    assistantMsgEl.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                                }
+                                break;
+
+                            case 'done':
+                                currentConversationId = data.conversation_id || currentConversationId;
+                                if (shouldAutoRenameConversation && currentConversationId) {
+                                    await autoRenameConversation(currentConversationId, pendingAutoTitleSource);
+                                    shouldAutoRenameConversation = false;
+                                    pendingAutoTitleSource = '';
+                                }
+                                if (!assistantMsgEl && accumulatedText) {
+                                    assistantMsgEl = createAssistantMsgEl(renderAssistantText(accumulatedText), accumulatedText, message);
+                                } else if (assistantMsgEl && accumulatedText) {
+                                    assistantMsgEl.querySelector('.md').innerHTML = renderAssistantText(accumulatedText);
+                                    enhanceRenderedMessage(assistantMsgEl);
+                                }
+                                if (thinkingBlockEl) {
+                                    thinkingBlockEl.remove();
+                                    thinkingBlockEl = null;
+                                }
+                                loadConversations();
+                                break;
+
+                            case 'error':
+                                showError(data.message || 'Une erreur est survenue');
+                                if (thinkingBlockEl) thinkingBlockEl.remove();
+                                disableInput(false);
+                                break;
+                        }
                     }
                 }
             } catch (e) {
-                console.error(e);
-            } finally { isStreaming = false; }
+                console.error('Send message error:', e);
+                showError(`Erreur: ${e.message || 'Connexion au backend échouée.'}`);
+                if (thinkingBlockEl) thinkingBlockEl.remove();
+            } finally {
+                isStreaming = false;
+                disableInput(false);
+            }
+        }
+
+        function disableInput(disabled) {
+            const input = document.getElementById('message-input');
+            const btn = document.querySelector('.send-btn');
+            btn.disabled = disabled;
+            btn.style.opacity = disabled ? '0.4' : '1';
+            btn.style.pointerEvents = disabled ? 'none' : 'auto';
+            if (!disabled) input.focus();
         }
 
         function appendUserMsg(text) {
             const container = document.getElementById('messages-container');
             const wrap = document.createElement('div');
             wrap.className = 'msg-u-wrap';
-            wrap.innerHTML = `<div class="msg-u">${text}</div>`;
+            wrap.dataset.messageText = text || '';
+            wrap.innerHTML = `
+                <div class="msg-u"><div class="msg-text"></div></div>
+                <div class="msg-actions">
+                    <button class="msg-action-btn" type="button" title="Copier" aria-label="Copier">
+                        ${copyIconSvg()}
+                    </button>
+                    <button class="msg-action-btn" type="button" title="Régénérer" aria-label="Régénérer">
+                        ${regenIconSvg()}
+                    </button>
+                </div>
+            `;
+            wrap.querySelector('.msg-text').textContent = text || '';
+            attachMessageActions(wrap, text || '', text || '', 'user');
             container.appendChild(wrap);
             container.scrollTop = container.scrollHeight;
         }
 
-        function createAssistantMsgEl(html) {
+        function createAssistantMsgEl(html, rawText = '', regeneratePrompt = '') {
             const container = document.getElementById('messages-container');
             const div = document.createElement('div');
             div.className = 'msg-a';
-            div.innerHTML = `<div class="md">${html}</div>`;
+            div.dataset.messageText = rawText || '';
+            div.dataset.regeneratePrompt = regeneratePrompt || '';
+            div.innerHTML = `
+                <div class="md">${html}</div>
+                <div class="msg-actions">
+                    <button class="msg-action-btn" type="button" title="Copier" aria-label="Copier">
+                        ${copyIconSvg()}
+                    </button>
+                    <button class="msg-action-btn" type="button" title="Régénérer" aria-label="Régénérer">
+                        ${regenIconSvg()}
+                    </button>
+                </div>
+            `;
+            attachMessageActions(div, rawText || '', regeneratePrompt || '', 'assistant');
             container.appendChild(div);
+            enhanceRenderedMessage(div);
+            container.scrollTop = container.scrollHeight;
             return div;
         }
 
-        function appendAssistantMsg(text) { createAssistantMsgEl(renderAssistantText(text)); }
+        function appendAssistantMsg(text, regeneratePrompt = '') {
+            createAssistantMsgEl(renderAssistantText(text), text || '', regeneratePrompt || '');
+        }
+
+        function getMarkdownRenderer() {
+            if (!window.markdownit) return null;
+            if (window.__bissiMarkdownIt) return window.__bissiMarkdownIt;
+
+            window.__bissiMarkdownIt = window.markdownit({
+                html: false,
+                linkify: true,
+                breaks: true,
+                typographer: true,
+                highlight(str, lang) {
+                    if (!window.hljs) {
+                        return `<pre class="hljs"><code>${escapeHtml(str)}</code></pre>`;
+                    }
+
+                    try {
+                        if (lang && window.hljs.getLanguage(lang)) {
+                            const out = window.hljs.highlight(str, { language: lang, ignoreIllegals: true });
+                            return `<pre class="hljs"><code class="hljs language-${escapeHtml(lang)}">${out.value}</code></pre>`;
+                        }
+                    } catch (e) {
+                        console.error('Highlight error:', e);
+                    }
+
+                    const out = window.hljs.highlightAuto(str);
+                    return `<pre class="hljs"><code class="hljs">${out.value}</code></pre>`;
+                }
+            });
+
+            return window.__bissiMarkdownIt;
+        }
+
+        function enhanceRenderedMessage(messageEl) {
+            const codeBlocks = messageEl.querySelectorAll('pre code');
+            if (window.hljs) {
+                codeBlocks.forEach(code => {
+                    if (!code.classList.contains('hljs')) {
+                        try {
+                            window.hljs.highlightElement(code);
+                        } catch (e) {
+                            console.error('hljs failed:', e);
+                        }
+                    }
+                });
+            }
+
+            if (window.renderMathInElement) {
+                try {
+                    window.renderMathInElement(messageEl, {
+                        delimiters: [
+                            { left: '$$', right: '$$', display: true },
+                            { left: '$', right: '$', display: false },
+                            { left: '\\[', right: '\\]', display: true },
+                            { left: '\\(', right: '\\)', display: false }
+                        ],
+                        throwOnError: false,
+                        ignoredTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+                    });
+                } catch (e) {
+                    console.error('KaTeX render failed:', e);
+                }
+            }
+        }
+
+        function copyIconSvg() {
+            return `
+                <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path d="M5.5 5.5V3.8a1.3 1.3 0 0 1 1.3-1.3h5.4a1.3 1.3 0 0 1 1.3 1.3v5.4a1.3 1.3 0 0 1-1.3 1.3H10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <rect x="2.5" y="5.5" width="7.5" height="7.5" rx="1.4" stroke="currentColor" stroke-width="1.2"/>
+                </svg>
+            `;
+        }
+
+        function regenIconSvg() {
+            return `
+                <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path d="M13 8a5 5 0 1 1-1.47-3.53" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M12.6 2.6v2.6H10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            `;
+        }
+
+        function attachMessageActions(messageEl, rawText, regeneratePrompt, role) {
+            const [copyBtn, regenBtn] = messageEl.querySelectorAll('.msg-action-btn');
+            if (copyBtn) {
+                copyBtn.onclick = async () => {
+                    await copyTextToClipboard(stripThinkBlocks(rawText));
+                };
+            }
+            if (regenBtn) {
+                regenBtn.onclick = () => regenerateFromMessage(role, regeneratePrompt || rawText || '');
+            }
+        }
+
+        async function copyTextToClipboard(text) {
+            const value = String(text || '').trim();
+            if (!value) return;
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(value);
+                } else {
+                    const ta = document.createElement('textarea');
+                    ta.value = value;
+                    ta.setAttribute('readonly', 'true');
+                    ta.style.position = 'fixed';
+                    ta.style.left = '-9999px';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    document.execCommand('copy');
+                    ta.remove();
+                }
+            } catch (e) {
+                console.error('Copy failed:', e);
+                showError('Copie impossible');
+            }
+        }
+
+        function regenerateFromMessage(role, prompt) {
+            const text = String(prompt || '').trim();
+            if (!text || isStreaming) return;
+            if (role === 'user') {
+                document.getElementById('message-input').value = text;
+                sendMessage();
+                return;
+            }
+
+            document.getElementById('message-input').value = text;
+            sendMessage();
+        }
+
+        async function autoRenameConversation(conversationId, sourceText) {
+            const title = buildConversationTitle(sourceText);
+            if (!title || title === 'Nouvelle conversation') return;
+
+            try {
+                const res = await fetch(`${API}/conversations/${conversationId}/title`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title })
+                });
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}`);
+                }
+                await loadConversations();
+            } catch (e) {
+                console.error('Auto-rename failed:', e);
+            }
+        }
+
+        function buildConversationTitle(text) {
+            const source = String(text || '').replace(/\s+/g, ' ').trim();
+            if (!source) return 'Nouvelle conversation';
+
+            let candidate = '';
+            if (window.nlp) {
+                try {
+                    const doc = window.nlp(source);
+                    const nounText = doc.nouns().out('text').trim();
+                    const propText = doc.match('#ProperNoun+').out('text').trim();
+                    candidate = nounText || propText || doc.sentences().first().out('text').trim();
+                } catch (e) {
+                    console.error('Compromise title error:', e);
+                }
+            }
+
+            if (!candidate) {
+                candidate = source.split(/[.!?]/)[0] || source;
+            }
+
+            candidate = candidate
+                .replace(/\b(please|merci|svp|stp|s'il vous plaît|could you|can you|peux-tu|pourrais-tu)\b/gi, '')
+                .replace(/\s+/g, ' ')
+                .trim();
+
+            const words = candidate.split(/\s+/).filter(Boolean).slice(0, 6);
+            const title = words.join(' ').trim();
+            if (!title) return 'Nouvelle conversation';
+            return title.charAt(0).toUpperCase() + title.slice(1);
+        }
+
+        function escapeHtml(text) {
+            return String(text)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function stripThinkBlocks(text) {
+            return String(text || '').replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+        }
+
+        function fallbackMarkdown(text) {
+            const src = stripThinkBlocks(text);
+            const lines = src.split(/\r?\n/);
+            const out = [];
+            let inCode = false;
+            let codeLang = '';
+            let codeBuf = [];
+            let listTag = '';
+
+            const flushCode = () => {
+                if (!codeBuf.length) return;
+                const code = escapeHtml(codeBuf.join('\n'));
+                out.push(`<pre><code${codeLang ? ` data-lang="${escapeHtml(codeLang)}"` : ''}>${code}</code></pre>`);
+                codeBuf = [];
+                codeLang = '';
+            };
+
+            const closeList = () => {
+                if (listTag) out.push(`</${listTag}>`);
+                listTag = '';
+            };
+
+            for (const rawLine of lines) {
+                const line = rawLine.replace(/\s+$/, '');
+                const fence = line.match(/^```(\w+)?\s*$/);
+                if (fence) {
+                    if (inCode) {
+                        inCode = false;
+                        flushCode();
+                    } else {
+                        closeList();
+                        inCode = true;
+                        codeLang = fence[1] || '';
+                    }
+                    continue;
+                }
+
+                if (inCode) {
+                    codeBuf.push(line);
+                    continue;
+                }
+
+                if (!line.trim()) {
+                    closeList();
+                    continue;
+                }
+
+                const heading = line.match(/^(#{1,6})\s+(.*)$/);
+                if (heading) {
+                    closeList();
+                    const level = heading[1].length;
+                    out.push(`<h${level}>${escapeHtml(heading[2])}</h${level}>`);
+                    continue;
+                }
+
+                const quote = line.match(/^>\s?(.*)$/);
+                if (quote) {
+                    closeList();
+                    out.push(`<blockquote>${escapeHtml(quote[1])}</blockquote>`);
+                    continue;
+                }
+
+                const ul = line.match(/^[-*+]\s+(.*)$/);
+                const ol = line.match(/^\d+\.\s+(.*)$/);
+                if (ul || ol) {
+                    const nextTag = ol ? 'ol' : 'ul';
+                    if (listTag !== nextTag) {
+                        closeList();
+                        listTag = nextTag;
+                        out.push(`<${listTag}>`);
+                    }
+                    out.push(`<li>${escapeHtml((ul || ol)[1])}</li>`);
+                    continue;
+                }
+
+                closeList();
+                out.push(`<p>${escapeHtml(line)}</p>`);
+            }
+
+            if (inCode) flushCode();
+            closeList();
+
+            return out.join('\n')
+                .replace(/`([^`]+)`/g, '<code>$1</code>')
+                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.+?)\*/g, '<em>$1</em>')
+                .replace(/\[(.+?)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
+                .replace(/\n{3,}/g, '\n\n')
+                .replace(/\n/g, '<br>');
+        }
 
         function renderAssistantText(text) {
-            const source = String(text || '').replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
-            if (window.markdownit) return window.markdownit().render(source);
-            return source.replace(/\n/g, '<br>');
+            const source = stripThinkBlocks(text);
+            if (!source) return '';
+
+            const md = getMarkdownRenderer();
+            if (md) {
+                return md.render(source);
+            }
+
+            return fallbackMarkdown(source);
+        }
+
+        function addThinkingBlock(content) {
+            const container = document.getElementById('messages-container');
+            const div = document.createElement('div');
+            div.className = 'msg-a';
+            div.style.cssText = 'opacity:0.55;font-size:14px;max-width:90%;';
+            div.innerHTML = `
+                <div style="display:flex;align-items:center;gap:6px;cursor:pointer;color:var(--muted);font-size:13px;margin-bottom:4px;" onclick="this.parentElement.querySelector('.think-body').classList.toggle('hidden');this.querySelector('.think-arrow').textContent=this.querySelector('.think-body').classList.contains('hidden')?'▶':'▼';">
+                    <span class="think-arrow">▼</span>
+                    <span style="font-family:'Syne',sans-serif;font-weight:600;color:var(--acc);">Thinking</span>
+                </div>
+                <div class="think-body" style="color:var(--muted);line-height:1.5;font-style:italic;">${content || ''}</div>
+            `;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+            return div;
+        }
+
+        function appendToolTrace(name, filename, done) {
+            const container = document.getElementById('messages-container');
+            const div = document.createElement('div');
+            const id = 'tool-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
+            div.className = 'tool-t';
+            div.id = id;
+            div.innerHTML = `<span>⟳</span><span class="t-verb">${name}</span><span>${filename}</span><span class="t-ok">${done ? '✓' : '...'}</span>`;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+            return id;
+        }
+
+        function updateToolTrace(id, name, filename, done) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.innerHTML = `<span>⟳</span><span class="t-verb">${name}</span><span>${filename}</span><span class="t-ok">✓</span>`;
+                el.style.opacity = '0.6';
+            }
+        }
+
+        function extractFilePath(resultObj) {
+            if (!resultObj || typeof resultObj !== 'object') return null;
+            return resultObj.path || resultObj.file_path || resultObj.output?.path || resultObj.output?.file_path || null;
+        }
+
+        async function openCanvasForFile(filePath, displayName) {
+            document.getElementById('canvas-filename').textContent = displayName;
+            const ext = filePath.toLowerCase().split('.').pop();
+            const tab = ext === 'xlsx' || ext === 'xls' ? 'tbl' : ext === 'py' ? 'code' : 'doc';
+            openCanvas(tab);
+
+            document.getElementById('doc-type').textContent = ext.toUpperCase();
+            document.getElementById('doc-name').textContent = displayName;
+
+            try {
+                if (ext === 'docx') await renderDocx(filePath);
+                else if (ext === 'xlsx' || ext === 'xls') await renderXlsx(filePath);
+                else if (ext === 'pdf') await renderPdf(filePath);
+                else if (ext === 'py') await renderPyFile(filePath);
+            } catch (e) {
+                console.error('Canvas render error:', e);
+                document.getElementById('doc-content').innerHTML = `<div class="dv-p">Erreur: ${e.message}</div>`;
+            }
+        }
+
+        async function renderDocx(filePath) {
+            const result = await window.bissi.file.readBuffer(filePath);
+            if (result.error) throw new Error(result.error);
+            const uint8 = new Uint8Array(result.data);
+            const htmlResult = await mammoth.convertToHtml({ arrayBuffer: uint8.buffer });
+            document.getElementById('doc-content').innerHTML = htmlResult.value || '<div class="dv-p">Document vide</div>';
+            document.getElementById('doc-info').textContent = 'DOCX';
+            ['td','tt','tc'].forEach((id, i) => document.getElementById(id).classList.toggle('hidden', i !== 0));
+        }
+
+        async function renderXlsx(filePath) {
+            const result = await window.bissi.file.readBuffer(filePath);
+            if (result.error) throw new Error(result.error);
+            const uint8 = new Uint8Array(result.data);
+            const wb = XLSX.read(uint8, { type: 'array' });
+            const ws = wb.Sheets[wb.SheetNames[0]];
+            const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+
+            const table = document.getElementById('data-table');
+            table.innerHTML = '';
+            if (rows.length > 0) {
+                const thead = document.createElement('thead');
+                const headerRow = document.createElement('tr');
+                rows[0].forEach(cell => { const th = document.createElement('th'); th.textContent = cell != null ? String(cell) : ''; headerRow.appendChild(th); });
+                thead.appendChild(headerRow);
+                table.appendChild(thead);
+                const tbody = document.createElement('tbody');
+                rows.slice(1, 51).forEach(row => {
+                    const tr = document.createElement('tr');
+                    row.forEach(cell => { const td = document.createElement('td'); td.textContent = cell != null ? String(cell) : ''; tr.appendChild(td); });
+                    tbody.appendChild(tr);
+                });
+                table.appendChild(tbody);
+            }
+            document.getElementById('doc-info').textContent = `${rows.length - 1} lignes`;
+            ['td','tt','tc'].forEach((id, i) => document.getElementById(id).classList.toggle('hidden', i !== 1));
+        }
+
+        async function renderPdf(filePath) {
+            const result = await window.bissi.file.readBuffer(filePath);
+            if (result.error) throw new Error(result.error);
+            const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(result.data) }).promise;
+            let html = '';
+            const maxPages = Math.min(pdf.numPages, 5);
+            for (let i = 1; i <= maxPages; i++) {
+                const page = await pdf.getPage(i);
+                const content = await page.getTextContent();
+                const text = content.items.map(item => item.str).join(' ');
+                if (i > 1) html += '<div class="dv-div"></div>';
+                html += `<div class="dv-h2">Page ${i}</div><div class="dv-p">${text.slice(0, 800)}</div>`;
+            }
+            if (pdf.numPages > 5) html += `<div class="dv-p" style="color:var(--acc)">... ${pdf.numPages - 5} pages supp.</div>`;
+            document.getElementById('doc-content').innerHTML = html || '<div class="dv-p">PDF vide</div>';
+            document.getElementById('doc-info').textContent = `${pdf.numPages} pages`;
+            ['td','tt','tc'].forEach((id, i) => document.getElementById(id).classList.toggle('hidden', i !== 0));
+        }
+
+        async function renderPyFile(filePath) {
+            const content = await window.bissi.file.read(filePath);
+            if (content.error) throw new Error(content.error);
+            const escaped = content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            document.getElementById('code-content').innerHTML = `<pre style="margin:0;white-space:pre-wrap;">${escaped}</pre>`;
+            ['td','tt','tc'].forEach((id, i) => document.getElementById(id).classList.toggle('hidden', i !== 2));
         }
 
         function openCanvas(tab) { document.getElementById('canvas').classList.add('open'); }
@@ -534,6 +2164,12 @@
             document.querySelectorAll('.cv-tab')[idx].classList.add('on');
             ['td', 'tt', 'tc'].forEach((id, i) => document.getElementById(id).classList.toggle('hidden', i !== idx));
         }
+
+        const textarea = document.getElementById('message-input');
+        textarea.addEventListener('input', function () {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+        });
     </script>
 </body>
 </html>

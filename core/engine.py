@@ -114,12 +114,13 @@ class BissiEngine:
                     tool_call_index: Dict[int, int] = {}
 
                     try:
-                        with self._client.stream(
-                            "POST",
-                            "/v1/chat/completions",
-                            json=payload,
-                            headers={"Accept": "text/event-stream"},
-                        ) as response:
+                        with self._lock:
+                            with self._client.stream(
+                                "POST",
+                                "/v1/chat/completions",
+                                json=payload,
+                                headers={"Accept": "text/event-stream"},
+                            ) as response:
                                 response.raise_for_status()
                                 for line in response.iter_lines():
                                     if not line:

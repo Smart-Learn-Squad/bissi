@@ -11,10 +11,13 @@ import threading
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
+import pandas as pd
+
 from core.config import DEFAULT_CONFIG
 from core.context import ContextManager
 from core.engine import BissiEngine, BissiEngineError
 from core.memory.conversation_store import ConversationStore
+from core.memory.vector_store import VectorStore
 from core.types import ToolResult
 from functions.code import python_runner
 from functions.filesystem import explorer, writer
@@ -42,13 +45,13 @@ Tu dois prioriser des actions concrètes via tools, avec réponses claires et fi
         model: Optional[str] = None,
         system_prompt: Optional[str] = None,
         conversation_store: Optional[ConversationStore] = None,
-        vector_store: Optional[Any] = None,
+        vector_store: Optional[VectorStore] = None,
     ) -> None:
         """Initialize all local dependencies for the agent loop."""
         self.model = model or DEFAULT_CONFIG.llama_cpp.model
         self.system_prompt = system_prompt or self.DEFAULT_SYSTEM_PROMPT
         self.conversation_store = conversation_store or ConversationStore(DEFAULT_CONFIG.paths.conversations_db_path)
-        self.vector_store = vector_store  # lazy — ne pas initialiser ChromaDB si non fourni
+        self.vector_store = vector_store or VectorStore()
         self.engine = BissiEngine(
             model=self.model,
             host=DEFAULT_CONFIG.llama_cpp.host,
@@ -551,7 +554,6 @@ Tu dois prioriser des actions concrètes via tools, avec réponses claires et fi
     def _tool_write_excel(self, file_path: str, data: List[Dict[str, Any]], sheet_name: str = "Sheet1") -> ToolResult:
         """Write rows to an Excel workbook."""
         try:
-            import pandas as pd
             target = Path(file_path).expanduser()
             ok = self.safe_operator.write_new(target, lambda path: excel.write_excel(str(path), pd.DataFrame(data), sheet_name=sheet_name), description="create excel file")
             return self._file_result(target, f"Excel file saved to {target}") if ok else self._cancelled_result("create excel file", target)

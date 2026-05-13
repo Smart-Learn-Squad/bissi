@@ -150,20 +150,40 @@ def search_files(directory: Union[str, Path],
         return ToolResult.fail(f'Directory not found: {directory}', path=str(path))
 
     matches = []
-    glob_fn = path.rglob if recursive else path.glob
+    seen_paths = set()
 
-    for item in glob_fn(pattern):
+    for item in path.glob(pattern):
         if not include_hidden and any(part.startswith('.') for part in item.parts):
             continue
         if item.is_file():
-            stat = item.stat()
-            matches.append({
-                'name': item.name,
-                'path': str(item.resolve()),
-                'size': stat.st_size,
-                'modified': datetime.fromtimestamp(stat.st_mtime).isoformat(),
-                'directory': str(item.parent)
-            })
+            file_path = str(item.resolve())
+            if file_path not in seen_paths:
+                seen_paths.add(file_path)
+                stat = item.stat()
+                matches.append({
+                    'name': item.name,
+                    'path': file_path,
+                    'size': stat.st_size,
+                    'modified': datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                    'directory': str(item.parent)
+                })
+
+    if recursive:
+        for item in path.rglob(pattern):
+            if not include_hidden and any(part.startswith('.') for part in item.parts):
+                continue
+            if item.is_file():
+                file_path = str(item.resolve())
+                if file_path not in seen_paths:
+                    seen_paths.add(file_path)
+                    stat = item.stat()
+                    matches.append({
+                        'name': item.name,
+                        'path': file_path,
+                        'size': stat.st_size,
+                        'modified': datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                        'directory': str(item.parent)
+                    })
 
     return ToolResult.ok(output={'results': sorted(matches, key=lambda x: x['name'].lower())}, path=str(path))
 
@@ -171,8 +191,7 @@ def search_files(directory: Union[str, Path],
 def search_by_content(directory: Union[str, Path],
                       query: str,
                       extensions: Optional[List[str]] = None,
-                      case_sensitive: bool = False,
-                      max_results: int = 50) -> ToolResult:
+                      case_sensitive: bool = False) -> ToolResult:
     """Search for files containing specific text.
 
     Args:
@@ -207,23 +226,22 @@ def search_by_content(directory: Union[str, Path],
             with open(item, 'r', encoding='utf-8', errors='ignore') as f:
                 content = f.read()
                 search_content = content if case_sensitive else content.lower()
-
+                
                 if search_query in search_content:
+                    # Find line numbers
                     lines = content.split('\n')
                     matching_lines = []
                     for i, line in enumerate(lines, 1):
                         search_line = line if case_sensitive else line.lower()
                         if search_query in search_line:
                             matching_lines.append((i, line.strip()))
-
+                    
                     matches.append({
                         'name': item.name,
                         'path': str(item),
                         'matches': len(matching_lines),
-                        'lines': matching_lines[:5]
+                        'lines': matching_lines[:5]  # First 5 matches
                     })
-                    if len(matches) >= max_results:
-                        break
         except Exception:
             continue
 

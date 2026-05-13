@@ -51,7 +51,9 @@
         overflow: visible;
         position: relative; /* ensure footer can be positioned inside */
       }
-      .sb.collapsed { width: 0; min-width: 0; opacity: 0; border-right: none; pointer-events: none; }
+      .sb.collapsed { width: 0; min-width: 0; opacity: 0; border-right: none; pointer-events: none; box-shadow: none; }
+      /* When collapsed, hide the footer to avoid ghost UI */
+      .sb.collapsed .sb-foot { opacity: 0; pointer-events: none; transform: translateY(6px); }
 
       .sb-top {
         margin: 12px 12px 8px;
@@ -152,7 +154,8 @@
         margin-top: auto; padding: 10px 12px;
         border-top: 1px solid var(--glass-border);
         display: flex; align-items: center; gap: 8px;
-        position: absolute; left: 12px; right: 12px; bottom: 12px;
+        position: absolute; left: 0; right: 0; bottom: 12px;
+        box-sizing: border-box; padding-left: 12px; padding-right: 12px;
         background: var(--surface-soft);
         border-radius: 12px; box-shadow: var(--shadow); z-index: 20;
         backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
@@ -525,11 +528,28 @@
                 const profile = await window.bissi.profile.load();
                 if (profile) {
                     userProfile = profile;
-                    const initials = ((profile.first_name || '?')[0] + (profile.last_name || '?')[0]).toUpperCase();
+                    // Build a robust display name and initials from available profile fields
+                    const candidates = [profile.first_name, profile.last_name, profile.display_name, profile.username, profile.email && profile.email.split('@')[0]]
+                        .filter(Boolean);
+                    const displayName = (profile.display_name || ([profile.first_name, profile.last_name].filter(Boolean).join(' ')) || profile.username || profile.email || 'Utilisateur').trim();
+                    // Compute initials: take first letters of first two candidate parts
+                    let initials = '';
+                    if (profile.first_name || profile.last_name) {
+                        initials = ((profile.first_name && profile.first_name[0]) || '') + ((profile.last_name && profile.last_name[0]) || '');
+                    } else if (profile.display_name) {
+                        const parts = profile.display_name.split(/\s+/).filter(Boolean);
+                        initials = (parts[0] && parts[0][0] || '') + ((parts[1] && parts[1][0]) || '');
+                    } else if (profile.username) {
+                        initials = (profile.username[0] || '') + (profile.username[1] || '');
+                    } else if (profile.email) {
+                        const local = profile.email.split('@')[0];
+                        initials = (local[0] || '') + (local[1] || '');
+                    }
+                    initials = initials.toUpperCase() || '??';
                     document.getElementById('user-avatar').textContent = initials;
-                    document.getElementById('user-name').textContent = `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
+                    document.getElementById('user-name').textContent = displayName;
                 }
-            } catch (e) {}
+            } catch (e) { console.warn('loadUserProfile failed', e); }
         }
 
         async function loadModels() {

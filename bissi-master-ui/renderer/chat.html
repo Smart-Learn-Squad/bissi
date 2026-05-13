@@ -560,12 +560,22 @@
               el.onclick = () => loadConversation(conv.id);
               const menuBtn = el.querySelector('.ci-menu-btn');
               const menu = el.querySelector('.ci-menu');
+              // Prevent clicks on the menu/button from bubbling to the parent .ci (which opens the convo)
+              menuBtn.addEventListener('mousedown', e => { e.stopPropagation(); });
+              menuBtn.addEventListener('touchstart', e => { e.stopPropagation(); });
+              menu.addEventListener('mousedown', e => { e.stopPropagation(); });
+              menu.addEventListener('touchstart', e => { e.stopPropagation(); });
+
               menuBtn.onclick = e => {
                   e.preventDefault();
                   e.stopPropagation();
                   toggleConversationMenu(conv.id, el);
               };
               menu.querySelectorAll('.ci-menu-item').forEach(btn => {
+                  // Also block mousedown/touchstart to avoid parent handlers firing before click
+                  btn.addEventListener('mousedown', e => { e.stopPropagation(); });
+                  btn.addEventListener('touchstart', e => { e.stopPropagation(); });
+
                   btn.onclick = async e => {
                       e.preventDefault();
                       e.stopPropagation();

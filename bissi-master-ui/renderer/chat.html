@@ -567,7 +567,6 @@
                 el.className = 'ci' + (conv.id === currentConversationId ? ' on' : '');
               const title = conv.title || (conv.first_message ? conv.first_message.slice(0, 35) : 'Nouveau chat');
               el.innerHTML = `
-                  <div class="ci-dot"></div>
                   <span class="ci-t"></span>
                   <div class="ci-actions">
                       <button class="ci-menu-btn" type="button" aria-label="Actions" title="Actions">⋯</button>

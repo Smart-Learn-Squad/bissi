@@ -99,7 +99,8 @@
       }
       .ci:hover, .ci.on { background: var(--glass-hover); transform: translateX(1px); }
       .ci.on .ci-t { color: var(--acc); font-weight: 500; }
-      .ci-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--acc-mid); opacity: 0.35; flex-shrink: 0; }
+      /* hide the small status dot behind conversation names */
+      .ci-dot { display: none !important; }
       .ci.on .ci-dot { opacity: 1; background: var(--acc); }
       .ci-t { font-size: 12px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .ci-ts { margin-left: auto; font-size: 9.5px; color: var(--muted); flex-shrink: 0; }
@@ -241,7 +242,6 @@
         font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 600;
         color: var(--text); margin-bottom: 6px;
       }
-      .e-sub { font-size: 15px; color: var(--muted); line-height: 1.6; }
 
       /* ── MESSAGES ── */
       .msgs { flex: 1; overflow-y: auto; display: flex; flex-direction: column; scrollbar-width: thin; scrollbar-color: rgba(124,58,237,0.2) transparent; }
@@ -453,7 +453,6 @@
                   <ellipse cx="416" cy="140" rx="8" ry="6" fill="white" opacity="0.58" transform="rotate(10,416,140)"/>
                 </svg>
                 <div class="e-title">Comment puis-je vous aider ?</div>
-                <div class="e-sub">Agent local · Vos fichiers restent sur votre machine</div>
             </div>
 
             <div class="msgs hidden" id="chat">

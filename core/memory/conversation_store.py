@@ -56,7 +56,15 @@ class ConversationStore:
                     FOREIGN KEY (conversation_id) REFERENCES conversations(id)
                 )
             """)
-            
+            conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_messages_conversation_id
+                ON messages(conversation_id)
+            """)
+            conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_conversations_updated_at
+                ON conversations(updated_at DESC)
+            """)
+
             conn.commit()
     
     def create_conversation(self, title: Optional[str] = None) -> int:

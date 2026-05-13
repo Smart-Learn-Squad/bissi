@@ -21,7 +21,7 @@ sleep 1
 
 # 3. Launch llama.cpp server
 echo "→ Starting llama.cpp server on :8001..."
-nohup python -m llama_cpp.server \
+nohup .venv/bin/python -m llama_cpp.server \
     --model gemma-4-E2B-it-Q4_K_M.gguf \
     --host 127.0.0.1 \
     --port 8001 \
@@ -51,7 +51,7 @@ done
 
 # 4. Launch FastAPI backend
 echo "→ Starting BISSI backend on :8765..."
-nohup uvicorn api.server:app \
+nohup .venv/bin/python -m uvicorn api.server:app \
     --host 127.0.0.1 \
     --port 8765 \
     --log-level info \

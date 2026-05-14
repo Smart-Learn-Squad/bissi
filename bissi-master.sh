@@ -59,15 +59,27 @@ Tu ne fais rien d'illégal, dangereux, ou contraire à l'éthique, même si dema
 EOF
 )
 
-nohup python -m llama_cpp.server \
-  --model "$MODEL_PATH" \
-  --port 8001 \
-  --n_ctx 4096 \
-  --n_threads 4 \
-  --use_mmap False \
-  --temperature 0.5 \
-  --repeat_penalty 1.05 \
-  --top_p 0.92 \
-  --chat_format gemma \
-  --system_prompt "$SYSTEM_PROMPT" \
-  > /tmp/bissi-llama.log 2>&1 &
+if curl -sf --max-time 2 http://127.0.0.1:8001/v1/models > /dev/null 2>&1; then
+  echo "✓ Existing llama.cpp server detected on :8001"
+else
+  if ss -ltn 2>/dev/null | grep -q ':8001 '; then
+    echo "❌ Port 8001 is already in use."
+    echo "  A stale llama.cpp server is blocking startup."
+    echo "  Log: /tmp/bissi-llama.log"
+    tail -5 /tmp/bissi-llama.log 2>/dev/null || true
+    exit 1
+  fi
+
+  nohup python -m llama_cpp.server \
+    --model "$MODEL_PATH" \
+    --port 8001 \
+    --n_ctx 4096 \
+    --n_threads 4 \
+    --use_mmap False \
+    --temperature 0.5 \
+    --repeat_penalty 1.05 \
+    --top_p 0.92 \
+    --chat_format gemma \
+    --system_prompt "$SYSTEM_PROMPT" \
+    > /tmp/bissi-llama.log 2>&1 &
+fi

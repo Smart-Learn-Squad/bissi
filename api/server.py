@@ -5,9 +5,9 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from typing import Any, AsyncGenerator, Dict, Optional
+from typing import Any, AsyncGenerator, Dict, Optional, List
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Form, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
@@ -43,13 +43,13 @@ class ConversationTitleRequest(BaseModel):
     title: str
 
 
-async def _chat_stream(request: ChatRequest) -> AsyncGenerator[str, None]:
+async def _chat_stream(message: str, conversation_id: Optional[int] = None, files: Optional[List] = None) -> AsyncGenerator[str, None]:
     """Run agent in worker thread and stream SSE events."""
     loop = asyncio.get_running_loop()
     queue: asyncio.Queue[Dict[str, Any]] = asyncio.Queue()
 
-    if request.conversation_id is not None:
-        agent.current_conversation_id = request.conversation_id
+    if conversation_id is not None:
+        agent.current_conversation_id = conversation_id
 
     def _send_event(payload: Dict[str, Any]) -> None:
         loop.call_soon_threadsafe(queue.put_nowait, payload)
@@ -67,8 +67,11 @@ async def _chat_stream(request: ChatRequest) -> AsyncGenerator[str, None]:
         _send_event({"type": "thinking", "content": content})
 
     def _run_agent() -> str:
+        # Log attached files if any
+        if files:
+            logger.info(f"Processing {len(files)} attached file(s)")
         return agent.process_request(
-            user_input=request.message,
+            user_input=message,
             max_iterations=DEFAULT_CONFIG.agent.max_iterations,
             on_chunk=on_chunk,
             on_tool_start=on_tool_start,
@@ -110,10 +113,14 @@ async def _chat_stream(request: ChatRequest) -> AsyncGenerator[str, None]:
 
 
 @app.post("/chat")
-async def chat(request: ChatRequest) -> StreamingResponse:
-    """Stream chat events back to Electron as SSE."""
+async def chat(
+    message: str = Form(...),
+    conversation_id: Optional[int] = Form(None),
+    files: List[UploadFile] = File(default=[])
+) -> StreamingResponse:
+    """Stream chat events back to Electron as SSE. Accepts message + optional files."""
     try:
-        generator = _chat_stream(request)
+        generator = _chat_stream(message, conversation_id, files)
         return StreamingResponse(generator, media_type="text/event-stream")
     except Exception as exc:
         logger.exception("chat_endpoint_error")

@@ -45,15 +45,28 @@ taskkill /F /FI "IMAGENAME eq python*" 2>nul
 timeout /T 1 /NOBREAK >nul
 
 REM 3. Launch llama.cpp server
-echo → Starting llama.cpp server on :8001...
-start /B python -m llama_cpp.server ^
-    --model "%MODEL_PATH%" ^
-    --host 127.0.0.1 ^
-    --port 8001 ^
-    --n_ctx 4096 ^
-    --n_threads 4 ^
-    --use_mmap False ^
-    > "%TEMP%\bissi-llama.log" 2>&1
+curl -s http://127.0.0.1:8001/v1/models >nul 2>&1
+if %errorlevel% equ 0 (
+    echo ✓ Existing llama.cpp server detected on :8001
+) else (
+    netstat -ano | find ":8001" >nul 2>&1
+    if not errorlevel 1 (
+        echo ❌ Port 8001 is already in use.
+        echo   A stale llama.cpp server is blocking startup.
+        echo   Log: %TEMP%\bissi-llama.log
+        powershell "Get-Content '%TEMP%\bissi-llama.log' | Select-Object -Last 5" >nul 2>&1
+        exit /b 1
+    )
+    echo → Starting llama.cpp server on :8001...
+    start /B python -m llama_cpp.server ^
+        --model "%MODEL_PATH%" ^
+        --host 127.0.0.1 ^
+        --port 8001 ^
+        --n_ctx 4096 ^
+        --n_threads 4 ^
+        --use_mmap False ^
+        > "%TEMP%\bissi-llama.log" 2>&1
+)
 
 REM Get PID
 for /f "tokens=2" %%i in ('tasklist /FI "IMAGENAME eq python.exe" /FO CSV ^| find "python.exe"') do set "LLAMA_PID=%%i"

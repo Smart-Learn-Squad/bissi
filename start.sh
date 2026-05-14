@@ -20,16 +20,29 @@ pkill -f "uvicorn.*api.server" 2>/dev/null || true
 sleep 1
 
 # 3. Launch llama.cpp server
-echo "→ Starting llama.cpp server on :8001..."
-nohup .venv/bin/python -m llama_cpp.server \
-    --model gemma-4-E2B-it-Q4_K_M.gguf \
-    --host 127.0.0.1 \
-    --port 8001 \
-    --n_ctx 4096 \
-    --n_threads 4 \
-    --use_mmap False \
-    > /tmp/bissi-llama.log 2>&1 &
-LLAMA_PID=$!
+if curl -sf --max-time 2 http://127.0.0.1:8001/v1/models > /dev/null 2>&1; then
+    echo "✓ Existing llama.cpp server detected on :8001"
+    LLAMA_PID="$(pgrep -f 'llama_cpp.server' | head -n 1 || true)"
+else
+    if ss -ltn 2>/dev/null | grep -q ':8001 '; then
+        echo "❌ Port 8001 is already in use."
+        echo "  A stale llama.cpp server is blocking startup."
+        echo "  Log: /tmp/bissi-llama.log"
+        tail -5 /tmp/bissi-llama.log 2>/dev/null || true
+        exit 1
+    fi
+
+    echo "→ Starting llama.cpp server on :8001..."
+    nohup .venv/bin/python -m llama_cpp.server \
+        --model gemma-4-E2B-it-Q4_K_M.gguf \
+        --host 127.0.0.1 \
+        --port 8001 \
+        --n_ctx 4096 \
+        --n_threads 4 \
+        --use_mmap False \
+        > /tmp/bissi-llama.log 2>&1 &
+    LLAMA_PID=$!
+fi
 
 # Wait for llama.cpp to be ready
 echo "→ Waiting for llama.cpp..."

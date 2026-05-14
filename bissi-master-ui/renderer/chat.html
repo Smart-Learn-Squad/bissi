@@ -903,8 +903,20 @@
             let assistantMsgEl = null;
             let accumulatedText = '';
             try {
-                const payload = { message, conversation_id: currentConversationId };
-                const res = await fetch(`${API}/chat`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                // Build FormData with message and files
+                const formData = new FormData();
+                formData.append('message', message);
+                if (currentConversationId) formData.append('conversation_id', currentConversationId);
+                
+                // Add attached files
+                for (const [id, file] of attachedFiles) {
+                    formData.append('files', file);
+                }
+                
+                const res = await fetch(`${API}/chat`, { 
+                    method: 'POST', 
+                    body: formData 
+                });
                 const reader = res.body.getReader();
                 const decoder = new TextDecoder();
                 let buffer = '';
@@ -925,6 +937,8 @@
                                 assistantMsgEl.scrollIntoView();
                             } else if (data.type === 'done') {
                                 currentConversationId = data.conversation_id || currentConversationId;
+                                attachedFiles.clear();
+                                document.getElementById('attached-files').innerHTML = '';
                                 loadConversations();
                             }
                         } catch (e) {}

@@ -320,8 +320,24 @@
       .t-verb { color: var(--acc); }
 
       /* ── INPUT ── */
-      .in-area { padding: 10px 14px 12px; background: var(--bg); }
+      .in-area { padding: 10px 14px 12px; background: var(--bg); transition: background 0.2s; }
+      .in-area.drag-active { background: var(--surface-soft); border: 2px dashed var(--acc); }
       .in-area-in { max-width: 860px; margin: 0 auto; }
+      .attached-files {
+        display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px;
+        padding: 0 4px;
+      }
+      .attached-file {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 6px 10px; background: var(--surface-soft); border: 1px solid var(--glass-border);
+        border-radius: 8px; font-size: 12px; color: var(--text);
+      }
+      .attached-file .file-name { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .attached-file .file-remove {
+        cursor: pointer; color: var(--muted); margin-left: 2px; padding: 2px 4px;
+        border-radius: 4px; transition: background 0.12s;
+      }
+      .attached-file .file-remove:hover { background: rgba(220, 38, 38, 0.2); color: #dc2626; }
       .in-pill {
         background: var(--surface);
         border: 1px solid var(--glass-border);
@@ -447,8 +463,9 @@
 
             <div class="in-area">
                 <div class="in-area-in">
+                    <div class="attached-files" id="attached-files"></div>
                     <div class="in-pill">
-                        <button class="in-ic">
+                         <button class="in-ic" onclick="openFilePicker()" title="Joindre des fichiers">
                             <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M9.5 5.5L5.5 9.5A2.83 2.83 0 011.5 5.5L5.5 1.5A1.89 1.89 0 018.5 4.5L4.5 8A.94.94 0 013.5 7l3-3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>
                         </button>
                         <textarea class="in-f" id="message-input" rows="1" placeholder="Décrivez votre tâche..." onkeydown="handleInputKeydown(event)"></textarea>
@@ -498,6 +515,7 @@
         let isStreaming = false;
         let userProfile = null;
         let openConversationMenuId = null;
+        let attachedFiles = new Map(); // Map<id, File>
         const API = 'http://localhost:8765';
 
         window.addEventListener('DOMContentLoaded', async () => {
@@ -505,6 +523,7 @@
             await loadUserProfile();
             await loadModels();
             await loadConversations();
+            setupFileAttachment();
         });
 
         async function loadUserProfile() {
@@ -785,6 +804,73 @@
         function toggleSidebar() { document.querySelector('.sb').classList.toggle('collapsed'); }
         function toggleThink() { think = !think; document.getElementById('tgl').classList.toggle('off', !think); }
         function toggleDD() { ddOpen = !ddOpen; document.getElementById('ms-dd').classList.toggle('hidden', !ddOpen); }
+
+        // File attachment system
+        function setupFileAttachment() {
+            const inArea = document.querySelector('.in-area');
+            const textarea = document.getElementById('message-input');
+            
+            // Drag & drop
+            inArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                inArea.classList.add('drag-active');
+            });
+            inArea.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                if (e.target === inArea) inArea.classList.remove('drag-active');
+            });
+            inArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                inArea.classList.remove('drag-active');
+                addFiles(e.dataTransfer.files);
+            });
+            
+            // Paste from clipboard
+            textarea.addEventListener('paste', (e) => {
+                const files = e.clipboardData?.files;
+                if (files && files.length > 0) {
+                    e.preventDefault();
+                    addFiles(files);
+                }
+            });
+        }
+        
+        function openFilePicker() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.multiple = true;
+            input.accept = '*/*';
+            input.onchange = (e) => addFiles(e.target.files);
+            input.click();
+        }
+        
+        function addFiles(files) {
+            for (let file of files) {
+                const id = `file-${Date.now()}-${Math.random()}`;
+                attachedFiles.set(id, file);
+                renderAttachedFile(id, file);
+            }
+        }
+        
+        function renderAttachedFile(id, file) {
+            const container = document.getElementById('attached-files');
+            const el = document.createElement('div');
+            el.className = 'attached-file';
+            el.id = id;
+            el.innerHTML = `
+                <span class="file-name" title="${file.name}">${file.name}</span>
+                <span class="file-remove" onclick="removeFile('${id}')">✕</span>
+            `;
+            container.appendChild(el);
+        }
+        
+        function removeFile(id) {
+            attachedFiles.delete(id);
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        }
 
         document.addEventListener('click', e => {
             if (ddOpen && !document.getElementById('ms').contains(e.target)) {

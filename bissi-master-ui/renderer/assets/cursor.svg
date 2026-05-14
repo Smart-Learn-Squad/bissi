@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+  <defs>
+    <radialGradient id="halo" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#7c3aed" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#7c3aed" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <!-- Halo externe -->
+  <circle cx="10" cy="10" r="14" fill="url(#halo)"/>
+  <!-- Corps du curseur -->
+  <polygon points="4,2 4,24 9,18 12,26 15,25 12,17 19,17"
+           fill="#7c3aed" stroke="#c4b5fd" stroke-width="1" stroke-linejoin="round"/>
+  <!-- Reflet interne -->
+  <polygon points="4,2 4,10 8,6"
+           fill="#c4b5fd" opacity="0.65"/>
+</svg>

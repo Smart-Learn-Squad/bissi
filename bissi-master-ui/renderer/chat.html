@@ -202,9 +202,12 @@
         background: var(--surface-soft); cursor: pointer;
         display: flex; align-items: center; justify-content: center;
         color: var(--muted); font-size: 13px; flex-shrink: 0;
-        transition: background 0.12s;
+        transition: background 0.12s; pointer-events: auto;
       }
       .ic-btn:hover { background: var(--acc-light); color: var(--acc); }
+      
+      /* Theme button in footer should be accessible */
+      #th-btn { margin-left: auto; }
 
       /* ── MAIN ── */
       .main { flex: 1; display: flex; flex-direction: column; min-width: 0; background: var(--bg); }

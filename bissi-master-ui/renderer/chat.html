@@ -10,10 +10,10 @@
       /* Dark mode (default) */
       :root {
         --bg: #151517;
-        --sb: #151517;
-        --surface: #151517;
-        --surface-soft: #151517;
-        --surface-strong: #151517;
+        --sb: #0d1510;
+        --surface: #111a15;
+        --surface-soft: #1a2420;
+        --surface-strong: #223d33;
         --text: #e2f5ec;
         --muted: rgba(120, 180, 150, 0.6);
         --acc: #10b981;
@@ -43,6 +43,72 @@
         --edge: rgba(16, 185, 129, 0.15);
         --shadow: 0 4px 24px rgba(16, 185, 129, 0.06);
         --tool-line: rgba(16, 185, 129, 0.08);
+      }
+
+      /* Flatten dark theme: keep every major surface on the same background */
+      body:not(.light) .sb,
+      body:not(.light) .sb-top,
+      body:not(.light) .bulk-actions,
+      body:not(.light) .sb-foot,
+      body:not(.light) .main,
+      body:not(.light) .m-head,
+      body:not(.light) .empty,
+      body:not(.light) .msgs,
+      body:not(.light) .in-area,
+      body:not(.light) .in-pill,
+      body:not(.light) .canvas,
+      body:not(.light) .cv-h,
+      body:not(.light) .cv-tabs,
+      body:not(.light) .cv-body,
+      body:not(.light) .dv,
+      body:not(.light) .attached-file,
+      body:not(.light) .ms,
+      body:not(.light) .think-w,
+      body:not(.light) .ci-menu,
+      body:not(.light) .floating-ci-menu {
+        background: var(--bg);
+        box-shadow: none;
+      }
+
+      body:not(.light) .sb,
+      body:not(.light) .main,
+      body:not(.light) .m-head,
+      body:not(.light) .sb-top,
+      body:not(.light) .bulk-actions,
+      body:not(.light) .sb-foot,
+      body:not(.light) .in-pill,
+      body:not(.light) .canvas,
+      body:not(.light) .cv-h,
+      body:not(.light) .cv-tabs,
+      body:not(.light) .cv-body,
+      body:not(.light) .dv,
+      body:not(.light) .attached-file,
+      body:not(.light) .ms,
+      body:not(.light) .think-w,
+      body:not(.light) .ci-menu,
+      body:not(.light) .floating-ci-menu {
+        border-color: var(--glass-border);
+      }
+
+      body:not(.light) .m-head,
+      body:not(.light) .sb-top,
+      body:not(.light) .bulk-actions,
+      body:not(.light) .sb-foot,
+      body:not(.light) .in-area,
+      body:not(.light) .empty,
+      body:not(.light) .msgs,
+      body:not(.light) .canvas {
+        background: var(--bg);
+      }
+
+      body:not(.light) .in-pill,
+      body:not(.light) .ms,
+      body:not(.light) .think-w,
+      body:not(.light) .dv,
+      body:not(.light) .attached-file,
+      body:not(.light) .ci-menu,
+      body:not(.light) .floating-ci-menu {
+        background: var(--bg);
       }
 
       * { 
@@ -96,6 +162,38 @@
         background: var(--surface-soft);
       }
 
+      .bulk-actions {
+        margin: 0 12px 8px;
+        padding: 8px;
+        border: 1px solid var(--glass-border);
+        border-radius: 14px;
+        background: var(--surface-soft);
+        display: none;
+        align-items: center;
+        gap: 8px;
+      }
+      .bulk-actions.on { display: flex; }
+      .bulk-count {
+        font-size: 12px;
+        color: var(--muted);
+        margin-right: auto;
+      }
+      .bulk-btn {
+        width: 30px; height: 30px;
+        border-radius: 10px;
+        border: 1px solid var(--glass-border);
+        background: var(--surface);
+        color: var(--muted);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background 0.12s, color 0.12s, border-color 0.12s;
+      }
+      .bulk-btn:hover { background: var(--acc-light); color: var(--acc); }
+      .bulk-btn.danger:hover { background: rgba(220,38,38,0.16); color: #dc2626; }
+      .bulk-btn svg { width: 14px; height: 14px; display: block; }
+
       .logo { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
       .logo-gem { width: 28px; height: 28px; flex-shrink: 0; }
       .logo-name {
@@ -134,6 +232,23 @@
       }
       .ci:hover, .ci.on { background: var(--glass-hover); transform: translateX(1px); }
       .ci.on .ci-t { color: var(--acc); font-weight: 500; }
+      .ci.selected { background: rgba(16,185,129,0.14); }
+      .ci.selected .ci-t { color: var(--text); }
+      .ci-select {
+        width: 18px; height: 18px; border-radius: 6px;
+        border: 1px solid var(--glass-border);
+        background: transparent; flex-shrink: 0;
+        display: inline-flex; align-items: center; justify-content: center;
+        color: transparent;
+        transition: background 0.12s, color 0.12s, border-color 0.12s;
+        opacity: 0;
+      }
+      .ci.select-mode .ci-select { opacity: 1; }
+      .ci.selected .ci-select {
+        background: var(--acc);
+        border-color: var(--acc);
+        color: #fff;
+      }
       /* hide the small status dot behind conversation names */
       .ci-dot { display: none !important; }
       .ci.on .ci-dot { opacity: 1; background: var(--acc); }
@@ -410,6 +525,21 @@
                 </button>
             </div>
 
+            <div class="bulk-actions" id="bulk-actions">
+                <div class="bulk-count" id="bulk-count">0 sélectionnée</div>
+                <button class="bulk-btn" type="button" title="Archiver la sélection" onclick="bulkArchiveSelected()">
+                    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                        <path d="M3 4h10M5 4V2.8c0-.44.36-.8.8-.8h4.4c.44 0 .8.36.8.8V4M4 4.5V13h8V4.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+                <button class="bulk-btn danger" type="button" title="Supprimer la sélection" onclick="bulkDeleteSelected()">
+                    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                        <path d="M6 2.5h4M3.5 4h9M5 4l.4 8.5h5.2L11 4M6.5 6v4M9.5 6v4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+                <button class="bulk-btn" type="button" title="Annuler" onclick="exitSelectionMode()">✕</button>
+            </div>
+
             <div class="conversations">
                 <div class="sec">
                     <div class="sec-lbl">Aujourd'hui</div>
@@ -515,6 +645,8 @@
         let isStreaming = false;
         let userProfile = null;
         let openConversationMenuId = null;
+        let selectionMode = false;
+        let selectedConversationIds = new Set();
         let attachedFiles = new Map(); // Map<id, File>
         const API = 'http://localhost:8765';
 
@@ -587,14 +719,16 @@
             todayEl.innerHTML = '';
             conversations.forEach(conv => {
                 const el = document.createElement('div');
-                el.className = 'ci' + (conv.id === currentConversationId ? ' on' : '');
+                el.className = 'ci' + (conv.id === currentConversationId ? ' on' : '') + (selectionMode ? ' select-mode' : '') + (selectedConversationIds.has(conv.id) ? ' selected' : '');
               const title = conv.title || (conv.first_message ? conv.first_message.slice(0, 35) : 'Nouveau chat');
               el.innerHTML = `
+                  <span class="ci-select" aria-hidden="true">✓</span>
                   <span class="ci-t"></span>
                   <div class="ci-actions">
                       <button class="ci-menu-btn" type="button" aria-label="Actions" title="Actions">⋯</button>
                   </div>
                   <div class="ci-menu hidden" role="menu">
+                      <button class="ci-menu-item" type="button" data-action="select">Sélectionner</button>
                       <button class="ci-menu-item" type="button" data-action="rename">Renommer</button>
                       <button class="ci-menu-item" type="button" data-action="archive">Archiver</button>
                       <button class="ci-menu-item danger" type="button" data-action="delete">Supprimer</button>
@@ -604,8 +738,30 @@
               const titleEl = el.querySelector('.ci-t');
               titleEl.setAttribute('role', 'button');
               titleEl.setAttribute('tabindex', '0');
-              titleEl.onclick = (e) => { e.stopPropagation(); loadConversation(conv.id); };
-              titleEl.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); loadConversation(conv.id); } });
+              titleEl.onclick = (e) => {
+                  e.stopPropagation();
+                  if (selectionMode) {
+                      toggleSelectedConversation(conv.id);
+                  } else {
+                      loadConversation(conv.id);
+                  }
+              };
+              titleEl.addEventListener('keydown', e => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      if (selectionMode) {
+                          toggleSelectedConversation(conv.id);
+                      } else {
+                          loadConversation(conv.id);
+                      }
+                  }
+              });
+              el.addEventListener('click', e => {
+                  if (e.target.closest('.ci-actions') || e.target.closest('.ci-menu') || e.target.closest('.ci-select')) return;
+                  if (selectionMode) {
+                      toggleSelectedConversation(conv.id);
+                  }
+              });
               const menuBtn = el.querySelector('.ci-menu-btn');
               const menu = el.querySelector('.ci-menu');
               // Prevent clicks on the menu/button from bubbling to the parent .ci (which opens the convo)
@@ -629,6 +785,7 @@
                       e.stopPropagation();
                       const action = btn.dataset.action;
                       closeConversationMenus();
+                      if (action === 'select') enterSelectionMode(conv.id);
                       if (action === 'rename') await renameConversation(conv.id, title);
                       if (action === 'archive') await archiveConversation(conv.id);
                       if (action === 'delete') await deleteConversation(conv.id);
@@ -688,6 +845,7 @@
                     e.preventDefault(); e.stopPropagation();
                     const action = btn.dataset.action;
                     closeConversationMenus();
+                    if (action === 'select') enterSelectionMode(id);
                     if (action === 'rename') await renameConversation(id, itemEl.querySelector('.ci-t').textContent);
                     if (action === 'archive') await archiveConversation(id);
                     if (action === 'delete') await deleteConversation(id);
@@ -702,6 +860,86 @@
             document.querySelectorAll('.ci-menu').forEach(menu => menu.classList.add('hidden'));
             document.querySelectorAll('.ci-menu-open').forEach(item => item.classList.remove('ci-menu-open'));
             openConversationMenuId = null;
+        }
+
+        function enterSelectionMode(seedId = null) {
+            selectionMode = true;
+            closeConversationMenus();
+            if (seedId !== null) selectedConversationIds.add(seedId);
+            updateSelectionUI();
+            loadConversations();
+        }
+
+        function exitSelectionMode() {
+            selectionMode = false;
+            closeConversationMenus();
+            selectedConversationIds.clear();
+            updateSelectionUI();
+            loadConversations();
+        }
+
+        function toggleSelectedConversation(id) {
+            if (selectedConversationIds.has(id)) {
+                selectedConversationIds.delete(id);
+            } else {
+                selectedConversationIds.add(id);
+            }
+            if (selectedConversationIds.size === 0) {
+                selectionMode = false;
+            }
+            updateSelectionUI();
+            loadConversations();
+        }
+
+        function updateSelectionUI() {
+            const bulk = document.getElementById('bulk-actions');
+            const count = document.getElementById('bulk-count');
+            if (!bulk || !count) return;
+            const n = selectedConversationIds.size;
+            bulk.classList.toggle('on', selectionMode);
+            count.textContent = n + (n <= 1 ? ' sélectionnée' : ' sélectionnées');
+        }
+
+        async function bulkArchiveSelected() {
+            const ids = Array.from(selectedConversationIds);
+            if (!ids.length) return;
+            try {
+                await Promise.all(ids.map(async id => {
+                    const res = await fetch(`${API}/conversations/${id}/archive`, { method: 'PATCH' });
+                    if (!res.ok) {
+                        const data = await res.json().catch(() => ({}));
+                        throw new Error(data.detail || `HTTP ${res.status}`);
+                    }
+                }));
+                if (currentConversationId && selectedConversationIds.has(currentConversationId)) newChat();
+                exitSelectionMode();
+                await loadConversations();
+            } catch (e) {
+                console.error('Bulk archive failed:', e);
+                alert('Archivage impossible');
+            }
+        }
+
+        async function bulkDeleteSelected() {
+            const ids = Array.from(selectedConversationIds);
+            if (!ids.length) return;
+            const ok = confirm('Supprimer les conversations sélectionnées ? Cette action supprimera définitivement toutes les conversations et tous leurs messages.');
+            if (!ok) return;
+            try {
+                await Promise.all(ids.map(async id => {
+                    const res = await fetch(`${API}/conversations/${id}`, { method: 'DELETE' });
+                    if (!res.ok) {
+                        const data = await res.json().catch(() => ({}));
+                        throw new Error(data.error || data.detail || `HTTP ${res.status}`);
+                    }
+                }));
+                if (currentConversationId && selectedConversationIds.has(currentConversationId)) newChat();
+                exitSelectionMode();
+                await loadConversations();
+            } catch (e) {
+                console.error('Bulk delete failed:', e);
+                alert('Suppression impossible');
+            }
         }
 
         async function renameConversation(id, currentTitle) {
@@ -772,33 +1010,47 @@
             }
         }
 
+        let themePreference = localStorage.getItem('bissi-theme') || 'system';
+        let themeMediaQuery = null;
+
+        function applyTheme(mode) {
+            const light = mode === 'light';
+            document.body.classList.toggle('light', light);
+            const btn = document.getElementById('th-btn');
+            if (btn) btn.textContent = light ? '☽' : '☀';
+        }
+
+        function getSystemTheme() {
+            return themeMediaQuery && themeMediaQuery.matches ? 'dark' : 'light';
+        }
+
+        function syncThemeToPreference() {
+            if (themePreference === 'system') {
+                applyTheme(getSystemTheme());
+            }
+        }
+
         // Theme toggle — dark/light mode with localStorage persistence
         function toggleTheme() {
-            const isDark = !document.body.classList.contains('light');
-            const newMode = isDark ? 'light' : 'dark';
-            
-            if (isDark) {
-                document.body.classList.add('light');
-                document.getElementById('th-btn').textContent = '☽';
-            } else {
-                document.body.classList.remove('light');
-                document.getElementById('th-btn').textContent = '☀';
-            }
-            
-            localStorage.setItem('bissi-theme', newMode);
+            const nextMode = document.body.classList.contains('light') ? 'dark' : 'light';
+            themePreference = nextMode;
+            localStorage.setItem('bissi-theme', nextMode);
+            applyTheme(nextMode);
         }
         
         // Initialize theme on page load
         function initTheme() {
-            const saved = localStorage.getItem('bissi-theme');
-            const theme = saved || 'dark';
-            
-            if (theme === 'light') {
-                document.body.classList.add('light');
-                document.getElementById('th-btn').textContent = '☽';
+            themeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+            if (themePreference === 'system') {
+                applyTheme(getSystemTheme());
+                const onChange = () => syncThemeToPreference();
+                if (typeof themeMediaQuery.addEventListener === 'function') {
+                    themeMediaQuery.addEventListener('change', onChange);
+                } else if (typeof themeMediaQuery.addListener === 'function') {
+                    themeMediaQuery.addListener(onChange);
+                }
             } else {
-                document.body.classList.remove('light');
-                document.getElementById('th-btn').textContent = '☀';
+                applyTheme(themePreference);
             }
         }
         function toggleSidebar() { document.querySelector('.sb').classList.toggle('collapsed'); }
@@ -886,7 +1138,7 @@
         });
         function selectModel(name) { document.getElementById('ms-name').textContent = name; toggleDD(); }
 
-        function newChat() { currentConversationId = null; document.getElementById('messages-container').innerHTML = ''; showEmpty(); closeCanvas(); }
+        function newChat() { currentConversationId = null; document.getElementById('messages-container').innerHTML = ''; exitSelectionMode(); showEmpty(); closeCanvas(); }
         function showEmpty() { document.getElementById('empty').classList.remove('hidden'); document.getElementById('chat').classList.add('hidden'); }
         function showChat() { document.getElementById('empty').classList.add('hidden'); document.getElementById('chat').classList.remove('hidden'); }
         function handleInputKeydown(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }

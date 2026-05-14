@@ -4,6 +4,16 @@
 
 ---
 
+## 📸 Aperçu
+
+### Mode sombre
+![BISSI dark mode](./bissi_dark.png)
+
+### Mode clair
+![BISSI light mode](./bissi-light.png)
+
+---
+
 ## 🚀 Installation (One-liner)
 
 ### Windows

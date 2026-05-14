@@ -2,6 +2,14 @@
 
 BISSI Master is a local AI assistant desktop application built with Electron, featuring a beautiful liquid glass UI and offline functionality.
 
+## Screenshots
+
+### Dark mode
+![BISSI dark mode](../bissi_dark.png)
+
+### Light mode
+![BISSI light mode](../bissi-light.png)
+
 ## Features
 
 - **Local AI Assistant**: Works completely offline with your local models

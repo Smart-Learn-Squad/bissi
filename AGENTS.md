@@ -81,3 +81,15 @@ Ne touche pas. Ouvre une issue et demande.
 ### Référence
 
 `@tobiamadou-eng` : prise en charge de ces points frontend.
+
+## Résultats des tests agent
+
+- `test_e2e_quick.py` démarre bien quand `llama.cpp` et l’API sont en place.
+- La réponse simple fonctionne, mais elle peut être lente selon le chargement du modèle.
+- Les tool calls sont encore mal remontés côté test rapide : la réponse contient parfois la trace `<|tool_call|>` au lieu d’un vrai appel exécuté.
+
+### Lecture rapide
+
+Le runtime répond, mais l’exécution des outils reste à fiabiliser pour obtenir un cycle agent complet.
+
+`@tobiamadou-eng` : point de suivi sur la fiabilisation des outils et du flux de réponse.

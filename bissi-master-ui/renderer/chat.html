@@ -7,28 +7,49 @@
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap');
 
+      /* Dark mode (default) */
       :root {
-        --acc: #7c3aed;
-        --acc-light: #ede9fe;
-        --acc-mid: #a78bfa;
-        --text: #1a1a2e;
-        --muted: rgba(100, 90, 130, 0.75);
-        --surface: #ffffff;
-        --surface-soft: #faf8ff;
-        --surface-strong: #f5f0ff;
-        --glass-border: rgba(124, 58, 237, 0.12);
-        --glass-hover: rgba(124, 58, 237, 0.06);
-        --glass-acc: rgba(124, 58, 237, 0.08);
-        --edge: rgba(124, 58, 237, 0.18);
-        --shadow: 0 4px 24px rgba(124, 58, 237, 0.08);
-        --tool-line: rgba(124, 58, 237, 0.10);
+        --bg: #0a0f0d;
+        --sb: #0d1510;
+        --surface: #111a15;
+        --surface-soft: #1a2420;
+        --surface-strong: #223d33;
+        --text: #e2f5ec;
+        --muted: rgba(120, 180, 150, 0.6);
+        --acc: #10b981;
+        --acc-light: #d1fae5;
+        --glass-border: rgba(16, 185, 129, 0.15);
+        --glass-hover: rgba(16, 185, 129, 0.08);
+        --glass-acc: rgba(16, 185, 129, 0.12);
+        --edge: rgba(16, 185, 129, 0.2);
+        --shadow: 0 4px 24px rgba(16, 185, 129, 0.08);
+        --tool-line: rgba(16, 185, 129, 0.10);
+      }
+
+      /* Light mode */
+      body.light {
+        --bg: #f0faf5;
+        --sb: #ffffff;
+        --surface: #f7fdf9;
+        --surface-soft: #f0faf5;
+        --surface-strong: #e8f5f0;
+        --text: #0a1f15;
+        --muted: rgba(10, 80, 50, 0.55);
+        --acc: #10b981;
+        --acc-light: #d1fae5;
+        --glass-border: rgba(16, 185, 129, 0.15);
+        --glass-hover: rgba(16, 185, 129, 0.06);
+        --glass-acc: rgba(16, 185, 129, 0.08);
+        --edge: rgba(16, 185, 129, 0.15);
+        --shadow: 0 4px 24px rgba(16, 185, 129, 0.06);
+        --tool-line: rgba(16, 185, 129, 0.08);
       }
 
       * { box-sizing: border-box; }
 
       body {
         font-family: 'DM Sans', sans-serif;
-        background: #f7f4ff;
+        background: var(--bg);
         color: var(--text);
         margin: 0; padding: 0;
         display: flex;
@@ -37,6 +58,7 @@
         border-radius: 14px;
         overflow: hidden;
         border: 1px solid var(--glass-border);
+        transition: background 0.2s, color 0.2s;
       }
 
       .body { display: flex; flex: 1; min-height: 0; }
@@ -185,7 +207,7 @@
       .ic-btn:hover { background: var(--acc-light); color: var(--acc); }
 
       /* ── MAIN ── */
-      .main { flex: 1; display: flex; flex-direction: column; min-width: 0; background: #f7f4ff; }
+      .main { flex: 1; display: flex; flex-direction: column; min-width: 0; background: var(--bg); }
 
       .m-head {
         padding: 10px 16px;
@@ -375,6 +397,7 @@
                     <div class="u-name" id="user-name">Sam Yevi</div>
                     <div class="u-sub">Local · Offline</div>
                 </div>
+                <button class="ic-btn" id="th-btn" onclick="toggleTheme()" title="Changer le thème">☀</button>
             </div>
         </div>
 
@@ -464,6 +487,7 @@
         const API = 'http://localhost:8765';
 
         window.addEventListener('DOMContentLoaded', async () => {
+            initTheme();
             await loadUserProfile();
             await loadModels();
             await loadConversations();
@@ -715,8 +739,35 @@
             }
         }
 
-        // Theme toggle removed — themes are now fixed. kept 'light' flag for compatibility
-        function toggleTheme() { /* removed */ }
+        // Theme toggle — dark/light mode with localStorage persistence
+        function toggleTheme() {
+            const isDark = !document.body.classList.contains('light');
+            const newMode = isDark ? 'light' : 'dark';
+            
+            if (isDark) {
+                document.body.classList.add('light');
+                document.getElementById('th-btn').textContent = '☽';
+            } else {
+                document.body.classList.remove('light');
+                document.getElementById('th-btn').textContent = '☀';
+            }
+            
+            localStorage.setItem('bissi-theme', newMode);
+        }
+        
+        // Initialize theme on page load
+        function initTheme() {
+            const saved = localStorage.getItem('bissi-theme');
+            const theme = saved || 'dark';
+            
+            if (theme === 'light') {
+                document.body.classList.add('light');
+                document.getElementById('th-btn').textContent = '☽';
+            } else {
+                document.body.classList.remove('light');
+                document.getElementById('th-btn').textContent = '☀';
+            }
+        }
         function toggleSidebar() { document.querySelector('.sb').classList.toggle('collapsed'); }
         function toggleThink() { think = !think; document.getElementById('tgl').classList.toggle('off', !think); }
         function toggleDD() { ddOpen = !ddOpen; document.getElementById('ms-dd').classList.toggle('hidden', !ddOpen); }

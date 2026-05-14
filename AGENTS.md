@@ -61,3 +61,23 @@ La structure des éléments interactifs
 ### En cas de doute
 
 Ne touche pas. Ouvre une issue et demande.
+
+## Points frontend encore à finaliser
+
+### En cours
+
+- **Upload** : bouton de pièce jointe à fiabiliser de bout en bout.
+- **Audio** : enregistreur à brancher sur un vrai flux micro.
+- **Thinking** : affichage à rendre plus lisible et cohérent.
+- **Nom de l’utilisateur** : footer à synchroniser avec le profil réel.
+
+### Proposition de solution
+
+- **Upload** : garder `file picker + drag/drop + paste`, envoyer les fichiers avec `FormData`, et afficher une prévisualisation minimale avant envoi.
+- **Audio** : utiliser `MediaRecorder` côté renderer, puis envoyer le flux enregistré vers le backend via IPC ou `fetch` selon la route retenue.
+- **Thinking** : lier l’état visuel au streaming SSE et séparer clairement “thinking”, “tool trace” et “réponse finale”.
+- **Nom de l’utilisateur** : lire `profile.json` au chargement, dériver un fallback sûr depuis `first_name`, `last_name`, `display_name`, `username` ou `email`, puis afficher ce nom dans le footer.
+
+### Référence
+
+`@tobiamadou-eng` : prise en charge de ces points frontend.

@@ -62,7 +62,7 @@ if %errorlevel% equ 0 (
         --model "%MODEL_PATH%" ^
         --host 127.0.0.1 ^
         --port 8001 ^
-        --n_ctx 4096 ^
+        --n_ctx 8192 ^
         --n_threads 4 ^
         --use_mmap False ^
         > "%TEMP%\bissi-llama.log" 2>&1

@@ -1621,6 +1621,11 @@
                                 showErrorBanner(data.message || 'Une erreur est survenue');
                             } else if (data.type === 'done') {
                                 currentConversationId = data.conversation_id || currentConversationId;
+                                // Fallback: if no chunks arrived (tool-only response), show full_response
+                                if (!accumulatedText.trim() && data.full_response && data.full_response.trim()) {
+                                    accumulatedText = data.full_response;
+                                    assistantMsgEl.querySelector('.md').innerHTML = renderAssistantText(accumulatedText);
+                                }
                                 attachedFiles.clear();
                                 document.getElementById('attached-files').innerHTML = '';
                                 loadConversations();

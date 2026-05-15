@@ -130,3 +130,4 @@ xlsxwriter==3.2.9
 zipp==3.23.1
 llama-cpp-python
 python-multipart==0.0.28
+faster-whisper==1.1.1

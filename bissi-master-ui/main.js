@@ -165,12 +165,10 @@ ipcMain.handle('file:choose', async () => {
   return result.filePaths[0];
 });
 
-// File system handlers for canvas
-const fsSync = require('fs');
-
+// File system handlers for canvas (async — never block the main thread)
 ipcMain.handle('file:read', async (event, filePath) => {
   try {
-    return fsSync.readFileSync(filePath, 'utf8');
+    return await fs.readFile(filePath, 'utf8');
   } catch (error) {
     return { error: error.message };
   }
@@ -178,7 +176,7 @@ ipcMain.handle('file:read', async (event, filePath) => {
 
 ipcMain.handle('file:readBuffer', async (event, filePath) => {
   try {
-    const buffer = fsSync.readFileSync(filePath);
+    const buffer = await fs.readFile(filePath);
     return { data: Array.from(new Uint8Array(buffer)) };
   } catch (error) {
     return { error: error.message };

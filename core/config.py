@@ -32,7 +32,8 @@ class AgentConfig:
     """Agent loop settings."""
 
     max_iterations: int = 7
-    context_token_limit: int = 6000
+    # n_ctx=3072 → ~2200 input tokens max (leave ~870 for model output)
+    context_token_limit: int = 2200
 
 
 @dataclass(frozen=True)

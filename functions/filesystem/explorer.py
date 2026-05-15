@@ -143,6 +143,10 @@ def search_files(directory: Union[str, Path],
     Returns:
         ToolResult with 'output' containing results list
     """
+    # Auto-wildcard: "server.py" → "*server.py*" so plain names find results
+    if pattern and not any(c in pattern for c in ('*', '?', '[', ']')):
+        pattern = f"*{pattern}*"
+
     if not is_path_allowed(directory):
         return ToolResult.fail(f"Accès interdit : {directory}")
     path = Path(directory).resolve()

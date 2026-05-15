@@ -21,7 +21,7 @@ class LlamaCppConfig:
 
     host: str = "http://127.0.0.1:8001"
     model: str = "gemma-4-E2B-it-Q4_K_M"
-    timeout_seconds: int = 120
+    timeout_seconds: int = 300
     max_retries: int = 3
     temperature: float = 0.5
     n_ctx: int = 8192

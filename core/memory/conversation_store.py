@@ -101,6 +101,15 @@ class ConversationStore:
             )
             conn.commit()
             return cursor.rowcount > 0
+
+    def get_conversation_title(self, conversation_id: int) -> Optional[str]:
+        """Return the current title for one conversation."""
+        with sqlite3.connect(self.db_path) as conn:
+            row = conn.execute(
+                "SELECT title FROM conversations WHERE id = ?",
+                (conversation_id,)
+            ).fetchone()
+            return row[0] if row and row[0] else None
     
     def save_message(self, 
                      conversation_id: int,

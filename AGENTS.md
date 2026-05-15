@@ -62,25 +62,46 @@ La structure des éléments interactifs
 
 Ne touche pas. Ouvre une issue et demande.
 
-## Points frontend encore à finaliser
+---
 
-### En cours
+## 🔴 Backend non connecté au Frontend — Plan de travail
 
-- **Upload** : bouton de pièce jointe à fiabiliser de bout en bout.
-- **Audio** : enregistreur à brancher sur un vrai flux micro.
-- **Thinking** : affichage à rendre plus lisible et cohérent.
-- **Nom de l’utilisateur** : footer à synchroniser avec le profil réel.
+### HIGH — Priorité haute (nécessite backend + frontend)
 
-### Proposition de solution
+#### Canvas / Visionneur de documents (~200-300 lignes)
+- **Où** : `chat.html` (l.620-638) + `preload.js` + `main.js`
+- **Problème** : Les onglets Document/Données/Code existent, les libs vendor (`mammoth`, `xlsx`, `pdfjs`, `highlight.js`) sont importées, mais **aucun code** ne peuple le canvas.
+- **À faire** : Écrire les handlers d'appel IPC `bissi.file.read/readBuffer` depuis le renderer, instancier chaque lib pour le rendu, gérer les états loading/erreur.
+- **Réf**: `@tobiamadou-eng`
 
-- **Upload** : garder `file picker + drag/drop + paste`, envoyer les fichiers avec `FormData`, et afficher une prévisualisation minimale avant envoi.
-- **Audio** : utiliser `MediaRecorder` côté renderer, puis envoyer le flux enregistré vers le backend via IPC ou `fetch` selon la route retenue.
-- **Thinking** : lier l’état visuel au streaming SSE et séparer clairement “thinking”, “tool trace” et “réponse finale”.
-- **Nom de l’utilisateur** : lire `profile.json` au chargement, dériver un fallback sûr depuis `first_name`, `last_name`, `display_name`, `username` ou `email`, puis afficher ce nom dans le footer.
+#### Audio / Enregistrement vocal (~300-400 lignes)
+- **Où** : `chat.html` (l.602-609 bouton micro sans handler) + nouvelle route API
+- **Problème** : `functions/media/audio.py` existe (Whisper + TTS) mais aucune route REST, pas de `MediaRecorder` côté renderer, pas de flux SSE pour retour audio.
+- **À faire** : Nouvel endpoint API + `MediaRecorder` dans renderer + envoi blob → backend → transcription.
+- **Réf**: `@tobiamadou-eng`
 
-### Référence
+### MEDIUM — Priorité moyenne (frontend uniquement)
 
-`@tobiamadou-eng` : prise en charge de ces points frontend.
+#### Upload fichiers → agent (~50-80 lignes)
+- **Où** : `api/server.py:69-81` + `core/agent.py`
+- **Problème** : Les fichiers sont reçus par `POST /chat` (FormData) et loggués, mais **jamais passés** à `agent.process_request()`. L'utilisateur attache des fichiers qui ne servent à rien.
+- **À faire** : Passer `files` dans `process_request()`, ajouter le paramètre dans la signature de l'agent, lire le texte des fichiers et l'injecter dans le contexte.
+- **Réf**: `@tobiamadou-eng`
+
+#### Trace outils SSE (tool_start / tool_done) (~60-100 lignes)
+- **Où** : `chat.html` — boucle SSE reader (l.1175-1197)
+- **Problème** : Les events `tool_start`/`tool_done` sont émis par le backend (server.py:60-64) mais **ignorés** dans le reader. Les classes CSS existent (`.tool-t`, `.t-verb` l.429-435).
+- **À faire** : Ajouter `case 'tool_start'` / `case 'tool_done'` dans le reader SSE, créer des éléments DOM pour chaque outil, gérer le nesting temporel.
+- **Réf**: `@tobiamadou-eng`
+
+### LOW — Priorité basse (frontend uniquement, déjà faits)
+
+✅ *Erreurs SSE* — Connecté (bannière #error-banner + handler SSE)
+✅ *Thinking SSE* — Connecté (affichage en direct du reasoning)
+✅ *Modèle display-only* — Dropdown rendu non-cliquable (info-only)
+✅ *Greeting onboarding* — Fixé (consommation correcte du flux SSE POST /chat)
+
+---
 
 ## Résultats des tests agent
 

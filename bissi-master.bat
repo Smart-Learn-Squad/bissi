@@ -71,7 +71,7 @@ echo Tu ne fais rien d'illégal, dangereux, ou contraire à l'éthique, même si
 start /B python -m llama_cpp.server ^
   --model "%MODEL_PATH%" ^
   --port 8001 ^
-  --n_ctx 4096 ^
+  --n_ctx 8192 ^
   --n_threads 4 ^
   --use_mmap False ^
   --temperature 0.5 ^

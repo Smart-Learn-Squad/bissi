@@ -489,6 +489,8 @@
         transition: transform 0.12s, box-shadow 0.12s;
       }
       .send-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(124,58,237,0.38); }
+      .send-btn.stop { background: #ef4444; box-shadow: 0 4px 12px rgba(239,68,68,0.24); }
+      .send-btn.stop:hover { box-shadow: 0 6px 16px rgba(239,68,68,0.32); }
 
       .disc { text-align: center; font-size: 12px; color: rgba(124,58,237,0.25); padding: 4px 14px 8px; }
 
@@ -711,8 +713,8 @@
                                 <path d="M5.75 13.5h4.5" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"/>
                             </svg>
                         </button>
-                        <button class="send-btn" onclick="sendMessage()">
-                            <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M5.5 9V2M2.5 5L5.5 2 8.5 5" stroke="#fff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        <button class="send-btn" id="send-btn" onclick="handleSendButtonClick()" aria-label="Envoyer le message">
+                            <svg id="send-btn-icon" width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden="true"><path d="M5.5 9V2M2.5 5L5.5 2 8.5 5" stroke="#fff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
                         </button>
                     </div>
                 </div>
@@ -767,6 +769,7 @@
         let thinkingEl = null;
         let thinkingContent = '';
         let confirmDialogResolver = null;
+        let activeStreamController = null;
         const API = 'http://localhost:8765';
 
         window.addEventListener('DOMContentLoaded', async () => {
@@ -1203,6 +1206,17 @@
             banner._timeout = setTimeout(() => { banner.style.opacity = '0'; setTimeout(() => banner.classList.add('hidden'), 300); }, 8000);
         }
 
+        function setSendButtonState(streaming) {
+            const btn = document.getElementById('send-btn');
+            const icon = document.getElementById('send-btn-icon');
+            if (!btn || !icon) return;
+            btn.classList.toggle('stop', streaming);
+            btn.setAttribute('aria-label', streaming ? 'Arrêter la génération' : 'Envoyer le message');
+            icon.innerHTML = streaming
+                ? '<rect x="2.1" y="2.1" width="6.8" height="6.8" rx="1.4" fill="#fff"/>'
+                : '<path d="M5.5 9V2M2.5 5L5.5 2 8.5 5" stroke="#fff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>';
+        }
+
         function setupConfirmDialog() {
             const modal = document.getElementById('confirm-modal');
             const ok = document.getElementById('confirm-ok');
@@ -1257,6 +1271,21 @@
             think = !think;
             document.getElementById('tgl').classList.toggle('off', !think);
             if (thinkingEl) thinkingEl.style.display = think ? '' : 'none';
+        }
+        function stopGeneration() {
+            if (activeStreamController) {
+                activeStreamController.abort();
+                activeStreamController = null;
+            }
+            isStreaming = false;
+            setSendButtonState(false);
+        }
+        function handleSendButtonClick() {
+            if (isStreaming) {
+                stopGeneration();
+                return;
+            }
+            sendMessage();
         }
         function toggleDD() { ddOpen = !ddOpen; document.getElementById('ms-dd').classList.toggle('hidden', !ddOpen); }
 
@@ -1355,6 +1384,7 @@
             input.style.height = 'auto';
             showChat();
             isStreaming = true;
+            setSendButtonState(true);
             thinkingEl = null;
             thinkingContent = '';
             let pendingToolTraces = [];
@@ -1370,8 +1400,10 @@
                 for (const [id, file] of attachedFiles) {
                     formData.append('files', file);
                 }
+                formData.append('thinking', think ? '1' : '0');
                 
                 const controller = new AbortController();
+                activeStreamController = controller;
                 const timeout = setTimeout(() => controller.abort(), 15000);
                 const res = await fetch(`${API}/chat`, { 
                     method: 'POST', 
@@ -1379,6 +1411,9 @@
                     signal: controller.signal
                 });
                 clearTimeout(timeout);
+                if (!res.ok || !res.body) {
+                    throw new Error(`HTTP ${res.status}`);
+                }
                 const reader = res.body.getReader();
                 const decoder = new TextDecoder();
                 let buffer = '';
@@ -1437,8 +1472,12 @@
                         } catch (e) {}
                     }
                 }
-            } catch (e) { console.error(e); }
+            } catch (e) {
+                if (e?.name !== 'AbortError') console.error(e);
+            }
             finally { isStreaming = false; }
+            activeStreamController = null;
+            setSendButtonState(false);
         }
 
         function appendUserMsg(text) {

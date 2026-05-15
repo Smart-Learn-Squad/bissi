@@ -73,7 +73,7 @@ else
   nohup python -m llama_cpp.server \
     --model "$MODEL_PATH" \
     --port 8001 \
-    --n_ctx 4096 \
+    --n_ctx 8192 \
     --n_threads 4 \
     --use_mmap False \
     --temperature 0.5 \

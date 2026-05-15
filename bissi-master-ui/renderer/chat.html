@@ -409,7 +409,15 @@
       .msgs { flex: 1; overflow-y: auto; display: flex; flex-direction: column; scrollbar-width: thin; scrollbar-color: rgba(124,58,237,0.2) transparent; }
       .msgs-in { padding: 28px 20px 18px; display: flex; flex-direction: column; align-items: center; max-width: 860px; width: 100%; margin: 0 auto; }
 
-      .msg-u-wrap { align-self: flex-end; width: 70%; display: flex; flex-direction: column; align-items: flex-end; margin-bottom: 8px; }
+      .msg-u-wrap {
+        align-self: flex-end;
+        width: 70%;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        margin-bottom: 8px;
+        position: relative;
+      }
       .msg-u {
         width: 100%; background: var(--acc); color: #fff;
         padding: 9px 14px; border-radius: 14px 14px 3px 14px;
@@ -417,8 +425,10 @@
       }
       .msg-a {
         align-self: stretch; width: 100%;
+        display: flex; flex-direction: column; align-items: flex-start;
         padding: 0 2px 6px; font-size: 15px; line-height: 1.6;
         color: var(--text); margin-bottom: 8px;
+        position: relative;
       }
       .msg-a .md p { margin: 0 0 0.8em 0; }
       .msg-a .md pre {
@@ -428,10 +438,45 @@
         font-family: 'DM Mono', monospace; font-size: 13px;
       }
 
-      .msg-actions { display: flex; gap: 6px; margin-top: 6px; opacity: 0; transition: opacity 0.15s; }
-      .msg-a:hover .msg-actions, .msg-u-wrap:hover .msg-actions { opacity: 1; }
-      .msg-action-btn { width: 24px; height: 24px; border: none; background: transparent; color: var(--muted); cursor: pointer; }
-      .msg-action-btn:hover { color: var(--acc); }
+      .msg-actions {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 6px;
+        border: 1px solid var(--glass-border);
+        border-radius: 999px;
+        background: var(--surface-soft);
+        box-shadow: var(--shadow);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.15s, background 0.15s, transform 0.15s;
+        position: absolute;
+        z-index: 2;
+      }
+      .msg-a:hover .msg-actions, .msg-u-wrap:hover .msg-actions,
+      .msg-actions:hover { opacity: 1; pointer-events: auto; }
+      .msg-u-wrap .msg-actions {
+        right: 10px;
+        bottom: -14px;
+      }
+      .msg-a .msg-actions {
+        left: 10px;
+        top: -14px;
+      }
+      .msg-action-btn {
+        width: 24px;
+        height: 24px;
+        border-radius: 8px;
+        border: 1px solid transparent;
+        background: transparent;
+        color: var(--muted);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.12s, color 0.12s, border-color 0.12s;
+      }
+      .msg-action-btn:hover { color: var(--acc); background: var(--glass-hover); border-color: var(--glass-border); }
       .msg-action-btn svg { width: 13px; height: 13px; display: block; }
 
       .tool-t {
@@ -770,6 +815,7 @@
         let thinkingContent = '';
         let confirmDialogResolver = null;
         let activeStreamController = null;
+        let lastUserPrompt = '';
         const API = 'http://localhost:8765';
 
         window.addEventListener('DOMContentLoaded', async () => {
@@ -1147,6 +1193,7 @@
         function renderHistory(messages) {
             const container = document.getElementById('messages-container');
             container.innerHTML = '';
+            lastUserPrompt = '';
             for (const msg of messages) {
                 if (msg.role === 'user') appendUserMsg(msg.content);
                 else if (msg.role === 'assistant') appendAssistantMsg(msg.content);
@@ -1375,13 +1422,15 @@
         function showChat() { document.getElementById('empty').classList.add('hidden'); document.getElementById('chat').classList.remove('hidden'); }
         function handleInputKeydown(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
 
-        async function sendMessage() {
+        async function sendMessage(overrideMessage = null) {
             const input = document.getElementById('message-input');
-            const message = input.value.trim();
+            const message = String(overrideMessage ?? input.value).trim();
             if (!message || isStreaming) return;
             appendUserMsg(message);
-            input.value = '';
-            input.style.height = 'auto';
+            if (overrideMessage === null) {
+                input.value = '';
+                input.style.height = 'auto';
+            }
             showChat();
             isStreaming = true;
             setSendButtonState(true);
@@ -1481,12 +1530,22 @@
         }
 
         function appendUserMsg(text) {
-            console.log('appendUserMsg:', text);
+            lastUserPrompt = String(text || '');
             const container = document.getElementById('messages-container');
             if (!container) { console.warn('messages-container not found'); return; }
             const wrap = document.createElement('div');
             wrap.className = 'msg-u-wrap';
-            wrap.innerHTML = `<div class="msg-u">${text}</div>`;
+            const bubble = document.createElement('div');
+            bubble.className = 'msg-u';
+            bubble.textContent = text;
+            wrap.appendChild(bubble);
+            wrap.appendChild(createMessageActions({
+                role: 'user',
+                copyText: String(text || ''),
+                regenerateText: String(text || ''),
+                regenerateLabel: 'Renvoyer',
+                regenerateTitle: 'Renvoyer ce message'
+            }));
             container.appendChild(wrap);
             // ensure chat area is visible when adding a message
             showChat();
@@ -1494,16 +1553,76 @@
             try { wrap.scrollIntoView({ behavior: 'smooth', block: 'end' }); } catch (e) { container.scrollTop = container.scrollHeight; }
         }
 
-        function createAssistantMsgEl(html) {
+        function createAssistantMsgEl(rawText) {
             const container = document.getElementById('messages-container');
             const div = document.createElement('div');
             div.className = 'msg-a';
-            div.innerHTML = `<div class="md">${html}</div>`;
+            const md = document.createElement('div');
+            md.className = 'md';
+            md.innerHTML = renderAssistantText(rawText);
+            const sourcePrompt = lastUserPrompt;
+            div.appendChild(md);
+            div.appendChild(createMessageActions({
+                role: 'assistant',
+                copyText: () => md.innerText || String(rawText || ''),
+                regenerateText: sourcePrompt,
+                regenerateLabel: 'Régénérer',
+                regenerateTitle: 'Régénérer cette réponse'
+            }));
             container.appendChild(div);
             return div;
         }
 
-        function appendAssistantMsg(text) { createAssistantMsgEl(renderAssistantText(text)); }
+        function appendAssistantMsg(text) { createAssistantMsgEl(String(text || '')); }
+
+        function createMessageActions({ role, copyText, regenerateText, regenerateLabel, regenerateTitle }) {
+            const actions = document.createElement('div');
+            actions.className = 'msg-actions';
+
+            const copyBtn = document.createElement('button');
+            copyBtn.type = 'button';
+            copyBtn.className = 'msg-action-btn';
+            copyBtn.title = 'Copier';
+            copyBtn.setAttribute('aria-label', 'Copier le message');
+            copyBtn.innerHTML = '<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M5 5.5V4.2c0-.66.54-1.2 1.2-1.2h4.6c.66 0 1.2.54 1.2 1.2v5.6c0 .66-.54 1.2-1.2 1.2H9.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><rect x="3" y="6.5" width="6.5" height="6.5" rx="1.3" stroke="currentColor" stroke-width="1.2"/></svg>';
+            copyBtn.onclick = async () => {
+                const value = typeof copyText === 'function' ? copyText() : copyText;
+                await copyMessageText(value);
+            };
+
+            const regenBtn = document.createElement('button');
+            regenBtn.type = 'button';
+            regenBtn.className = 'msg-action-btn';
+            regenBtn.title = regenerateTitle;
+            regenBtn.setAttribute('aria-label', regenerateTitle);
+            regenBtn.innerHTML = '<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4.2 5.6A4.8 4.8 0 0 1 8 3.8h2.1l-1-1.1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M11.8 10.4A4.8 4.8 0 0 1 8 12.2H5.9l1 1.1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.6 3.9 3.5 5l1.1 1.1M11.4 12.1 12.5 11l-1.1-1.1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+            regenBtn.onclick = async () => {
+                const value = typeof regenerateText === 'function' ? regenerateText() : regenerateText;
+                if (value) await sendMessage(value);
+            };
+
+            actions.appendChild(copyBtn);
+            actions.appendChild(regenBtn);
+            return actions;
+        }
+
+        async function copyMessageText(text) {
+            const value = String(text || '');
+            if (!value) return;
+            if (navigator.clipboard?.writeText) {
+                await navigator.clipboard.writeText(value);
+                return;
+            }
+            const ta = document.createElement('textarea');
+            ta.value = value;
+            ta.style.position = 'fixed';
+            ta.style.left = '-9999px';
+            document.body.appendChild(ta);
+            ta.focus();
+            ta.select();
+            document.execCommand('copy');
+            ta.remove();
+        }
 
         function renderAssistantText(text) {
             const source = String(text || '').replace(/<think>[\s\S]*?<\/think>/gi, '').trim();

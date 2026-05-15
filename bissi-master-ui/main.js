@@ -91,10 +91,16 @@ ipcMain.handle('profile:isFirst', async () => {
   }
 });
 
-// Navigation handler
+// Navigation handlers
 ipcMain.handle('nav:goToChat', () => {
   if (mainWindow) {
     mainWindow.loadFile(path.join(__dirname, 'renderer', 'chat.html'));
+  }
+});
+
+ipcMain.handle('nav:goToOnboarding', () => {
+  if (mainWindow) {
+    mainWindow.loadFile(path.join(__dirname, 'renderer', 'onboarding.html'));
   }
 });
 

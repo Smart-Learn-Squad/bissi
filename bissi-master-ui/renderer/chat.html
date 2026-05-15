@@ -1333,70 +1333,96 @@
             });
         }
         
-        // ─── Voice Input ────────────────────────────────────────────────────────
-        let voiceRecognition = null;
+        // ─── Voice Input (100% offline via faster-whisper backend) ─────────────
         let voiceActive = false;
+        let mediaRecorder = null;
+        let audioChunks = [];
 
         function setupVoiceInput() {
             const btn = document.getElementById('voice-btn');
             if (!btn) return;
 
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRecognition) {
-                btn.title = 'Dictée vocale non supportée par ce navigateur';
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                btn.title = 'Microphone non disponible';
                 btn.style.opacity = '0.4';
                 btn.style.cursor = 'not-allowed';
                 return;
             }
 
-            voiceRecognition = new SpeechRecognition();
-            voiceRecognition.lang = 'fr-FR';
-            voiceRecognition.interimResults = true;
-            voiceRecognition.maxAlternatives = 1;
-            voiceRecognition.continuous = false;
+            btn.addEventListener('click', () => {
+                if (voiceActive) {
+                    stopRecording();
+                } else {
+                    startRecording(btn);
+                }
+            });
+        }
 
-            let interimStart = -1;
-            const input = document.getElementById('message-input');
+        async function startRecording(btn) {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                audioChunks = [];
 
-            voiceRecognition.onstart = () => {
+                const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+                    ? 'audio/webm;codecs=opus'
+                    : 'audio/webm';
+                mediaRecorder = new MediaRecorder(stream, { mimeType });
+
+                mediaRecorder.ondataavailable = (e) => {
+                    if (e.data.size > 0) audioChunks.push(e.data);
+                };
+
+                mediaRecorder.onstop = async () => {
+                    // Stop all tracks to release the mic
+                    stream.getTracks().forEach(t => t.stop());
+                    await transcribeAudio(audioChunks, mimeType);
+                };
+
+                mediaRecorder.start(200); // collect chunks every 200ms
                 voiceActive = true;
                 btn.classList.add('voice-active');
                 btn.title = 'Enregistrement… (clic pour arrêter)';
-                interimStart = input.value.length;
-            };
+            } catch (err) {
+                console.warn('Microphone error:', err);
+                btn.title = 'Accès microphone refusé';
+            }
+        }
 
-            voiceRecognition.onresult = (e) => {
-                const transcript = Array.from(e.results)
-                    .map(r => r[0].transcript)
-                    .join('');
-                // Replace interim text in-place
-                const base = input.value.slice(0, interimStart);
-                input.value = base + transcript;
-                input.dispatchEvent(new Event('input'));
-            };
+        function stopRecording() {
+            const btn = document.getElementById('voice-btn');
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+            }
+            voiceActive = false;
+            btn.classList.remove('voice-active');
+            btn.title = 'Transcription en cours…';
+        }
 
-            voiceRecognition.onend = () => {
-                voiceActive = false;
-                btn.classList.remove('voice-active');
-                btn.title = 'Dictée vocale';
-            };
+        async function transcribeAudio(chunks, mimeType) {
+            const btn = document.getElementById('voice-btn');
+            const input = document.getElementById('message-input');
+            try {
+                const blob = new Blob(chunks, { type: mimeType });
+                const formData = new FormData();
+                formData.append('audio', blob, 'recording.webm');
 
-            voiceRecognition.onerror = (e) => {
-                voiceActive = false;
-                btn.classList.remove('voice-active');
-                btn.title = 'Dictée vocale';
-                if (e.error !== 'aborted' && e.error !== 'no-speech') {
-                    console.warn('Voice error:', e.error);
+                const resp = await fetch('http://127.0.0.1:8765/transcribe', {
+                    method: 'POST',
+                    body: formData,
+                });
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                const data = await resp.json();
+                if (data.text && data.text.trim()) {
+                    const sep = input.value.length > 0 ? ' ' : '';
+                    input.value += sep + data.text.trim();
+                    input.dispatchEvent(new Event('input'));
+                    input.focus();
                 }
-            };
-
-            btn.addEventListener('click', () => {
-                if (voiceActive) {
-                    voiceRecognition.stop();
-                } else {
-                    try { voiceRecognition.start(); } catch(err) { console.warn(err); }
-                }
-            });
+            } catch (err) {
+                console.warn('Transcription error:', err);
+            } finally {
+                btn.title = 'Dictée vocale';
+            }
         }
 
         function openFilePicker() {

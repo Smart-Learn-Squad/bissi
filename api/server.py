@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import asyncio
+import io
 import json
 import logging
+import tempfile
+import os
 from typing import Any, AsyncGenerator, Dict, Optional, List
 
 from fastapi import FastAPI, HTTPException, Form, UploadFile, File
@@ -17,6 +20,22 @@ from core.config import DEFAULT_CONFIG
 
 
 logger = logging.getLogger(__name__)
+
+# Lazy-loaded Whisper model (offline STT)
+_whisper_model = None
+
+def _get_whisper():
+    """Load faster-whisper model on first use (lazy, offline)."""
+    global _whisper_model
+    if _whisper_model is None:
+        try:
+            from faster_whisper import WhisperModel
+            _whisper_model = WhisperModel("tiny", device="cpu", compute_type="int8")
+            logger.info("Whisper tiny model loaded")
+        except Exception as exc:
+            logger.warning(f"faster-whisper unavailable: {exc}")
+            return None
+    return _whisper_model
 
 app = FastAPI(title="BISSI Backend", version="2.0.0")
 agent = BissiAgent()
@@ -228,3 +247,49 @@ async def tools() -> JSONResponse:
     except Exception as exc:
         logger.exception("tools_endpoint_error")
         raise HTTPException(status_code=500, detail=f"Unable to list tools: {exc}") from exc
+
+
+@app.post("/transcribe")
+async def transcribe(audio: UploadFile = File(...)) -> JSONResponse:
+    """Offline speech-to-text using faster-whisper (tiny model, CPU).
+
+    Accepts any audio format supported by ffmpeg (webm, wav, ogg, mp4…).
+    Returns {"text": "...", "language": "fr"} or {"error": "..."}.
+    """
+    model = _get_whisper()
+    if model is None:
+        raise HTTPException(
+            status_code=503,
+            detail="faster-whisper not available — run: pip install faster-whisper",
+        )
+    try:
+        audio_bytes = await audio.read()
+        # Write to a temp file (faster-whisper needs a file path)
+        suffix = os.path.splitext(audio.filename or "audio.webm")[1] or ".webm"
+        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+            tmp.write(audio_bytes)
+            tmp_path = tmp.name
+
+        loop = asyncio.get_running_loop()
+
+        def _do_transcribe():
+            segments, info = model.transcribe(
+                tmp_path,
+                language="fr",
+                beam_size=3,
+                vad_filter=True,
+            )
+            text = " ".join(seg.text.strip() for seg in segments).strip()
+            return text, info.language
+
+        text, lang = await loop.run_in_executor(None, _do_transcribe)
+        return JSONResponse({"text": text, "language": lang})
+
+    except Exception as exc:
+        logger.exception("transcribe_error")
+        raise HTTPException(status_code=500, detail=f"Transcription failed: {exc}") from exc
+    finally:
+        try:
+            os.unlink(tmp_path)
+        except Exception:
+            pass

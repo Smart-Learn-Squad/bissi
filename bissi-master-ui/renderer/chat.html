@@ -135,7 +135,8 @@
         border-radius: 14px;
         overflow: hidden;
         border: 1px solid var(--glass-border);
-        transition: background 0.2s, color 0.2s;
+        transition: background 0.2s, color 0.2s, opacity 0.3s;
+        opacity: 0;
       }
 
       .body { display: flex; flex: 1; min-height: 0; }
@@ -273,19 +274,26 @@
       }
       .ci-menu {
         position: absolute; right: 24px; top: 24px; min-width: 150px;
-        background: var(--surface-strong); border: 1px solid var(--glass-border);
-        border-radius: 10px; box-shadow: 0 18px 42px rgba(0,0,0,0.12);
-        padding: 6px; z-index: 4500;
+       background: var(--surface-strong);
+       border: 1px solid var(--glass-border);
+       border-radius: 14px;
+       box-shadow: 0 24px 48px rgba(0,0,0,0.16);
+       padding: 8px;
+       z-index: 4500;
+       backdrop-filter: blur(14px);
+       -webkit-backdrop-filter: blur(14px);
       }
       .ci-menu.hidden { display: none; }
       .ci-menu-item {
-        width: 100%; display: flex; align-items: center; gap: 8px;
-        border: 0; background: transparent; color: var(--text);
-        padding: 8px 10px; border-radius: 8px; font-size: 12px; cursor: pointer; text-align: left;
-        transition: background 0.12s;
+       width: 100%; display: flex; align-items: center; gap: 8px;
+       border: 0; background: transparent; color: var(--text);
+       padding: 10px 12px; border-radius: 11px; font-size: 12.5px; cursor: pointer; text-align: left;
+       transition: background 0.14s, color 0.14s, transform 0.14s;
+       letter-spacing: 0.01em;
       }
-      .ci-menu-item:hover { background: var(--glass-hover); }
-      .ci-menu-item.danger { color: #dc2626; }
+      .ci-menu-item:hover { background: var(--glass-hover); transform: translateX(1px); }
+      .ci-menu-item.danger { color: #ef4444; }
+      .ci-menu-item.danger:hover { background: rgba(239,68,68,0.12); color: #ef4444; }
 
       /* Floating cloned menu (appended to body) to avoid stacking/overflow issues */
       .floating-ci-menu {
@@ -498,12 +506,108 @@
       .dv-tb { padding: 7px 11px; border-bottom: 1px solid var(--glass-border); display: flex; gap: 6px; font-size: 12px; color: var(--muted); }
       .dv-body { padding: 11px; font-size: 13px; color: var(--text); }
 
+      .think-content {
+        background: var(--surface-soft);
+        border: 1px solid var(--glass-border);
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-size: 13px;
+        color: var(--muted);
+        font-family: 'DM Mono', monospace;
+        white-space: pre-wrap;
+        margin-bottom: 8px;
+        align-self: stretch;
+        width: 100%;
+      }
       .hidden { display: none !important; }
       .error-banner {
         position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
         background: rgba(220,38,38,0.08); border: 1px solid rgba(220,38,38,0.25);
         color: #dc2626; padding: 8px 16px; border-radius: 8px; z-index: 10;
+        transition: opacity 0.3s;
       }
+
+      .confirm-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 12000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        background: rgba(5, 10, 8, 0.42);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+      }
+      .confirm-modal.hidden { display: none; }
+      .confirm-dialog {
+        width: min(100%, 560px);
+        background: var(--surface-strong);
+        border: 1px solid var(--glass-border);
+        border-radius: 22px;
+        box-shadow: 0 30px 80px rgba(0,0,0,0.34);
+        padding: 22px;
+      }
+      .confirm-kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 5px 10px;
+        border-radius: 999px;
+        background: var(--glass-acc);
+        color: var(--acc);
+        border: 1px solid var(--glass-border);
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .confirm-title {
+        margin: 14px 0 8px;
+        font-family: 'Syne', sans-serif;
+        font-size: 20px;
+        line-height: 1.2;
+        color: var(--text);
+      }
+      .confirm-text {
+        margin: 0;
+        font-size: 14px;
+        line-height: 1.6;
+        color: var(--muted);
+      }
+      .confirm-actions {
+        margin-top: 22px;
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+      }
+      .confirm-btn {
+        min-width: 104px;
+        height: 40px;
+        padding: 0 16px;
+        border-radius: 12px;
+        border: 1px solid var(--glass-border);
+        background: var(--surface-soft);
+        color: var(--text);
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: transform 0.14s, background 0.14s, border-color 0.14s, color 0.14s;
+      }
+      .confirm-btn:hover { transform: translateY(-1px); background: var(--glass-hover); }
+      .confirm-btn.primary {
+        background: var(--acc);
+        color: #fff;
+        border-color: transparent;
+        box-shadow: 0 8px 20px rgba(16,185,129,0.2);
+      }
+      .confirm-btn.primary:hover { background: #0ea371; }
+      .confirm-btn.danger {
+        background: rgba(239,68,68,0.12);
+        color: #ef4444;
+        border-color: rgba(239,68,68,0.22);
+      }
+      .confirm-btn.danger:hover { background: rgba(239,68,68,0.18); }
     </style>
 </head>
 <body>
@@ -638,6 +742,18 @@
         </div>
     </div>
 
+    <div class="confirm-modal hidden" id="confirm-modal" aria-hidden="true">
+        <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-text">
+            <div class="confirm-kicker">Confirmation</div>
+            <h2 class="confirm-title" id="confirm-title">Titre</h2>
+            <p class="confirm-text" id="confirm-text"></p>
+            <div class="confirm-actions">
+                <button class="confirm-btn" type="button" id="confirm-cancel">Annuler</button>
+                <button class="confirm-btn primary" type="button" id="confirm-ok">Confirmer</button>
+            </div>
+        </div>
+    </div>
+
     <script src="./vendor/markdown-it.min.js"></script>
     <script>
         let light = true, think = true, ddOpen = false;
@@ -648,14 +764,19 @@
         let selectionMode = false;
         let selectedConversationIds = new Set();
         let attachedFiles = new Map(); // Map<id, File>
+        let thinkingEl = null;
+        let thinkingContent = '';
+        let confirmDialogResolver = null;
         const API = 'http://localhost:8765';
 
         window.addEventListener('DOMContentLoaded', async () => {
             initTheme();
+            setupConfirmDialog();
             await loadUserProfile();
             await loadModels();
             await loadConversations();
             setupFileAttachment();
+            document.body.style.opacity = '1';
         });
 
         async function loadUserProfile() {
@@ -683,6 +804,8 @@
                     initials = initials.toUpperCase() || '??';
                     document.getElementById('user-avatar').textContent = initials;
                     document.getElementById('user-name').textContent = displayName;
+                } else {
+                    window.bissi.nav.goToOnboarding();
                 }
             } catch (e) { console.warn('loadUserProfile failed', e); }
         }
@@ -697,7 +820,8 @@
                         const opt = document.createElement('div');
                         opt.className = 'ms-opt';
                         opt.innerHTML = `<div class="m-dot" style="background:var(--acc)"></div>${model.name}`;
-                        opt.onclick = (e) => { e.stopPropagation(); selectModel(model.name); };
+                        opt.title = 'Modèle actif (sélection fixe)';
+                        opt.style.cursor = 'default';
                         modelsList.appendChild(opt);
                     });
                 }
@@ -709,7 +833,10 @@
 
         async function loadConversations() {
             try {
-                const res = await fetch(`${API}/conversations`);
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 5000);
+                const res = await fetch(`${API}/conversations`, { signal: controller.signal });
+                clearTimeout(timeout);
                 if (res.ok) displayConversations(await res.json());
             } catch (e) {}
         }
@@ -798,7 +925,10 @@
         async function loadConversation(id) {
             currentConversationId = id;
             try {
-                const res = await fetch(`${API}/conversations/${id}/history`);
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 5000);
+                const res = await fetch(`${API}/conversations/${id}/history`, { signal: controller.signal });
+                clearTimeout(timeout);
                 if (res.ok) { renderHistory(await res.json()); showChat(); }
             } catch (e) {}
         }
@@ -923,7 +1053,12 @@
         async function bulkDeleteSelected() {
             const ids = Array.from(selectedConversationIds);
             if (!ids.length) return;
-            const ok = confirm('Supprimer les conversations sélectionnées ? Cette action supprimera définitivement toutes les conversations et tous leurs messages.');
+            const ok = await showConfirmDialog({
+                title: 'Supprimer les conversations ?',
+                message: 'Cette action supprimera définitivement toutes les conversations sélectionnées et tous leurs messages.',
+                confirmLabel: 'Supprimer',
+                tone: 'danger',
+            });
             if (!ok) return;
             try {
                 await Promise.all(ids.map(async id => {
@@ -983,7 +1118,12 @@
         }
 
         async function deleteConversation(id) {
-            const ok = confirm('Supprimer la conversation ? Cette action supprimera définitivement la conversation et tous ses messages.');
+            const ok = await showConfirmDialog({
+                title: 'Supprimer la conversation ?',
+                message: 'Cette action supprimera définitivement la conversation et tous ses messages.',
+                confirmLabel: 'Supprimer',
+                tone: 'danger',
+            });
             if (!ok) return;
             try {
                 const res = await fetch(`${API}/conversations/${id}`, { method: 'DELETE' });
@@ -1053,8 +1193,71 @@
                 applyTheme(themePreference);
             }
         }
+        function showErrorBanner(message) {
+            const banner = document.getElementById('error-banner');
+            if (!banner) return;
+            banner.textContent = message;
+            banner.classList.remove('hidden');
+            banner.style.opacity = '1';
+            clearTimeout(banner._timeout);
+            banner._timeout = setTimeout(() => { banner.style.opacity = '0'; setTimeout(() => banner.classList.add('hidden'), 300); }, 8000);
+        }
+
+        function setupConfirmDialog() {
+            const modal = document.getElementById('confirm-modal');
+            const ok = document.getElementById('confirm-ok');
+            const cancel = document.getElementById('confirm-cancel');
+            if (!modal || !ok || !cancel) return;
+
+            const close = (value) => {
+                modal.classList.add('hidden');
+                modal.setAttribute('aria-hidden', 'true');
+                document.body.style.overflow = '';
+                if (confirmDialogResolver) {
+                    const resolve = confirmDialogResolver;
+                    confirmDialogResolver = null;
+                    resolve(value);
+                }
+            };
+
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) close(false);
+            });
+            cancel.addEventListener('click', () => close(false));
+            ok.addEventListener('click', () => close(true));
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && !modal.classList.contains('hidden')) close(false);
+            });
+
+            modal._closeConfirm = close;
+        }
+
+        function showConfirmDialog({ title, message, confirmLabel = 'Confirmer', tone = 'primary' }) {
+            const modal = document.getElementById('confirm-modal');
+            const titleEl = document.getElementById('confirm-title');
+            const textEl = document.getElementById('confirm-text');
+            const ok = document.getElementById('confirm-ok');
+            if (!modal || !titleEl || !textEl || !ok) return Promise.resolve(false);
+
+            titleEl.textContent = title;
+            textEl.textContent = message;
+            ok.textContent = confirmLabel;
+            ok.classList.toggle('danger', tone === 'danger');
+            ok.classList.toggle('primary', tone !== 'danger');
+            modal.classList.remove('hidden');
+            modal.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+            return new Promise(resolve => {
+                confirmDialogResolver = resolve;
+            });
+        }
+
         function toggleSidebar() { document.querySelector('.sb').classList.toggle('collapsed'); }
-        function toggleThink() { think = !think; document.getElementById('tgl').classList.toggle('off', !think); }
+        function toggleThink() {
+            think = !think;
+            document.getElementById('tgl').classList.toggle('off', !think);
+            if (thinkingEl) thinkingEl.style.display = think ? '' : 'none';
+        }
         function toggleDD() { ddOpen = !ddOpen; document.getElementById('ms-dd').classList.toggle('hidden', !ddOpen); }
 
         // File attachment system
@@ -1136,7 +1339,7 @@
                 }
             }
         });
-        function selectModel(name) { document.getElementById('ms-name').textContent = name; toggleDD(); }
+        function selectModel(name) { toggleDD(); }
 
         function newChat() { currentConversationId = null; document.getElementById('messages-container').innerHTML = ''; exitSelectionMode(); showEmpty(); closeCanvas(); }
         function showEmpty() { document.getElementById('empty').classList.remove('hidden'); document.getElementById('chat').classList.add('hidden'); }
@@ -1152,6 +1355,9 @@
             input.style.height = 'auto';
             showChat();
             isStreaming = true;
+            thinkingEl = null;
+            thinkingContent = '';
+            let pendingToolTraces = [];
             let assistantMsgEl = null;
             let accumulatedText = '';
             try {
@@ -1165,10 +1371,14 @@
                     formData.append('files', file);
                 }
                 
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 15000);
                 const res = await fetch(`${API}/chat`, { 
                     method: 'POST', 
-                    body: formData 
+                    body: formData,
+                    signal: controller.signal
                 });
+                clearTimeout(timeout);
                 const reader = res.body.getReader();
                 const decoder = new TextDecoder();
                 let buffer = '';
@@ -1187,6 +1397,37 @@
                                 if (!assistantMsgEl) assistantMsgEl = createAssistantMsgEl('');
                                 assistantMsgEl.querySelector('.md').innerHTML = renderAssistantText(accumulatedText);
                                 assistantMsgEl.scrollIntoView();
+                            } else if (data.type === 'thinking' && data.content) {
+                                thinkingContent += data.content;
+                                if (!thinkingEl) {
+                                    thinkingEl = document.createElement('div');
+                                    thinkingEl.className = 'think-content';
+                                    if (!think) thinkingEl.style.display = 'none';
+                                    const container = document.getElementById('messages-container');
+                                    container.appendChild(thinkingEl);
+                                }
+                                thinkingEl.textContent = thinkingContent;
+                                thinkingEl.scrollIntoView();
+                            } else if (data.type === 'tool_start' && data.name) {
+                                const el = document.createElement('div');
+                                el.className = 'tool-t';
+                                el.innerHTML = `<span class="t-verb">${data.name}</span> <span>⏳</span>`;
+                                const container = document.getElementById('messages-container');
+                                container.appendChild(el);
+                                pendingToolTraces.push(el);
+                                el.scrollIntoView();
+                            } else if (data.type === 'tool_done') {
+                                const el = pendingToolTraces.shift();
+                                if (el) {
+                                    let ok = false;
+                                    try {
+                                        const r = JSON.parse(data.result || '{}');
+                                        ok = r && r.success;
+                                    } catch (e) {}
+                                    el.innerHTML = `<span class="t-verb">${ok ? '✅' : '❌'} ${data.name}</span>`;
+                                }
+                            } else if (data.type === 'error') {
+                                showErrorBanner(data.message || 'Une erreur est survenue');
                             } else if (data.type === 'done') {
                                 currentConversationId = data.conversation_id || currentConversationId;
                                 attachedFiles.clear();

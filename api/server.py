@@ -90,7 +90,8 @@ async def _chat_stream(
 
     async def _watch_task() -> None:
         try:
-            full_response = await asyncio.wait_for(task, timeout=120)
+            timeout_seconds = DEFAULT_CONFIG.llama_cpp.timeout_seconds
+            full_response = await asyncio.wait_for(task, timeout=timeout_seconds)
             _send_event(
                 {
                     "type": "done",
@@ -100,7 +101,8 @@ async def _chat_stream(
             )
         except asyncio.TimeoutError:
             logger.exception("chat_timeout")
-            _send_event({"type": "error", "message": "Chat timeout after 120 seconds"})
+            timeout_seconds = DEFAULT_CONFIG.llama_cpp.timeout_seconds
+            _send_event({"type": "error", "message": f"Chat timeout after {timeout_seconds} seconds"})
         except Exception as exc:
             logger.exception("chat_failed")
             _send_event({"type": "error", "message": str(exc)})

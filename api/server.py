@@ -72,11 +72,23 @@ async def _chat_stream(
         _send_event({"type": "thinking", "content": content})
 
     def _run_agent() -> str:
-        # Log attached files if any
+        enriched_message = message
         if files:
             logger.info(f"Processing {len(files)} attached file(s)")
+            file_contexts = []
+            for f in files:
+                try:
+                    content = f.file.read().decode("utf-8", errors="replace")
+                    preview = content[:3000]
+                    if len(content) > 3000:
+                        preview += f"\n... [tronqué — {len(content)} caractères au total]"
+                    file_contexts.append(f"[Fichier joint : {f.filename}]\n{preview}")
+                except Exception as exc:
+                    logger.warning(f"Could not read file {f.filename}: {exc}")
+            if file_contexts:
+                enriched_message = "\n\n".join(file_contexts) + "\n\n" + message
         return agent.process_request(
-            user_input=message,
+            user_input=enriched_message,
             max_iterations=DEFAULT_CONFIG.agent.max_iterations,
             on_chunk=on_chunk,
             on_tool_start=on_tool_start,

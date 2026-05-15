@@ -481,6 +481,14 @@
         color: var(--muted); transition: background 0.12s;
       }
       .in-ic:hover { background: var(--acc-light); color: var(--acc); }
+      .in-ic.voice-active {
+        background: #ff3b3b22; border-color: #ff3b3b66; color: #ff4444;
+        animation: voice-pulse 1s ease-in-out infinite;
+      }
+      @keyframes voice-pulse {
+        0%, 100% { box-shadow: 0 0 0 0 #ff3b3b44; }
+        50% { box-shadow: 0 0 0 5px #ff3b3b00; }
+      }
       .send-btn {
         width: 32px; height: 32px; border-radius: 12px;
         background: var(--acc); border: none; cursor: pointer;
@@ -757,6 +765,9 @@
     </div>
 
     <script src="./vendor/markdown-it.min.js"></script>
+    <script src="./vendor/mammoth.browser.min.js"></script>
+    <script src="./vendor/xlsx.full.min.js"></script>
+    <script src="./vendor/highlight.min.js"></script>
     <script>
         let light = true, think = true, ddOpen = false;
         let currentConversationId = null;
@@ -779,6 +790,7 @@
             await loadModels();
             await loadConversations();
             setupFileAttachment();
+            setupVoiceInput();
             document.body.style.opacity = '1';
         });
 
@@ -1321,6 +1333,72 @@
             });
         }
         
+        // ─── Voice Input ────────────────────────────────────────────────────────
+        let voiceRecognition = null;
+        let voiceActive = false;
+
+        function setupVoiceInput() {
+            const btn = document.getElementById('voice-btn');
+            if (!btn) return;
+
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                btn.title = 'Dictée vocale non supportée par ce navigateur';
+                btn.style.opacity = '0.4';
+                btn.style.cursor = 'not-allowed';
+                return;
+            }
+
+            voiceRecognition = new SpeechRecognition();
+            voiceRecognition.lang = 'fr-FR';
+            voiceRecognition.interimResults = true;
+            voiceRecognition.maxAlternatives = 1;
+            voiceRecognition.continuous = false;
+
+            let interimStart = -1;
+            const input = document.getElementById('message-input');
+
+            voiceRecognition.onstart = () => {
+                voiceActive = true;
+                btn.classList.add('voice-active');
+                btn.title = 'Enregistrement… (clic pour arrêter)';
+                interimStart = input.value.length;
+            };
+
+            voiceRecognition.onresult = (e) => {
+                const transcript = Array.from(e.results)
+                    .map(r => r[0].transcript)
+                    .join('');
+                // Replace interim text in-place
+                const base = input.value.slice(0, interimStart);
+                input.value = base + transcript;
+                input.dispatchEvent(new Event('input'));
+            };
+
+            voiceRecognition.onend = () => {
+                voiceActive = false;
+                btn.classList.remove('voice-active');
+                btn.title = 'Dictée vocale';
+            };
+
+            voiceRecognition.onerror = (e) => {
+                voiceActive = false;
+                btn.classList.remove('voice-active');
+                btn.title = 'Dictée vocale';
+                if (e.error !== 'aborted' && e.error !== 'no-speech') {
+                    console.warn('Voice error:', e.error);
+                }
+            };
+
+            btn.addEventListener('click', () => {
+                if (voiceActive) {
+                    voiceRecognition.stop();
+                } else {
+                    try { voiceRecognition.start(); } catch(err) { console.warn(err); }
+                }
+            });
+        }
+
         function openFilePicker() {
             const input = document.createElement('input');
             input.type = 'file';
@@ -1331,11 +1409,14 @@
         }
         
         function addFiles(files) {
+            let firstDoc = null;
             for (let file of files) {
                 const id = `file-${Date.now()}-${Math.random()}`;
                 attachedFiles.set(id, file);
                 renderAttachedFile(id, file);
+                if (!firstDoc) firstDoc = file;
             }
+            if (firstDoc) loadFileInCanvas(firstDoc);
         }
         
         function renderAttachedFile(id, file) {
@@ -1511,12 +1592,116 @@
             return source.replace(/\n/g, '<br>');
         }
 
-        function openCanvas(tab) { document.getElementById('canvas').classList.add('open'); }
+        function openCanvas(tab) {
+            document.getElementById('canvas').classList.add('open');
+            if (tab) swTab(tab);
+        }
         function closeCanvas() { document.getElementById('canvas').classList.remove('open'); }
         function swTab(name) {
             const idx = ['doc', 'tbl', 'code'].indexOf(name);
             document.querySelectorAll('.cv-tab').forEach((t, i) => t.classList.toggle('on', i === idx));
             ['td', 'tt', 'tc'].forEach((id, i) => document.getElementById(id).classList.toggle('hidden', i !== idx));
+        }
+
+        // ── CANVAS : chargement de fichiers ──────────────────────────────
+        async function loadFileInCanvas(file) {
+            const ext = file.name.split('.').pop().toLowerCase();
+            document.getElementById('canvas-filename').textContent = file.name;
+
+            const buf = await file.arrayBuffer();
+
+            // Word (.docx)
+            if (ext === 'docx' || ext === 'doc') {
+                openCanvas('doc');
+                document.getElementById('doc-content').innerHTML = '<em>Chargement...</em>';
+                try {
+                    const result = await mammoth.convertToHtml({ arrayBuffer: buf });
+                    document.getElementById('doc-content').innerHTML = result.value || '<em>Document vide</em>';
+                } catch(e) {
+                    document.getElementById('doc-content').innerHTML = `<em>Erreur : ${e.message}</em>`;
+                }
+                return;
+            }
+
+            // Excel (.xlsx / .xls / .csv)
+            if (['xlsx','xls','csv'].includes(ext)) {
+                openCanvas('tbl');
+                try {
+                    const wb = XLSX.read(buf, { type: 'array' });
+                    const ws = wb.Sheets[wb.SheetNames[0]];
+                    const html = XLSX.utils.sheet_to_html(ws, { id: 'data-table' });
+                    document.querySelector('#tt .dv-body').innerHTML = html;
+                    document.getElementById('data-table').style.cssText =
+                        'width:100%;border-collapse:collapse;font-size:12px';
+                    document.querySelectorAll('#data-table td,#data-table th').forEach(td => {
+                        td.style.cssText = 'border:1px solid var(--glass-border);padding:4px 8px';
+                    });
+                } catch(e) {
+                    document.querySelector('#tt .dv-body').innerHTML = `<em>Erreur : ${e.message}</em>`;
+                }
+                return;
+            }
+
+            // PDF
+            if (ext === 'pdf') {
+                openCanvas('doc');
+                const docContent = document.getElementById('doc-content');
+                docContent.innerHTML = '<em>Rendu PDF...</em>';
+                try {
+                    const pdfjsLib = window['pdfjs-dist/build/pdf'];
+                    if (pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = './vendor/pdfjs-dist/build/pdf.worker.min.js';
+                    const lib = pdfjsLib || window.pdfjsLib;
+                    if (!lib) { docContent.innerHTML = '<em>pdfjs non disponible</em>'; return; }
+                    const pdf = await lib.getDocument({ data: new Uint8Array(buf) }).promise;
+                    docContent.innerHTML = '';
+                    const maxPages = Math.min(pdf.numPages, 5);
+                    for (let i = 1; i <= maxPages; i++) {
+                        const page = await pdf.getPage(i);
+                        const vp = page.getViewport({ scale: 1.2 });
+                        const canvas = document.createElement('canvas');
+                        canvas.width = vp.width; canvas.height = vp.height;
+                        canvas.style.cssText = 'width:100%;margin-bottom:8px;border-radius:4px';
+                        docContent.appendChild(canvas);
+                        await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+                    }
+                    if (pdf.numPages > 5) {
+                        const note = document.createElement('div');
+                        note.style.cssText = 'font-size:11px;color:var(--muted);padding:4px';
+                        note.textContent = `… et ${pdf.numPages - 5} page(s) de plus`;
+                        docContent.appendChild(note);
+                    }
+                } catch(e) {
+                    docContent.innerHTML = `<em>Erreur PDF : ${e.message}</em>`;
+                }
+                return;
+            }
+
+            // Code / texte
+            const codeExts = ['py','js','ts','json','md','txt','sh','yaml','yml','html','css','java','c','cpp','rs'];
+            if (codeExts.includes(ext)) {
+                openCanvas('code');
+                try {
+                    const text = new TextDecoder().decode(buf);
+                    const codeEl = document.getElementById('code-content');
+                    if (window.hljs) {
+                        const highlighted = hljs.highlight(text, { language: ext === 'py' ? 'python' : ext, ignoreIllegals: true });
+                        codeEl.innerHTML = `<pre><code class="hljs">${highlighted.value}</code></pre>`;
+                    } else {
+                        codeEl.textContent = text;
+                    }
+                } catch(e) {
+                    document.getElementById('code-content').textContent = new TextDecoder().decode(buf);
+                }
+                return;
+            }
+
+            // Fallback : texte brut
+            openCanvas('doc');
+            try {
+                document.getElementById('doc-content').textContent = new TextDecoder().decode(buf);
+            } catch(e) {
+                document.getElementById('doc-content').innerHTML = '<em>Aperçu non disponible</em>';
+            }
         }
     </script>
 </body>

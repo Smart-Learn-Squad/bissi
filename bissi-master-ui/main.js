@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, session } = require('electron');
 const path = require('path');
 const fs = require('fs').promises;
 const os = require('os');
@@ -7,6 +7,15 @@ const os = require('os');
 let mainWindow;
 
 function createWindow() {
+  // Grant microphone permission automatically for voice input
+  session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
+    if (permission === 'media' || permission === 'microphone' || permission === 'audioCapture') {
+      callback(true);
+    } else {
+      callback(false);
+    }
+  });
+
   // Create the browser window
   mainWindow = new BrowserWindow({
     width: 1280,

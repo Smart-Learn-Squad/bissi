@@ -103,7 +103,7 @@ echo "  Ne fermez pas ce terminal."
 echo ""
 
 mkdir -p models
-if huggingface-cli download unsloth/gemma-4-E2B-it-GGUF \
+if hf download unsloth/gemma-4-E2B-it-GGUF \
   gemma-4-E2B-it-Q4_K_M.gguf \
   --local-dir ./models \
   --local-dir-use-symlinks False; then

@@ -7,7 +7,8 @@ contextBridge.exposeInMainWorld('bissi', {
     load: () => ipcRenderer.invoke('profile:load')
   },
   nav: {
-    goToChat: () => ipcRenderer.invoke('nav:goToChat')
+    goToChat: () => ipcRenderer.invoke('nav:goToChat'),
+    goToOnboarding: () => ipcRenderer.invoke('nav:goToOnboarding')
   },
   models: {
     list: () => ipcRenderer.invoke('models:list')

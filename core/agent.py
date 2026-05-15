@@ -45,6 +45,15 @@ Tu dois prioriser des actions concrètes via tools, avec réponses claires et fi
         "dans un bloc <think>...</think> avant d'agir."
     )
 
+    TITLE_PROMPT = (
+        "Tu dois proposer un titre court pour une conversation.\n"
+        "Regles:\n"
+        "- 2 à 6 mots maximum\n"
+        "- pas de guillemets, pas de point final, pas de liste\n"
+        "- pas de phrase complète\n"
+        "- restitue seulement le titre\n"
+    )
+
     def __init__(
         self,
         model: Optional[str] = None,
@@ -107,6 +116,7 @@ Tu dois prioriser des actions concrètes via tools, avec réponses claires et fi
         on_tool_start: Optional[Callable[[str, Any], None]] = None,
         on_tool_done: Optional[Callable[[str, str], None]] = None,
         on_thinking: Optional[Callable[[str], None]] = None,
+        thinking_enabled: bool = True,
         should_stop: Optional[Callable[[], bool]] = None,
     ) -> str:
         """Process one user request through all mandatory orchestration phases."""
@@ -121,6 +131,7 @@ Tu dois prioriser des actions concrètes via tools, avec réponses claires et fi
                 on_tool_start=on_tool_start,
                 on_tool_done=on_tool_done,
                 on_thinking=on_thinking,
+                thinking_enabled=thinking_enabled,
                 should_stop=should_stop,
             )
         finally:
@@ -134,6 +145,7 @@ Tu dois prioriser des actions concrètes via tools, avec réponses claires et fi
         on_tool_start: Optional[Callable[[str, Any], None]],
         on_tool_done: Optional[Callable[[str, str], None]],
         on_thinking: Optional[Callable[[str], None]],
+        thinking_enabled: bool,
         should_stop: Optional[Callable[[], bool]],
     ) -> str:
         """Execute phases 0..4 for one message."""
@@ -163,6 +175,7 @@ Tu dois prioriser des actions concrètes via tools, avec réponses claires et fi
             if on_chunk:
                 on_chunk(final_response)
             self.conversation_store.save_message(self.current_conversation_id, "assistant", final_response)
+            self._maybe_autotitle_conversation(user_input, final_response)
             return final_response
 
         if self.current_conversation_id is None:
@@ -171,6 +184,7 @@ Tu dois prioriser des actions concrètes via tools, avec réponses claires et fi
         self.conversation_store.save_message(self.current_conversation_id, "user", user_input)
         history = self.conversation_store.get_history(self.current_conversation_id, limit=6)
         messages = self._build_messages(history)
+        messages = self._build_thinking_messages(messages, enabled=thinking_enabled and on_thinking is not None)
 
         tool_results_log: List[str] = []
         final_response = ""
@@ -180,7 +194,7 @@ Tu dois prioriser des actions concrètes via tools, avec réponses claires et fi
                 return ""
 
             messages = self.context_manager.maybe_compress(messages)
-            final_response, tool_calls = self._call_llm(messages, on_chunk, on_thinking)
+            final_response, tool_calls = self._call_llm(messages, on_chunk, on_thinking if thinking_enabled else None)
 
             if not tool_calls:
                 break
@@ -252,7 +266,7 @@ Tu dois prioriser des actions concrètes via tools, avec réponses claires et fi
                     ),
                 }
             ]
-            retry_response, retry_tool_calls = self._call_llm(retry_messages, on_chunk, on_thinking)
+            retry_response, retry_tool_calls = self._call_llm(retry_messages, on_chunk, on_thinking if thinking_enabled else None)
             if retry_tool_calls:
                 retry_response = self._fallback_synthesis(retry_messages, tool_results_log)
                 if on_chunk and retry_response:
@@ -353,17 +367,26 @@ Tu dois prioriser des actions concrètes via tools, avec réponses claires et fi
                         if in_think:
                             end_match = close_think.search(buffer)
                             if end_match:
-                                thinking_buffer += buffer[: end_match.start()]
-                                thought = thinking_buffer.strip()
-                                if on_thinking and thought:
-                                    on_thinking(thought)
+                                chunk_text = buffer[: end_match.start()]
+                                if chunk_text:
+                                    thinking_buffer += chunk_text
+                                    if on_thinking:
+                                        on_thinking(chunk_text)
                                 thinking_buffer = ""
                                 buffer = buffer[end_match.end() :]
                                 in_think = False
                                 continue
 
-                            thinking_buffer += buffer
-                            buffer = ""
+                            keep_len = len("</think>") - 1
+                            safe_len = max(0, len(buffer) - keep_len)
+                            if safe_len:
+                                chunk_text = buffer[:safe_len]
+                                thinking_buffer += chunk_text
+                                if on_thinking:
+                                    on_thinking(chunk_text)
+                                buffer = buffer[safe_len:]
+                            else:
+                                break
                             break
 
                         start_match = open_think.search(buffer)
@@ -476,6 +499,64 @@ Tu dois prioriser des actions concrètes via tools, avec réponses claires et fi
                 continue
             messages.append({"role": role, "content": content})
         return messages
+
+    def _build_thinking_messages(self, messages: List[Dict[str, Any]], enabled: bool) -> List[Dict[str, Any]]:
+        """Optionally inject a short thinking instruction before the first user turn."""
+        if not enabled:
+            return messages
+        thinking_prompt = self.THINKING_PROMPT.strip()
+        if any(
+            msg.get("role") == "system" and thinking_prompt in str(msg.get("content", ""))
+            for msg in messages
+        ):
+            return messages
+        if messages and messages[0].get("role") == "system":
+            head = dict(messages[0])
+            head["content"] = f"{head.get('content', '').rstrip()}\n\n{thinking_prompt}"
+            return [head, *messages[1:]]
+        return [{"role": "system", "content": f"{self.system_prompt}\n\n{thinking_prompt}"}, *messages]
+
+    def _maybe_autotitle_conversation(self, user_input: str, assistant_response: str) -> None:
+        """Ask the model for a short title once, without overwriting user-renamed threads."""
+        if self.current_conversation_id is None:
+            return
+
+        current_title = self.conversation_store.get_conversation_title(self.current_conversation_id)
+        if not self._is_default_title(current_title):
+            return
+
+        prompt = (
+            f"Message utilisateur: {user_input.strip()}\n"
+            f"Réponse assistant: {assistant_response.strip()}"
+        )
+        try:
+            chunks = self.engine.chat(
+                messages=[
+                    {"role": "system", "content": self.TITLE_PROMPT},
+                    {"role": "user", "content": prompt},
+                ],
+                tools=None,
+                stream=False,
+            )
+            raw_title = ""
+            for chunk in chunks:
+                raw_title += chunk.get("message", {}).get("content", "")
+            title = self._sanitize_conversation_title(raw_title)
+            if title:
+                self.conversation_store.update_conversation_title(self.current_conversation_id, title)
+        except BissiEngineError:
+            logger.exception("auto_title_failed")
+
+    @staticmethod
+    def _is_default_title(title: Optional[str]) -> bool:
+        return bool(title) and title.startswith("Conversation ")
+
+    @staticmethod
+    def _sanitize_conversation_title(raw: str) -> str:
+        title = " ".join(raw.split()).strip().strip('"').strip("'")
+        title = re.sub(r"^[\-\*\d\.\s]+", "", title)
+        title = title[:64].strip()
+        return title if 2 <= len(title) <= 64 else ""
 
     @staticmethod
     def _extract_think_block(raw: str) -> str:

@@ -43,7 +43,12 @@ class ConversationTitleRequest(BaseModel):
     title: str
 
 
-async def _chat_stream(message: str, conversation_id: Optional[int] = None, files: Optional[List] = None) -> AsyncGenerator[str, None]:
+async def _chat_stream(
+    message: str,
+    conversation_id: Optional[int] = None,
+    files: Optional[List] = None,
+    thinking_enabled: bool = True,
+) -> AsyncGenerator[str, None]:
     """Run agent in worker thread and stream SSE events."""
     loop = asyncio.get_running_loop()
     queue: asyncio.Queue[Dict[str, Any]] = asyncio.Queue()
@@ -76,7 +81,8 @@ async def _chat_stream(message: str, conversation_id: Optional[int] = None, file
             on_chunk=on_chunk,
             on_tool_start=on_tool_start,
             on_tool_done=on_tool_done,
-            on_thinking=on_thinking,
+            on_thinking=on_thinking if thinking_enabled else None,
+            thinking_enabled=thinking_enabled,
             should_stop=lambda: False,
         )
 
@@ -116,11 +122,12 @@ async def _chat_stream(message: str, conversation_id: Optional[int] = None, file
 async def chat(
     message: str = Form(...),
     conversation_id: Optional[int] = Form(None),
-    files: List[UploadFile] = File(default=[])
+    files: List[UploadFile] = File(default=[]),
+    thinking: bool = Form(True),
 ) -> StreamingResponse:
     """Stream chat events back to Electron as SSE. Accepts message + optional files."""
     try:
-        generator = _chat_stream(message, conversation_id, files)
+        generator = _chat_stream(message, conversation_id, files, thinking_enabled=thinking)
         return StreamingResponse(generator, media_type="text/event-stream")
     except Exception as exc:
         logger.exception("chat_endpoint_error")

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import os
@@ -28,6 +29,13 @@ logger = logging.getLogger(__name__)
 
 class BissiAgent:
     """Run BISSI tool-calling loop with deterministic safety phases."""
+
+    LITERAL_TOOL_CALL_START = "<|tool_call>"
+    LITERAL_TOOL_CALL_END = "<tool_call|>"
+    LITERAL_TOOL_CALL_RE = re.compile(
+        r"<\|tool_call\>\s*call:(?P<name>[\w_]+)\{(?P<args>.*?)\}\s*<tool_call\|>",
+        re.DOTALL,
+    )
 
     DEFAULT_SYSTEM_PROMPT = """Tu es BISSI, un assistant local-first orienté exécution.
 Tu dois prioriser des actions concrètes via tools, avec réponses claires et fiables."""
@@ -183,6 +191,12 @@ Tu dois prioriser des actions concrètes via tools, avec réponses claires et fi
                 "tool_calls": self._normalize_tool_calls(tool_calls, iteration),
             }
             messages.append(assistant_msg)
+            self.conversation_store.save_message(
+                self.current_conversation_id,
+                "assistant",
+                final_response,
+                metadata={"tool_calls": assistant_msg["tool_calls"]},
+            )
 
             for tool_call in tool_calls:
                 if should_stop and should_stop():
@@ -208,7 +222,7 @@ Tu dois prioriser des actions concrètes via tools, avec réponses claires et fi
                 messages.append(
                     {
                         "role": "tool",
-                        "tool_name": tool_name,
+                        "name": tool_name,
                         "tool_call_id": tool_call.get("id", f"call_{iteration}"),
                         "content": result_text,
                     }
@@ -216,8 +230,11 @@ Tu dois prioriser des actions concrètes via tools, avec réponses claires et fi
                 self.conversation_store.save_message(
                     self.current_conversation_id,
                     "tool",
-                    f"[{tool_name}] {result_text}",
-                    metadata={"tool_name": tool_name},
+                    result_text,
+                    metadata={
+                        "tool_name": tool_name,
+                        "tool_call_id": tool_call.get("id", f"call_{iteration}"),
+                    },
                 )
 
         if tool_calls:
@@ -309,6 +326,30 @@ Tu dois prioriser des actions concrètes via tools, avec réponses claires et fi
                 if content:
                     buffer += content
                     while buffer:
+                        literal_tool_start = buffer.find(self.LITERAL_TOOL_CALL_START)
+                        literal_tool_end = buffer.find(self.LITERAL_TOOL_CALL_END)
+
+                        if literal_tool_start != -1 and literal_tool_end != -1 and literal_tool_end < literal_tool_start:
+                            literal_tool_start = -1
+
+                        if literal_tool_start != -1:
+                            prefix = buffer[:literal_tool_start]
+                            if prefix:
+                                final_text += prefix
+                                if on_chunk:
+                                    on_chunk(prefix)
+
+                            if literal_tool_end == -1:
+                                buffer = buffer[literal_tool_start:]
+                                break
+
+                            literal_block = buffer[literal_tool_start : literal_tool_end + len(self.LITERAL_TOOL_CALL_END)]
+                            parsed_call = self._parse_literal_tool_call(literal_block)
+                            if parsed_call is not None:
+                                collected_tool_calls.append(parsed_call)
+                            buffer = buffer[literal_tool_end + len(self.LITERAL_TOOL_CALL_END) :]
+                            continue
+
                         if in_think:
                             end_match = close_think.search(buffer)
                             if end_match:
@@ -336,7 +377,13 @@ Tu dois prioriser des actions concrètes via tools, avec réponses claires et fi
                             in_think = True
                             continue
 
-                        safe_len = max(0, len(buffer) - (len("<think>") - 1))
+                        keep_len = max(
+                            len(self.LITERAL_TOOL_CALL_START) - 1,
+                            len(self.LITERAL_TOOL_CALL_END) - 1,
+                            len("<think>") - 1,
+                            len("</think>") - 1,
+                        )
+                        safe_len = max(0, len(buffer) - keep_len)
                         if safe_len:
                             chunk_text = buffer[:safe_len]
                             final_text += chunk_text
@@ -403,7 +450,31 @@ Tu dois prioriser des actions concrètes via tools, avec réponses claires et fi
             role = message.get("role")
             if role not in {"user", "assistant", "tool", "system"}:
                 continue
-            messages.append({"role": role, "content": message.get("content", "")})
+            content = message.get("content", "")
+            metadata = message.get("metadata") or {}
+            if role == "assistant" and metadata.get("tool_calls"):
+                messages.append(
+                    {
+                        "role": "assistant",
+                        "content": content,
+                        "tool_calls": metadata["tool_calls"],
+                    }
+                )
+                continue
+            if role == "tool":
+                tool_call_id = metadata.get("tool_call_id")
+                tool_name = metadata.get("tool_name")
+                tool_content = content
+                if tool_name and tool_content.startswith(f"[{tool_name}] "):
+                    tool_content = tool_content[len(tool_name) + 3 :]
+                tool_message: Dict[str, Any] = {"role": "tool", "content": tool_content}
+                if tool_call_id:
+                    tool_message["tool_call_id"] = tool_call_id
+                if tool_name:
+                    tool_message["name"] = tool_name
+                messages.append(tool_message)
+                continue
+            messages.append({"role": role, "content": content})
         return messages
 
     @staticmethod
@@ -437,15 +508,118 @@ Tu dois prioriser des actions concrètes via tools, avec réponses claires et fi
                 args = {}
         return {"id": getattr(call, "id", "call"), "function": {"name": name, "arguments": args}}
 
+    def _parse_literal_tool_call(self, raw: str) -> Optional[Dict[str, Any]]:
+        """Parse a literal <|tool_call>...<tool_call|> block into canonical tool-call data."""
+        match = self.LITERAL_TOOL_CALL_RE.search(raw)
+        if not match:
+            return None
+        name = match.group("name").strip()
+        args_raw = match.group("args").strip()
+        return {
+            "id": f"literal_{hashlib.sha1(raw.encode('utf-8')).hexdigest()[:12]}",
+            "function": {
+                "name": name,
+                "arguments": self._parse_literal_tool_arguments(args_raw),
+            },
+        }
+
+    @staticmethod
+    def _parse_literal_tool_arguments(raw_args: str) -> Dict[str, Any]:
+        """Parse pseudo-JSON tool arguments emitted in literal tool-call text."""
+        if not raw_args:
+            return {}
+
+        raw_args = raw_args.replace('<|"|>', '"').replace("<|'|>", "'")
+
+        def split_pairs(text: str) -> List[str]:
+            parts: List[str] = []
+            buf = ""
+            depth = 0
+            quote: Optional[str] = None
+            escape = False
+            for ch in text:
+                if escape:
+                    buf += ch
+                    escape = False
+                    continue
+                if ch == "\\":
+                    buf += ch
+                    escape = True
+                    continue
+                if quote:
+                    buf += ch
+                    if ch == quote:
+                        quote = None
+                    continue
+                if ch in ("'", '"'):
+                    buf += ch
+                    quote = ch
+                    continue
+                if ch in "{[(":
+                    depth += 1
+                elif ch in "}])" and depth > 0:
+                    depth -= 1
+                if ch == "," and depth == 0:
+                    piece = buf.strip()
+                    if piece:
+                        parts.append(piece)
+                    buf = ""
+                else:
+                    buf += ch
+            piece = buf.strip()
+            if piece:
+                parts.append(piece)
+            return parts
+
+        def coerce_value(value: str) -> Any:
+            value = value.strip()
+            if not value:
+                return ""
+            if value[0] in "{[\"'":
+                try:
+                    return json.loads(value)
+                except Exception:
+                    pass
+            lowered = value.lower()
+            if lowered in {"true", "false"}:
+                return lowered == "true"
+            if lowered == "null":
+                return None
+            try:
+                return int(value)
+            except ValueError:
+                try:
+                    return float(value)
+                except ValueError:
+                    return value.strip("\"'")
+
+        arguments: Dict[str, Any] = {}
+        for pair in split_pairs(raw_args):
+            if ":" in pair:
+                key, value = pair.split(":", 1)
+            elif "=" in pair:
+                key, value = pair.split("=", 1)
+            else:
+                continue
+            key = key.strip().strip("\"'")
+            if not key:
+                continue
+            arguments[key] = coerce_value(value)
+        return arguments
+
     def _normalize_tool_calls(self, tool_calls: List[Dict[str, Any]], iteration: int) -> List[Dict[str, Any]]:
         """Format tool calls for persistence in assistant metadata."""
         normalized = []
         for i, call in enumerate(tool_calls):
+            function = call.get("function", {})
             normalized.append(
                 {
                     "id": call.get("id", f"call_{iteration}_{i}"),
                     "type": "function",
-                    "function": call.get("function", {}),
+                    "function": {
+                        "name": function.get("name", ""),
+                        "arguments": json.dumps(function.get("arguments", {}), ensure_ascii=False),
+                    },
                 }
             )
         return normalized

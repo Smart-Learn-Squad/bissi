@@ -38,8 +38,11 @@ curl -fsSL https://raw.githubusercontent.com/Smart-Learn-Squad/bissi/main/instal
 ```
 
 ### Windows
+
 ```powershell
-iwr https://raw.githubusercontent.com/Smart-Learn-Squad/bissi/main/install.bat -OutFile "$env:TEMP\bissi_install.bat"; cmd /c "$env:TEMP\bissi_install.bat"
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+irm https://raw.githubusercontent.com/Smart-Learn-Squad/bissi/main/install.ps1 | iex
 ```
 
 **L'installation automatique inclut :**

@@ -151,9 +151,11 @@ Write-Host "  OK Virtualenv active" -ForegroundColor Green
 Write-Host ""
 Write-Host "[ 4/8 ] Installation de huggingface-cli..." -ForegroundColor White
 
-pip install huggingface-hub -q
+pip install huggingface-hub -q --timeout 120 --retries 5
 if ($LASTEXITCODE -ne 0) {
     Write-Host "  X Echec de l'installation de huggingface-hub" -ForegroundColor Red
+    Write-Host "    Connexion lente detectee. Relance le script ou execute manuellement :" -ForegroundColor Yellow
+    Write-Host "    pip install huggingface-hub --timeout 120 --retries 5" -ForegroundColor Yellow
     exit 1
 }
 Write-Host "  OK huggingface-cli installe" -ForegroundColor Green

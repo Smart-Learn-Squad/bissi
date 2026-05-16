@@ -1,58 +1,82 @@
-#!/bin/bash
-set -euo pipefail
+#Requires -Version 5.1
+Set-StrictMode -Version Latest
+$ErrorActionPreference = "Stop"
 
 # BISSI Master Development Startup Script
 # This script starts both the backend and frontend in development mode
 
-echo "🚀 Starting BISSI Master Development Environment..."
+Write-Host "Starting BISSI Master Development Environment..." -ForegroundColor Cyan
 
 # Check if we're in the right directory
-if [ ! -f "package.json" ]; then
-    echo "❌ Error: Please run this script from the bissi-master-ui directory"
+if (-not (Test-Path "package.json")) {
+    Write-Host "X Error: Please run this script from the bissi-master-ui directory" -ForegroundColor Red
     exit 1
-fi
+}
 
 # Start the Python backend in the background
-echo "📦 Starting Python backend..."
-cd ..
-if [ ! -d ".venv" ]; then
-    echo "❌ Error: .venv not found in project root"
+Write-Host "-> Starting Python backend..." -ForegroundColor Yellow
+Set-Location ..
+
+if (-not (Test-Path ".venv")) {
+    Write-Host "X Error: .venv not found in project root" -ForegroundColor Red
     exit 1
-fi
-source .venv/bin/activate
-python main.py &
-BACKEND_PID=$!
-
-cleanup() {
-    if [ -n "${BACKEND_PID:-}" ]; then
-        kill "$BACKEND_PID" 2>/dev/null || true
-    fi
 }
-trap cleanup EXIT
 
-# Wait for backend readiness
-for i in $(seq 1 20); do
-    if curl -sf --max-time 2 http://localhost:8765/health > /dev/null 2>&1; then
-        echo "✅ Backend is running on http://localhost:8765"
-        break
-    fi
-    if ! kill -0 "$BACKEND_PID" 2>/dev/null; then
-        echo "❌ Backend process stopped unexpectedly"
-        wait "$BACKEND_PID" || true
-        exit 1
-    fi
-    if [ "$i" -eq 20 ]; then
-        echo "❌ Backend failed health check after 20s"
-        exit 1
-    fi
-    sleep 1
-done
+& ".venv\Scripts\Activate.ps1"
 
-# Start the Electron app
-echo "🖥️  Starting Electron app..."
-cd bissi-master-ui
-npm start
+$BackendProc = Start-Process -FilePath ".venv\Scripts\python.exe" `
+    -ArgumentList "main.py" `
+    -NoNewWindow `
+    -PassThru
+$BackendPID = $BackendProc.Id
 
-# Cleanup on exit
-echo "🧹 Cleaning up..."
-echo "✅ Development environment stopped"
+# Cleanup function — kill backend when script exits
+function Invoke-Cleanup {
+    if ($BackendPID) {
+        Stop-Process -Id $BackendPID -Force -ErrorAction SilentlyContinue
+    }
+}
+
+# Register cleanup on Ctrl+C
+$null = Register-EngineEvent -SourceIdentifier PowerShell.Exiting -Action { Invoke-Cleanup }
+try {
+
+    # Wait for backend readiness
+    function Test-Endpoint {
+        param([string]$Url)
+        try {
+            $r = Invoke-WebRequest -Uri $Url -TimeoutSec 2 -UseBasicParsing -ErrorAction Stop
+            return $r.StatusCode -eq 200
+        } catch { return $false }
+    }
+
+    $ready = $false
+    for ($i = 1; $i -le 20; $i++) {
+        if (Test-Endpoint "http://localhost:8765/health") {
+            Write-Host "OK Backend is running on http://localhost:8765" -ForegroundColor Green
+            $ready = $true
+            break
+        }
+        if ($BackendProc.HasExited) {
+            Write-Host "X Backend process stopped unexpectedly" -ForegroundColor Red
+            exit 1
+        }
+        if ($i -eq 20) {
+            Write-Host "X Backend failed health check after 20s" -ForegroundColor Red
+            Invoke-Cleanup
+            exit 1
+        }
+        Start-Sleep -Seconds 1
+    }
+
+    # Start the Electron app
+    Write-Host "-> Starting Electron app..." -ForegroundColor Yellow
+    Set-Location "bissi-master-ui"
+    npm start   # Blocks until Electron closes
+
+} finally {
+    # Cleanup on exit
+    Write-Host "-> Cleaning up..." -ForegroundColor Yellow
+    Invoke-Cleanup
+    Write-Host "OK Development environment stopped" -ForegroundColor Green
+}

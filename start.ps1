@@ -82,6 +82,7 @@ if ($llamaReady) {
     }
 
     Write-Host "-> Starting llama.cpp server on :8001..."
+    $LlamaLogErr = "$env:TEMP\bissi-llama.err.log"
     $LlamaProc = Start-Process -FilePath ".venv\Scripts\python.exe" `
         -ArgumentList "-m", "llama_cpp.server",
                       "--model", "gemma-4-E2B-it-Q4_K_M.gguf",
@@ -91,7 +92,7 @@ if ($llamaReady) {
                       "--n_threads", "6",
                       "--use_mmap", "False" `
         -RedirectStandardOutput $LlamaLog `
-        -RedirectStandardError $LlamaLog `
+        -RedirectStandardError $LlamaLogErr `
         -NoNewWindow `
         -PassThru
     $LlamaPID = $LlamaProc.Id
@@ -123,13 +124,14 @@ for ($i = 1; $i -le 30; $i++) {
 $ApiLog = "$env:TEMP\bissi-api.log"
 
 Write-Host "-> Starting BISSI backend on :8765..."
+$ApiLogErr = "$env:TEMP\bissi-api.err.log"
 $ApiProc = Start-Process -FilePath ".venv\Scripts\python.exe" `
     -ArgumentList "-m", "uvicorn", "api.server:app",
                   "--host", "127.0.0.1",
                   "--port", "8765",
                   "--log-level", "info" `
     -RedirectStandardOutput $ApiLog `
-    -RedirectStandardError $ApiLog `
+    -RedirectStandardError $ApiLogErr `
     -NoNewWindow `
     -PassThru
 $ApiPID = $ApiProc.Id

@@ -73,13 +73,12 @@ else
   nohup python -m llama_cpp.server \
     --model "$MODEL_PATH" \
     --port 8001 \
-    --n_ctx 8192 \
+    --n_ctx 16384 \
     --n_threads 4 \
     --use_mmap False \
     --temperature 0.5 \
     --repeat_penalty 1.05 \
     --top_p 0.92 \
-    --chat_format gemma \
     --system_prompt "$SYSTEM_PROMPT" \
     > /tmp/bissi-llama.log 2>&1 &
 fi

@@ -85,6 +85,12 @@ async def _chat_stream(
 
     def on_tool_done(name: str, result: str) -> None:
         _send_event({"type": "tool_done", "name": name, "result": result})
+        try:
+            r = json.loads(result)
+            if r.get("path"):
+                _send_event({"type": "file_created", "name": name, "file_path": r["path"], "file_name": os.path.basename(r["path"])})
+        except Exception:
+            pass
 
     def on_thinking(content: str) -> None:
         _send_event({"type": "thinking", "content": content})
@@ -120,19 +126,8 @@ async def _chat_stream(
 
     async def _watch_task() -> None:
         try:
-            timeout_seconds = DEFAULT_CONFIG.llama_cpp.timeout_seconds
-            full_response = await asyncio.wait_for(task, timeout=timeout_seconds)
-            _send_event(
-                {
-                    "type": "done",
-                    "full_response": full_response,
-                    "conversation_id": agent.current_conversation_id,
-                }
-            )
-        except asyncio.TimeoutError:
-            logger.exception("chat_timeout")
-            timeout_seconds = DEFAULT_CONFIG.llama_cpp.timeout_seconds
-            _send_event({"type": "error", "message": f"Chat timeout after {timeout_seconds} seconds"})
+            full_response = await task
+            _send_event({"type": "done", "full_response": full_response, "conversation_id": agent.current_conversation_id})
         except Exception as exc:
             logger.exception("chat_failed")
             _send_event({"type": "error", "message": str(exc)})
@@ -141,8 +136,14 @@ async def _chat_stream(
 
     watcher = asyncio.create_task(_watch_task())
 
+    HEARTBEAT_INTERVAL = 15.0
+
     while True:
-        event = await queue.get()
+        try:
+            event = await asyncio.wait_for(queue.get(), timeout=HEARTBEAT_INTERVAL)
+        except asyncio.TimeoutError:
+            yield "data: {\"type\":\"ping\"}\n\n"
+            continue
         if event.get("type") == "_end":
             break
         yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"

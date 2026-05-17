@@ -423,6 +423,8 @@
         padding: 9px 14px; border-radius: 14px 14px 3px 14px;
         font-size: 15px; line-height: 1.5;
       }
+      .msg-u-files { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+      .msg-u-file { font-size: 12px; background: rgba(255,255,255,0.15); padding: 2px 8px; border-radius: 6px; }
       .msg-a {
         align-self: stretch; width: 100%;
         display: flex; flex-direction: column; align-items: flex-start;
@@ -586,18 +588,32 @@
       .disc { text-align: center; font-size: 12px; color: rgba(124,58,237,0.25); padding: 4px 14px 8px; }
 
       /* ── CANVAS ── */
-      .canvas { width: 0; overflow: hidden; display: flex; flex-direction: column; background: var(--surface); border-left: 1px solid var(--glass-border); }
-      .canvas.open { width: 290px; min-width: 290px; }
+      .canvas { width: 0; overflow: hidden; display: flex; flex-direction: column; background: var(--surface); border-left: 1px solid var(--glass-border); position: relative; }
+      .canvas.open { width: var(--canvas-w, 420px); min-width: 200px; }
       .cv-h { padding: 9px 12px; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; }
       .cv-title { font-size: 13px; font-weight: 600; color: var(--text); }
       .cv-fname { font-size: 11px; color: var(--muted); }
       .cv-tabs { display: flex; border-bottom: 1px solid var(--glass-border); }
-      .cv-tab { flex: 1; padding: 6px 8px; font-size: 13px; text-align: center; cursor: pointer; color: var(--muted); }
+      .cv-tab { flex: 1; padding: 6px 8px; font-size: 13px; text-align: center; cursor: pointer; color: var(--muted); white-space: nowrap; }
       .cv-tab.on { color: var(--acc); border-bottom: 2px solid var(--acc); font-weight: 500; }
       .cv-body { flex: 1; overflow-y: auto; padding: 12px; }
       .dv { background: var(--surface-soft); border: 1px solid var(--glass-border); border-radius: 9px; overflow: hidden; }
       .dv-tb { padding: 7px 11px; border-bottom: 1px solid var(--glass-border); display: flex; gap: 6px; font-size: 12px; color: var(--muted); }
       .dv-body { padding: 11px; font-size: 13px; color: var(--text); }
+
+      /* ── RESIZE HANDLE ── */
+      .cv-resize { position: absolute; left: -3px; top: 0; width: 6px; height: 100%; cursor: col-resize; z-index: 10; }
+      .cv-resize::after { content: ''; position: absolute; left: 2px; top: 0; width: 2px; height: 100%; background: var(--glass-border); opacity: 0; transition: opacity 0.15s; }
+      .cv-resize:hover::after, .cv-resize.active::after { opacity: 1; background: var(--acc); }
+
+      /* ── WORKSPACE ── */
+      .ws-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; cursor: pointer; font-size: 13px; color: var(--text); transition: background 0.12s; }
+      .ws-item:hover { background: var(--glass-hover); }
+      .ws-item .ws-icon { font-size: 16px; flex-shrink: 0; }
+      .ws-item .ws-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+      .ws-item .ws-size { font-size: 11px; color: var(--muted); flex-shrink: 0; }
+      .ws-empty { font-size: 13px; color: var(--muted); text-align: center; padding: 32px 12px; }
+      .ws-empty .ws-empty-icon { font-size: 28px; margin-bottom: 8px; }
 
       .think-content {
         background: var(--surface-soft);
@@ -702,6 +718,7 @@
       }
       .confirm-btn.danger:hover { background: rgba(239,68,68,0.18); }
     </style>
+    <link rel="stylesheet" href="./vendor/katex/katex.min.css">
 </head>
 <body>
     <div class="error-banner hidden" id="error-banner"></div>
@@ -815,6 +832,7 @@
 
         <!-- CANVAS -->
         <div class="canvas" id="canvas">
+            <div class="cv-resize" id="cv-resize"></div>
             <div class="cv-h">
                 <div>
                     <div class="cv-title">Canvas</div>
@@ -822,15 +840,17 @@
                 </div>
                 <button class="ic-btn" onclick="closeCanvas()">✕</button>
             </div>
-            <div class="cv-tabs">
-                <div class="cv-tab on" onclick="swTab('doc',this)">Document</div>
-                <div class="cv-tab" onclick="swTab('tbl',this)">Données</div>
-                <div class="cv-tab" onclick="swTab('code',this)">Code</div>
+            <div class="cv-tabs" id="cv-tabs">
+                <div class="cv-tab on" data-tab="doc">Document</div>
+                <div class="cv-tab" data-tab="tbl">Données</div>
+                <div class="cv-tab" data-tab="code">Code</div>
+                <div class="cv-tab" data-tab="ws">Workspace</div>
             </div>
             <div class="cv-body">
                 <div id="td"><div class="dv"><div class="dv-tb"><span>DOCX</span><span id="doc-name" style="margin-left:5px">document.docx</span></div><div class="dv-body" id="doc-content">En attente...</div></div></div>
                 <div id="tt" class="hidden"><div class="dv"><div class="dv-tb"><span>XLSX</span></div><div class="dv-body"><table id="data-table"><tr><td>En attente...</td></tr></table></div></div></div>
                 <div id="tc" class="hidden"><div class="dv"><div class="dv-tb"><span>PY</span></div><div class="dv-body" id="code-content">En attente...</div></div></div>
+                <div id="tw" class="hidden"><div class="ws-empty" id="ws-empty"><div class="ws-empty-icon">📂</div>Aucun fichier dans l'espace de travail</div><div id="ws-list"></div></div>
             </div>
         </div>
     </div>
@@ -851,6 +871,8 @@
     <script src="./vendor/mammoth.browser.min.js"></script>
     <script src="./vendor/xlsx.full.min.js"></script>
     <script src="./vendor/highlight.min.js"></script>
+    <script src="./vendor/katex.min.js"></script>
+    <script src="./vendor/auto-render.min.js"></script>
     <script>
         let light = true, think = true, ddOpen = false;
         let currentConversationId = null;
@@ -860,6 +882,8 @@
         let selectionMode = false;
         let selectedConversationIds = new Set();
         let attachedFiles = new Map(); // Map<id, File>
+        let workspaceFiles = []; // {id, name, size, ext, file}
+        let canvasWidth = localStorage.getItem('bissi:canvasW') || null;
         let thinkingEl = null;
         let thinkingContent = '';
         let confirmDialogResolver = null;
@@ -1535,6 +1559,7 @@
                 const id = `file-${Date.now()}-${Math.random()}`;
                 attachedFiles.set(id, file);
                 renderAttachedFile(id, file);
+                addToWorkspace(file);
                 if (!firstDoc) firstDoc = file;
             }
             if (firstDoc) loadFileInCanvas(firstDoc);
@@ -1572,7 +1597,7 @@
         });
         function selectModel(name) { toggleDD(); }
 
-        function newChat() { currentConversationId = null; document.getElementById('messages-container').innerHTML = ''; exitSelectionMode(); showEmpty(); closeCanvas(); }
+        function newChat() { currentConversationId = null; document.getElementById('messages-container').innerHTML = ''; exitSelectionMode(); showEmpty(); closeCanvas(); workspaceFiles = []; renderWorkspace(); }
         function showEmpty() { document.getElementById('empty').classList.remove('hidden'); document.getElementById('chat').classList.add('hidden'); }
         function showChat() { document.getElementById('empty').classList.add('hidden'); document.getElementById('chat').classList.remove('hidden'); }
         function handleInputKeydown(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
@@ -1581,7 +1606,10 @@
             const input = document.getElementById('message-input');
             const message = String(overrideMessage ?? input.value).trim();
             if (!message || isStreaming) return;
-            appendUserMsg(message);
+            const msgFiles = [...attachedFiles.values()];
+            appendUserMsg(message, msgFiles);
+            // Clear input chips immediately — files stay in map for FormData
+            document.getElementById('attached-files').innerHTML = '';
             if (overrideMessage === null) {
                 input.value = '';
                 input.style.height = 'auto';
@@ -1608,7 +1636,7 @@
                 
                 const controller = new AbortController();
                 activeStreamController = controller;
-                const timeout = setTimeout(() => controller.abort(), 15000);
+                const timeout = setTimeout(() => controller.abort(), 120000);
                 const res = await fetch(`${API}/chat`, { 
                     method: 'POST', 
                     body: formData,
@@ -1631,10 +1659,11 @@
                         if (!line.trim().startsWith('data:')) continue;
                         try {
                             const data = JSON.parse(line.trim().slice(5));
+                            if (data.type === 'ping') continue;
                             if (data.type === 'chunk' && data.content) {
                                 accumulatedText += data.content;
                                 if (!assistantMsgEl) assistantMsgEl = createAssistantMsgEl('');
-                                assistantMsgEl.querySelector('.md').innerHTML = renderAssistantText(accumulatedText);
+                                renderWithMath(assistantMsgEl.querySelector('.md'), accumulatedText);
                                 assistantMsgEl.scrollIntoView();
                             } else if (data.type === 'thinking' && data.content) {
                                 thinkingContent += data.content;
@@ -1664,6 +1693,8 @@
                                     } catch (e) {}
                                     updateToolRow(el, data.name || 'outil', ok ? 'terminé' : 'erreur', summarizeToolResult(data.result));
                                 }
+                            } else if (data.type === 'file_created' && data.file_path) {
+                                addWorkspaceFilePath(data.file_name, data.file_path);
                             } else if (data.type === 'error') {
                                 showErrorBanner(data.message || 'Une erreur est survenue');
                             } else if (data.type === 'done') {
@@ -1671,7 +1702,7 @@
                                 // Fallback: if no chunks arrived (tool-only response), show full_response
                                 if (!accumulatedText.trim() && data.full_response && data.full_response.trim()) {
                                     accumulatedText = data.full_response;
-                                    assistantMsgEl.querySelector('.md').innerHTML = renderAssistantText(accumulatedText);
+                                    renderWithMath(assistantMsgEl.querySelector('.md'), accumulatedText);
                                 }
                                 attachedFiles.clear();
                                 document.getElementById('attached-files').innerHTML = '';
@@ -1688,7 +1719,7 @@
             setSendButtonState(false);
         }
 
-        function appendUserMsg(text) {
+        function appendUserMsg(text, files) {
             lastUserPrompt = String(text || '');
             currentAssistantToolsEl = null;
             const container = document.getElementById('messages-container');
@@ -1697,7 +1728,17 @@
             wrap.className = 'msg-u-wrap';
             const bubble = document.createElement('div');
             bubble.className = 'msg-u';
-            bubble.textContent = text;
+            if (files && files.length) {
+                const filesDiv = document.createElement('div');
+                filesDiv.className = 'msg-u-files';
+                filesDiv.innerHTML = files.map(f =>
+                    `<span class="msg-u-file">📎 ${f.name}</span>`
+                ).join('');
+                bubble.appendChild(filesDiv);
+            }
+            const textDiv = document.createElement('div');
+            textDiv.textContent = text;
+            bubble.appendChild(textDiv);
             wrap.appendChild(bubble);
             wrap.appendChild(createMessageActions({
                 role: 'user',
@@ -1719,7 +1760,7 @@
             div.className = 'msg-a';
             const md = document.createElement('div');
             md.className = 'md';
-            md.innerHTML = renderAssistantText(rawText);
+            renderWithMath(md, rawText);
             const sourcePrompt = lastUserPrompt;
             const tools = document.createElement('div');
             tools.className = 'msg-tools hidden';
@@ -1849,22 +1890,124 @@
             ta.remove();
         }
 
-        function renderAssistantText(text) {
+        function renderWithMath(el, text) {
             const source = String(text || '').replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
-            if (window.markdownit) return window.markdownit().render(source);
-            return source.replace(/\n/g, '<br>');
+            const mathBlocks = [];
+            const protectedSource = source
+                .replace(/\$\$[\s\S]*?\$\$/g, m => { mathBlocks.push(m); return `◇◆MB${mathBlocks.length - 1}◆◇`; })
+                .replace(/\$[^$\n]*?\$/g, m => { mathBlocks.push(m); return `◇◆MI${mathBlocks.length - 1}◆◇`; });
+            let html;
+            if (window.markdownit) {
+                html = window.markdownit().render(protectedSource);
+            } else {
+                html = source.replace(/\n/g, '<br>');
+            }
+            html = html.replace(/◇◆M([BI])(\d+)◆◇/g, (_, t, idx) => mathBlocks[+idx]);
+            el.innerHTML = html;
+            if (window.renderMathInElement) {
+                renderMathInElement(el, {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '$', right: '$', display: false},
+                        {left: '\\(', right: '\\)', display: false},
+                        {left: '\\[', right: '\\]', display: true}
+                    ],
+                    throwOnError: false
+                });
+            }
         }
 
         function openCanvas(tab) {
-            document.getElementById('canvas').classList.add('open');
+            const el = document.getElementById('canvas');
+            el.classList.add('open');
+            if (canvasWidth) el.style.setProperty('--canvas-w', canvasWidth + 'px');
             if (tab) swTab(tab);
         }
         function closeCanvas() { document.getElementById('canvas').classList.remove('open'); }
+
         function swTab(name) {
-            const idx = ['doc', 'tbl', 'code'].indexOf(name);
-            document.querySelectorAll('.cv-tab').forEach((t, i) => t.classList.toggle('on', i === idx));
-            ['td', 'tt', 'tc'].forEach((id, i) => document.getElementById(id).classList.toggle('hidden', i !== idx));
+            const map = {doc:'td', tbl:'tt', code:'tc', ws:'tw'};
+            document.querySelectorAll('.cv-tab').forEach(t => t.classList.toggle('on', t.dataset.tab === name));
+            Object.entries(map).forEach(([k, v]) => document.getElementById(v).classList.toggle('hidden', k !== name));
         }
+
+        // ── CANVAS RESIZE ──
+        let _resizing = false;
+        document.addEventListener('mousedown', e => {
+            const h = e.target.closest('#cv-resize');
+            if (!h) return;
+            _resizing = true;
+            h.classList.add('active');
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none';
+        });
+        document.addEventListener('mousemove', e => {
+            if (!_resizing) return;
+            const c = document.getElementById('canvas');
+            const w = Math.min(Math.max(document.body.clientWidth - e.clientX, 200), window.innerWidth * 0.8);
+            c.style.setProperty('--canvas-w', w + 'px');
+            canvasWidth = w;
+        });
+        document.addEventListener('mouseup', () => {
+            if (!_resizing) return;
+            _resizing = false;
+            document.querySelector('#cv-resize')?.classList.remove('active');
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+            localStorage.setItem('bissi:canvasW', String(canvasWidth));
+        });
+
+        // ── TAB CLICK (delegated) ──
+        document.getElementById('cv-tabs')?.addEventListener('click', e => {
+            const tab = e.target.closest('.cv-tab');
+            if (tab) swTab(tab.dataset.tab);
+        });
+
+        // ── WORKSPACE ──
+        function addToWorkspace(file) {
+            const id = `ws-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+            const ext = file.name.split('.').pop().toLowerCase();
+            workspaceFiles.push({id, name: file.name, size: file.size, ext, file, filePath: null});
+            renderWorkspace();
+        }
+        function addWorkspaceFilePath(name, filePath) {
+            const id = `ws-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+            const ext = name.split('.').pop().toLowerCase();
+            workspaceFiles.push({id, name, size: 0, ext, file: null, filePath});
+            renderWorkspace();
+        }
+        function renderWorkspace() {
+            const list = document.getElementById('ws-list');
+            const empty = document.getElementById('ws-empty');
+            if (!list) return;
+            if (!workspaceFiles.length) {
+                list.innerHTML = '';
+                empty?.classList.remove('hidden');
+                return;
+            }
+            empty?.classList.add('hidden');
+            list.innerHTML = workspaceFiles.map(f => {
+                const icons = {docx:'📄',doc:'📄',xlsx:'📊',xls:'📊',csv:'📊',pdf:'📕',py:'🐍',js:'📜',ts:'📜',md:'📝',txt:'📄',json:'📋','': '📎'};
+                const icon = icons[f.ext] || '📎';
+                const size = f.size > 1024 ? Math.round(f.size / 1024) + ' KB' : f.size + ' B';
+                return `<div class="ws-item" data-wsid="${f.id}" title="${f.name}">
+                    <span class="ws-icon">${icon}</span>
+                    <span class="ws-name">${f.name}</span>
+                    <span class="ws-size">${size}</span>
+                </div>`;
+            }).join('');
+        }
+        document.addEventListener('click', e => {
+            const item = e.target.closest('.ws-item');
+            if (!item) return;
+            const f = workspaceFiles.find(x => x.id === item.dataset.wsid);
+            if (!f) return;
+            if (f.filePath) {
+                if (window.bissi?.file?.open) window.bissi.file.open(f.filePath);
+            } else if (f.file) {
+                loadFileInCanvas(f.file);
+            }
+        });
 
         // ── CANVAS : chargement de fichiers ──────────────────────────────
         async function loadFileInCanvas(file) {

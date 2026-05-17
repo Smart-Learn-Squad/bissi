@@ -19,6 +19,7 @@ contextBridge.exposeInMainWorld('bissi', {
   file: {
     read: (filePath) => ipcRenderer.invoke('file:read', filePath),
     readBuffer: (filePath) => ipcRenderer.invoke('file:readBuffer', filePath),
+    open: (filePath) => ipcRenderer.invoke('file:open', filePath),
     choose: () => ipcRenderer.invoke('file:choose')
   }
 });

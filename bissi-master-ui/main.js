@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, session } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, session, shell } = require('electron');
 const path = require('path');
 const fs = require('fs').promises;
 const os = require('os');
@@ -179,6 +179,15 @@ ipcMain.handle('file:readBuffer', async (event, filePath) => {
   try {
     const buffer = await fs.readFile(filePath);
     return { data: Array.from(new Uint8Array(buffer)) };
+  } catch (error) {
+    return { error: error.message };
+  }
+});
+
+ipcMain.handle('file:open', async (event, filePath) => {
+  try {
+    const err = await shell.openPath(filePath);
+    return err ? { error: err } : { success: true };
   } catch (error) {
     return { error: error.message };
   }

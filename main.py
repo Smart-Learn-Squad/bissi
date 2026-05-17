@@ -32,7 +32,7 @@ def main() -> None:
             "  python -m llama_cpp.server\n"
             "    --model <chemin_gguf>\n"
             "    --port 8001\n"
-            "    --n_ctx 8192"
+            "    --n_ctx 16384"
         )
         raise SystemExit(1)
 

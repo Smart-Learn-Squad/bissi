@@ -38,7 +38,9 @@ class BissiAgent:
     )
 
     DEFAULT_SYSTEM_PROMPT = """Tu es BISSI, un assistant local-first orienté exécution.
-Tu dois prioriser des actions concrètes via tools, avec réponses claires et fiables."""
+Tu dois prioriser des actions concrètes via tools, avec réponses claires et fiables.
+Utilise des émojis dans tes réponses pour clarifier le propos.
+Pour les documents .docx, génère un contenu concis (400-500 mots max) en un seul appel write_word — pas d'append."""
 
     THINKING_PROMPT = (
         "Analyse cette demande et ecris un plan d'action structure "
@@ -425,9 +427,17 @@ Tu dois prioriser des actions concrètes via tools, avec réponses claires et fi
                     collected_tool_calls.append(self._normalize_single_tool_call(call))
 
             if buffer and not in_think:
-                final_text += buffer
-                if on_chunk:
-                    on_chunk(buffer)
+                start_pos = buffer.find(self.LITERAL_TOOL_CALL_START)
+                if start_pos != -1:
+                    clean = buffer[:start_pos]
+                    if clean:
+                        final_text += clean
+                        if on_chunk:
+                            on_chunk(clean)
+                else:
+                    final_text += buffer
+                    if on_chunk:
+                        on_chunk(buffer)
 
             return final_text, collected_tool_calls
         except BissiEngineError as exc:
@@ -716,7 +726,7 @@ Tu dois prioriser des actions concrètes via tools, avec réponses claires et fi
         """Return function-calling schema definitions."""
         return [
             {"type": "function", "function": {"name": "python_runner", "description": "Execute Python code for analysis/calculations.", "parameters": {"type": "object", "properties": {"code": {"type": "string"}}, "required": ["code"]}}},
-            {"type": "function", "function": {"name": "write_word", "description": "Write content to a .docx file.", "parameters": {"type": "object", "properties": {"file_path": {"type": "string"}, "content": {"type": "string"}, "append": {"type": "boolean"}}, "required": ["file_path", "content"]}}},
+            {"type": "function", "function": {"name": "write_word", "description": "Write the FULL content to a .docx file in one call (400-500 mots max). Ne pas utiliser append.", "parameters": {"type": "object", "properties": {"file_path": {"type": "string"}, "content": {"type": "string"}, "append": {"type": "boolean"}}, "required": ["file_path", "content"]}}},
             {"type": "function", "function": {"name": "read_word", "description": "Read paragraphs from a .docx file.", "parameters": {"type": "object", "properties": {"file_path": {"type": "string"}}, "required": ["file_path"]}}},
             {"type": "function", "function": {"name": "read_excel", "description": "Read rows from Excel file.", "parameters": {"type": "object", "properties": {"file_path": {"type": "string"}, "max_rows": {"type": "integer"}}, "required": ["file_path"]}}},
             {"type": "function", "function": {"name": "write_excel", "description": "Write tabular data to Excel file.", "parameters": {"type": "object", "properties": {"file_path": {"type": "string"}, "data": {"type": "array", "items": {"type": "object"}}, "sheet_name": {"type": "string"}}, "required": ["file_path", "data"]}}},

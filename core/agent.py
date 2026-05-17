@@ -279,6 +279,7 @@ Tu dois prioriser des actions concrètes via tools, avec réponses claires et fi
                     on_chunk(final_response)
 
         self.conversation_store.save_message(self.current_conversation_id, "assistant", final_response)
+        self._maybe_autotitle_conversation(user_input, final_response)
         return final_response
 
     def _try_direct_tool_request(self, user_input: str) -> Optional[tuple[str, Dict[str, Any], str]]:

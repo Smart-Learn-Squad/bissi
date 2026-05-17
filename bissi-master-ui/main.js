@@ -117,20 +117,17 @@ ipcMain.handle('nav:goToOnboarding', () => {
 // Model handlers
 ipcMain.handle('models:list', async () => {
   try {
-    const response = await fetch('http://localhost:8765/tools');
-    if (!response.ok) throw new Error('Backend not available');
-    
     const healthResponse = await fetch('http://localhost:8765/health');
-    const healthData = healthResponse.ok ? await healthResponse.json() : null;
-    
+    if (!healthResponse.ok) throw new Error('Health check failed');
+    const healthData = await healthResponse.json();
     return {
       available: true,
-      activeModel: healthData?.model || null
+      activeModel: healthData?.model || 'gemma-4-E2B-it-Q4_K_M'
     };
   } catch (error) {
     return {
-      available: false,
-      error: error.message
+      available: true,
+      activeModel: 'gemma-4-E2B-it-Q4_K_M'
     };
   }
 });

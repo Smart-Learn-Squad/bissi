@@ -73,6 +73,16 @@ Bissi directly addresses the **Digital Equity & Inclusivity** and **Future of Ed
 
 ---
 
+## Model
+
+| Artifact | Link |
+|----------|------|
+| LoRA adapter | https://huggingface.co/samsam8623/bissi-gemma4-e2b |
+| GGUF Q4_K_M (~3.2GB) | https://huggingface.co/samsam8623/bissi-gemma4-e2b-GGUF |
+| Fine-tuning notebook | https://www.kaggle.com/code/samuelyevi/bissi-fine-tuning-gemma-4-e2b-unsloth-qlora |
+
+---
+
 ## Quick Start
 
 ### Linux / macOS

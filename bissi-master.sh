@@ -11,14 +11,14 @@ if [ ! -d ".venv" ]; then
 fi
 source .venv/bin/activate
 
-MODEL_PATH="$SCRIPT_DIR/gemma-4-E2B-it-Q4_K_M.gguf"
+MODEL_PATH="$SCRIPT_DIR/bissi-gemma4-e2b-Q4_K_M.gguf"
 if [ ! -f "$MODEL_PATH" ]; then
-  MODEL_PATH="$SCRIPT_DIR/models/gemma-4-E2B-it-Q4_K_M.gguf"
+  MODEL_PATH="$SCRIPT_DIR/models/bissi-gemma4-e2b-Q4_K_M.gguf"
 fi
 if [ ! -f "$MODEL_PATH" ]; then
   echo "❌ Model not found at:"
-  echo "   - $SCRIPT_DIR/gemma-4-E2B-it-Q4_K_M.gguf"
-  echo "   - $SCRIPT_DIR/models/gemma-4-E2B-it-Q4_K_M.gguf"
+  echo "   - $SCRIPT_DIR/bissi-gemma4-e2b-Q4_K_M.gguf"
+  echo "   - $SCRIPT_DIR/models/bissi-gemma4-e2b-Q4_K_M.gguf"
   exit 1
 fi
 

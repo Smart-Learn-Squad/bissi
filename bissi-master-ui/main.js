@@ -122,12 +122,13 @@ ipcMain.handle('models:list', async () => {
     const healthData = await healthResponse.json();
     return {
       available: true,
-      activeModel: healthData?.model || 'gemma-4-E2B-it-Q4_K_M'
+      activeModel: healthData?.model || 'bissi-gemma4-e2b-Q4_K_M'
+
     };
   } catch (error) {
     return {
       available: true,
-      activeModel: 'gemma-4-E2B-it-Q4_K_M'
+      activeModel: 'bissi-gemma4-e2b-Q4_K_M'
     };
   }
 });

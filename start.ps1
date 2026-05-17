@@ -85,7 +85,7 @@ if ($llamaReady) {
     $LlamaLogErr = "$env:TEMP\bissi-llama.err.log"
     $LlamaProc = Start-Process -FilePath ".venv\Scripts\python.exe" `
         -ArgumentList "-m", "llama_cpp.server",
-                      "--model", "gemma-4-E2B-it-Q4_K_M.gguf",
+                      "--model", "bissi-gemma4-e2b-Q4_K_M.gguf",
                       "--host", "127.0.0.1",
                       "--port", "8001",
                       "--n_ctx", "3072",

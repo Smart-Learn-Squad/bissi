@@ -185,8 +185,8 @@ Write-Host ""
 
 New-Item -ItemType Directory -Force -Path "models" | Out-Null
 
-huggingface-cli download unsloth/gemma-4-E2B-it-GGUF `
-    gemma-4-E2B-it-Q4_K_M.gguf `
+huggingface-cli download samsam8623/bissi-gemma4-e2b-GGUF `
+    bissi-gemma4-e2b-Q4_K_M.gguf `
     --local-dir ./models `
     --local-dir-use-symlinks False
 

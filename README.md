@@ -173,7 +173,7 @@ curl -N -X POST http://localhost:8765/chat \
 - **Hugging Face** for model hosting
 - **llama.cpp** for ultra-optimized local inference
 - **Unsloth** for efficient fine-tuning
-- **The Bissi Team** — building for the edge
+- [**The Bissi Team**](https://github.com/orgs/Smart-Learn-Squad/teams/smart-squad) — building for the edge
 
 ---
 

@@ -122,10 +122,10 @@ echo "  Cela peut prendre plusieurs minutes selon votre connexion."
 echo "  Ne fermez pas ce terminal."
 echo ""
 
-mkdir -p models
+
 if hf download samsam8623/bissi-gemma4-e2b-GGUF \
     bissi-gemma4-e2b-Q4_K_M.gguf \
-  --local-dir ./models; then
+  --local-dir .; then
     echo "✓ Modèle téléchargé dans ./models/"
 else
     if command -v hf &> /dev/null; then

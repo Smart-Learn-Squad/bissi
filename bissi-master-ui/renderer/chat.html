@@ -1600,6 +1600,7 @@
         function newChat() { currentConversationId = null; document.getElementById('messages-container').innerHTML = ''; exitSelectionMode(); showEmpty(); closeCanvas(); workspaceFiles = []; renderWorkspace(); }
         function showEmpty() { document.getElementById('empty').classList.remove('hidden'); document.getElementById('chat').classList.add('hidden'); }
         function showChat() { document.getElementById('empty').classList.add('hidden'); document.getElementById('chat').classList.remove('hidden'); }
+        function isNearBottom(threshold = 120) { const c = document.getElementById('messages-container'); return !c || c.scrollHeight - c.scrollTop - c.clientHeight < threshold; }
         function handleInputKeydown(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
 
         async function sendMessage(overrideMessage = null) {
@@ -1664,7 +1665,7 @@
                                 accumulatedText += data.content;
                                 if (!assistantMsgEl) assistantMsgEl = createAssistantMsgEl('');
                                 renderWithMath(assistantMsgEl.querySelector('.md'), accumulatedText);
-                                assistantMsgEl.scrollIntoView();
+                                if (isNearBottom()) assistantMsgEl.scrollIntoView();
                             } else if (data.type === 'thinking' && data.content) {
                                 thinkingContent += data.content;
                                 if (!thinkingEl) {
@@ -1675,14 +1676,14 @@
                                     container.appendChild(thinkingEl);
                                 }
                                 thinkingEl.textContent = thinkingContent;
-                                thinkingEl.scrollIntoView();
+                                if (isNearBottom()) thinkingEl.scrollIntoView();
                             } else if (data.type === 'tool_start' && data.name) {
                                 if (!assistantMsgEl) assistantMsgEl = createAssistantMsgEl('');
                                 const el = createToolRow(data.name, 'en cours');
                                 currentAssistantToolsEl.classList.remove('hidden');
                                 currentAssistantToolsEl.appendChild(el);
                                 pendingToolTraceItems.push(el);
-                                el.scrollIntoView({ block: 'nearest' });
+                                if (isNearBottom()) el.scrollIntoView({ block: 'nearest' });
                             } else if (data.type === 'tool_done') {
                                 const el = pendingToolTraceItems.shift();
                                 if (el) {

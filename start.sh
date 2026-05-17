@@ -34,11 +34,11 @@ else
 
     echo "→ Starting llama.cpp server on :8001..."
     nohup .venv/bin/python -m llama_cpp.server \
-        --model gemma-4-E2B-it-Q4_K_M.gguf \
+        --model bissi-gemma4-e2b-Q4_K_M.gguf \
         --host 127.0.0.1 \
         --port 8001 \
-        --n_ctx 8192 \
-        --n_threads 4 \
+        --n_ctx 4096 \
+        --n_threads 6 \
         --use_mmap False \
         > /tmp/bissi-llama.log 2>&1 &
     LLAMA_PID=$!

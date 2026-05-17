@@ -263,6 +263,7 @@ async def transcribe(audio: UploadFile = File(...)) -> JSONResponse:
             status_code=503,
             detail="faster-whisper not available — run: pip install faster-whisper",
         )
+    tmp_path = None  # guard: defined before try so finally never raises NameError
     try:
         audio_bytes = await audio.read()
         # Write to a temp file (faster-whisper needs a file path)
@@ -290,7 +291,8 @@ async def transcribe(audio: UploadFile = File(...)) -> JSONResponse:
         logger.exception("transcribe_error")
         raise HTTPException(status_code=500, detail=f"Transcription failed: {exc}") from exc
     finally:
-        try:
-            os.unlink(tmp_path)
-        except Exception:
-            pass
+        if tmp_path:
+            try:
+                os.unlink(tmp_path)
+            except Exception:
+                pass

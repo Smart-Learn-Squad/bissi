@@ -21,10 +21,10 @@ class LlamaCppConfig:
 
     host: str = "http://127.0.0.1:8001"
     model: str = "gemma-4-E2B-it-Q4_K_M"
-    timeout_seconds: int = 120
+    timeout_seconds: int = 300
     max_retries: int = 3
     temperature: float = 0.5
-    n_ctx: int = 8192
+    n_ctx: int = 3072
 
 
 @dataclass(frozen=True)
@@ -32,7 +32,8 @@ class AgentConfig:
     """Agent loop settings."""
 
     max_iterations: int = 7
-    context_token_limit: int = 6000
+    # n_ctx=3072 → ~2200 input tokens max (leave ~870 for model output)
+    context_token_limit: int = 2200
 
 
 @dataclass(frozen=True)

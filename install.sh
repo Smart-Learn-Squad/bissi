@@ -123,10 +123,10 @@ echo "  Ne fermez pas ce terminal."
 echo ""
 
 mkdir -p models
-MODEL_PATH="./models/gemma-4-E2B-it-Q4_K_M.gguf"
-
-if [ -f "$MODEL_PATH" ]; then
-    echo "✓ Modèle déjà présent: $MODEL_PATH"
+if hf download samsam8623/bissi-gemma4-e2b-GGUF \
+    bissi-gemma4-e2b-Q4_K_M.gguf \
+  --local-dir ./models; then
+    echo "✓ Modèle téléchargé dans ./models/"
 else
     if command -v hf &> /dev/null; then
         HF_CLI=(hf)

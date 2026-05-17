@@ -90,7 +90,7 @@ class SafeOperator:
         # Get user confirmation
         if not self.confirm_callback(description, str(path)):
             self._log_operation(description, path, False)
-            print(f"❌ {description} cancelled by user")
+            print(f"ERROR: {description} cancelled by user")
             return False
         
         # Create backup
@@ -103,7 +103,7 @@ class SafeOperator:
         try:
             modifier_func(path)
             self._log_operation(description, path, True, backup_path)
-            print(f"✅ {description} completed successfully")
+            print(f"SUCCESS: {description} completed successfully")
             return True
         except Exception as e:
             self._log_operation(description, path, False, backup_path)
@@ -130,7 +130,7 @@ class SafeOperator:
         if path.exists():
             if not self.confirm_callback(f"overwrite existing {description}", str(path)):
                 self._log_operation(f"overwrite {description}", path, False)
-                print(f"❌ Overwrite cancelled by user")
+                print("ERROR: Overwrite cancelled by user")
                 return False
             if self.auto_backup:
                 backup_path = self._create_backup(path)
@@ -140,7 +140,7 @@ class SafeOperator:
         try:
             writer_func(path)
             self._log_operation(description, path, True, backup_path)
-            print(f"✅ {description} completed: {path}")
+            print(f"SUCCESS: {description} completed: {path}")
             return True
         except Exception as e:
             self._log_operation(description, path, False, backup_path)
@@ -159,7 +159,7 @@ class SafeOperator:
 
         if not self.confirm_callback(description, f"{src} -> {dst}"):
             self._log_operation(description, f"{src} -> {dst}", False)
-            print("❌ Move cancelled by user")
+            print("ERROR: Move cancelled by user")
             return False
 
         backup_path = None
@@ -171,7 +171,7 @@ class SafeOperator:
             dst.parent.mkdir(parents=True, exist_ok=True)
             shutil.move(str(src), str(dst))
             self._log_operation(description, f"{src} -> {dst}", True, backup_path)
-            print(f"✅ Moved: {src} -> {dst}")
+            print(f"SUCCESS: Moved: {src} -> {dst}")
             return True
         except Exception as e:
             self._log_operation(description, f"{src} -> {dst}", False, backup_path)
@@ -206,7 +206,7 @@ class SafeOperator:
         try:
             path.unlink()
             self._log_operation(description, path, True, backup_path)
-            print(f"✅ Deleted: {path}")
+            print(f"SUCCESS: Deleted: {path}")
             return True
         except Exception as e:
             self._log_operation(description, path, False, backup_path)
@@ -252,7 +252,7 @@ class SafeOperator:
         # Perform rollback
         shutil.copy2(backup_path, path)
         self._log_operation("rollback", path, True, backup_path)
-        print(f"✅ Rolled back to: {backup_path}")
+        print(f"SUCCESS: Rolled back to: {backup_path}")
         return True
 
 

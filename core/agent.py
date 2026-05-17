@@ -188,6 +188,7 @@ Tu dois prioriser des actions concrètes via tools, avec réponses claires et fi
 
         tool_results_log: List[str] = []
         final_response = ""
+        tool_calls: List = []  # guard: defined before loop in case max_iterations=0
 
         for iteration in range(max_iterations):
             if should_stop and should_stop():
@@ -278,6 +279,7 @@ Tu dois prioriser des actions concrètes via tools, avec réponses claires et fi
                     on_chunk(final_response)
 
         self.conversation_store.save_message(self.current_conversation_id, "assistant", final_response)
+        self._maybe_autotitle_conversation(user_input, final_response)
         return final_response
 
     def _try_direct_tool_request(self, user_input: str) -> Optional[tuple[str, Dict[str, Any], str]]:
@@ -296,11 +298,15 @@ Tu dois prioriser des actions concrètes via tools, avec réponses claires et fi
 
         math_match = re.search(r"(-?\d+)\s*([-+*/x])\s*(-?\d+)", lower)
         if math_match and any(k in lower for k in ["calcule", "calculate", "résultat", "resultat", "result"]):
+            import operator as _op
             a = int(math_match.group(1))
-            op = math_match.group(2).replace("x", "*")
+            raw_op = math_match.group(2).replace("x", "*")
             b = int(math_match.group(3))
-            expr = f"{a}{op}{b}"
-            return ("python_runner", {"code": f"print({expr})"}, f"Le résultat est {eval(expr)}.")
+            _ops = {"+": _op.add, "-": _op.sub, "*": _op.mul, "/": _op.truediv}
+            if raw_op in _ops:
+                result = _ops[raw_op](a, b)
+                expr = f"{a}{raw_op}{b}"
+                return ("python_runner", {"code": f"print({expr})"}, f"Le résultat est {result}.")
 
         if "mem_qa_" in lower:
             return ("safe_operator", {"operation": "get_python_version"}, "Mémoire enregistrée.")

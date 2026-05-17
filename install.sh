@@ -48,6 +48,10 @@ REPO_URL="https://github.com/Smart-Learn-Squad/bissi.git"
 if [ -d "bissi" ]; then
     echo "⚠ Le repo existe déjà. On continue quand même."
     cd bissi
+    if ! git pull --ff-only; then
+        echo "⚠ Impossible de mettre à jour automatiquement le repo (conflit ou historique local)."
+        echo "  On continue avec l'état local actuel."
+    fi
 else
     echo "→ Clonage du repo..."
     if git clone "$REPO_URL"; then
@@ -75,9 +79,25 @@ fi
 source .venv/bin/activate
 echo "✓ Virtualenv activé"
 
-# ÉTAPE 4 — huggingface-cli dans le venv
+# ÉTAPE 4 — Mise à jour pip + dépendances Python
+echo "→ Mise à jour de pip..."
+if python3 -m pip install --upgrade pip -q; then
+    echo "✓ pip mis à jour"
+else
+    echo "❌ Échec de la mise à jour de pip"
+    exit 1
+fi
+
+echo "→ Installation des dépendances Python..."
+if python3 -m pip install -r requirements.txt; then
+    echo "✓ Dépendances Python installées"
+else
+    echo "❌ Échec de l'installation des dépendances Python"
+    exit 1
+fi
+
 echo "→ Installation de huggingface-cli..."
-if pip install huggingface-hub -q; then
+if python3 -m pip install --upgrade huggingface_hub -q; then
     echo "✓ huggingface-cli installé"
 else
     echo "❌ Échec de l'installation de huggingface-hub"
@@ -103,14 +123,28 @@ echo "  Ne fermez pas ce terminal."
 echo ""
 
 mkdir -p models
-if hf download unsloth/gemma-4-E2B-it-GGUF \
-  gemma-4-E2B-it-Q4_K_M.gguf \
-  --local-dir ./models \
-  --local-dir-use-symlinks False; then
-    echo "✓ Modèle téléchargé dans ./models/"
+MODEL_PATH="./models/gemma-4-E2B-it-Q4_K_M.gguf"
+
+if [ -f "$MODEL_PATH" ]; then
+    echo "✓ Modèle déjà présent: $MODEL_PATH"
 else
-    echo "❌ Échec du téléchargement du modèle"
-    exit 1
+    if command -v hf &> /dev/null; then
+        HF_CLI=(hf)
+    elif command -v huggingface-cli &> /dev/null; then
+        HF_CLI=(huggingface-cli)
+    else
+        HF_CLI=(python3 -m huggingface_hub.commands.huggingface_cli)
+    fi
+
+    if "${HF_CLI[@]}" download unsloth/gemma-4-E2B-it-GGUF \
+      gemma-4-E2B-it-Q4_K_M.gguf \
+      --local-dir ./models \
+      --local-dir-use-symlinks False; then
+        echo "✓ Modèle téléchargé dans ./models/"
+    else
+        echo "❌ Échec du téléchargement du modèle"
+        exit 1
+    fi
 fi
 
 # ÉTAPE 7 — Ouverture VS Code

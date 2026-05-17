@@ -49,6 +49,11 @@ set "REPO_URL=https://github.com/Smart-Learn-Squad/bissi.git"
 if exist "bissi" (
     echo ⚠ Le repo existe déjà. On continue quand même.
     cd bissi
+    git pull --ff-only
+    if errorlevel 1 (
+        echo ⚠ Impossible de mettre à jour automatiquement le repo ^(conflit ou historique local^).
+        echo   On continue avec l'état local actuel.
+    )
 ) else (
     echo → Clonage du repo...
     git clone "%REPO_URL%"
@@ -76,9 +81,25 @@ if exist ".venv" (
 call .venv\Scripts\activate.bat
 echo ✓ Virtualenv activé
 
-REM ÉTAPE 4 — huggingface-cli dans le venv
+REM ÉTAPE 4 — Mise à jour pip + dépendances Python
+echo → Mise à jour de pip...
+python -m pip install --upgrade pip -q
+if errorlevel 1 (
+    echo ❌ Échec de la mise à jour de pip
+    exit /b 1
+)
+echo ✓ pip mis à jour
+
+echo → Installation des dépendances Python...
+python -m pip install -r requirements.txt
+if errorlevel 1 (
+    echo ❌ Échec de l'installation des dépendances Python
+    exit /b 1
+)
+echo ✓ Dépendances Python installées
+
 echo → Installation de huggingface-cli...
-pip install huggingface-hub -q
+python -m pip install --upgrade huggingface_hub -q
 if errorlevel 1 (
     echo ❌ Échec de l'installation de huggingface-hub
     exit /b 1
@@ -104,12 +125,26 @@ echo   Ne fermez pas ce terminal.
 echo.
 
 if not exist "models" mkdir models
-huggingface-cli download unsloth/gemma-4-E2B-it-GGUF gemma-4-E2B-it-Q4_K_M.gguf --local-dir ./models --local-dir-use-symlinks False
-if errorlevel 1 (
-    echo ❌ Échec du téléchargement du modèle
-    exit /b 1
+if exist "models\gemma-4-E2B-it-Q4_K_M.gguf" (
+    echo ✓ Modèle déjà présent dans .\models\
+) else (
+    set "HF_CLI=hf"
+    where !HF_CLI! >nul 2>&1
+    if errorlevel 1 (
+        set "HF_CLI=huggingface-cli"
+        where !HF_CLI! >nul 2>&1
+        if errorlevel 1 (
+            set "HF_CLI=python -m huggingface_hub.commands.huggingface_cli"
+        )
+    )
+
+    !HF_CLI! download unsloth/gemma-4-E2B-it-GGUF gemma-4-E2B-it-Q4_K_M.gguf --local-dir ./models --local-dir-use-symlinks False
+    if errorlevel 1 (
+        echo ❌ Échec du téléchargement du modèle
+        exit /b 1
+    )
+    echo ✓ Modèle téléchargé dans ./models/
 )
-echo ✓ Modèle téléchargé dans ./models/
 
 REM ÉTAPE 7 — Ouverture VS Code
 echo.

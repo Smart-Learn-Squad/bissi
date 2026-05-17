@@ -8,7 +8,7 @@
 
 ## The Problem
 
-Across Africa and much of the developing world, millions of students, professionals, and everyday users face the same invisible wall: powerful AI tools exist, but they require a stable internet connection, a subscription, and often a high-end device. In Cotonou, Lomé, Dakar, or Kinshasa, that wall is real. **Bissi was built to tear it down.**
+Across Africa and much of the developing world, millions of students, professionals, and everyday users face the same invisible wall: powerful AI tools exist, but they require a stable internet connection, a subscription, and often a high-end device. In many countries(like mention West African Countries), that wall is real. **Bissi was built to tear it down.**
 
 ---
 

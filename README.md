@@ -157,12 +157,6 @@ curl -N -X POST http://localhost:8765/chat \
 
 ---
 
-## License
-
-MIT License — see [LICENSE](./LICENSE)
-
----
-
 ## Acknowledgements
 
 - **Google** for Gemma 4 and the Gemma 4 Good hackathon

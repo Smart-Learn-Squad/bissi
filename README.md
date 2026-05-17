@@ -86,7 +86,7 @@ curl -fsSL https://raw.githubusercontent.com/Smart-Learn-Squad/bissi/main/instal
 
 ```powershell
 irm https://raw.githubusercontent.com/Smart-Learn-Squad/bissi/main/install.ps1 | iex
-start.bat
+./start.ps1
 ```
 
 ---

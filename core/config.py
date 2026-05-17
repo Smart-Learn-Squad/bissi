@@ -24,7 +24,7 @@ class LlamaCppConfig:
     timeout_seconds: int = 300
     max_retries: int = 3
     temperature: float = 0.5
-    n_ctx: int = 16384
+    n_ctx: int = 4096
 
 
 @dataclass(frozen=True)
@@ -32,7 +32,7 @@ class AgentConfig:
     """Agent loop settings."""
 
     max_iterations: int = 7
-    context_token_limit: int = 14000
+    context_token_limit: int = 3200
 
 
 @dataclass(frozen=True)

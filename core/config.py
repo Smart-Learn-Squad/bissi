@@ -32,7 +32,7 @@ class AgentConfig:
     """Agent loop settings."""
 
     max_iterations: int = 5
-    context_token_limit: int = 3200
+    context_token_limit: int = 14000
 
 
 @dataclass(frozen=True)

@@ -37,7 +37,7 @@ else
         --model bissi-gemma4-e2b-Q4_K_M.gguf \
         --host 127.0.0.1 \
         --port 8001 \
-        --n_ctx 4096 \
+        --n_ctx 16384 \
         --n_threads 6 \
         --use_mmap False \
         > /tmp/bissi-llama.log 2>&1 &

@@ -31,7 +31,7 @@ class LlamaCppConfig:
 class AgentConfig:
     """Agent loop settings."""
 
-    max_iterations: int = 7
+    max_iterations: int = 5
     context_token_limit: int = 3200
 
 

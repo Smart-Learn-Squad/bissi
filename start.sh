@@ -38,7 +38,7 @@ else
         --host 127.0.0.1 \
         --port 8001 \
         --n_ctx 16384 \
-        --n_threads 6 \
+        --n_threads 10 \
         --use_mmap False \
         > /tmp/bissi-llama.log 2>&1 &
     LLAMA_PID=$!

@@ -74,7 +74,7 @@ else
     --model "$MODEL_PATH" \
     --port 8001 \
     --n_ctx 16384 \
-    --n_threads 4 \
+    --n_threads 10 \
     --use_mmap False \
     --temperature 0.5 \
     --repeat_penalty 1.05 \

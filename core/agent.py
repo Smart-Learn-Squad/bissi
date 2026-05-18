@@ -501,7 +501,7 @@ Pour les documents .docx, génère un contenu concis (400-500 mots max) en un se
                 )
                 continue
             if role == "tool":
-                tool_call_id = metadata.get("tool_call_id")
+                tool_call_id = metadata.get("tool_call_id", f"call_{hash(content) & 0xFFFFFFFF}")
                 tool_name = metadata.get("tool_name")
                 tool_content = content
                 if tool_name and tool_content.startswith(f"[{tool_name}] "):

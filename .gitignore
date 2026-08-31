@@ -36,10 +36,10 @@ Thumbs.db
 *.swo
 
 # Logs
-*.log*.gguf
+*.log
 
 # Claude Code
 graphify-out/
 
-# models
-gemma-4-E2B-it-Q4_K_M.gguf
+# Modèles LLM (GGUF volumineux — jamais commités)
+*.gguf

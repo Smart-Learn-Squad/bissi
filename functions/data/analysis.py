@@ -158,7 +158,10 @@ def create_chart(df: pd.DataFrame,
         import matplotlib.pyplot as plt
         import seaborn as sns
     except ImportError:
-        raise ImportError("matplotlib and seaborn required for charting")
+        raise ImportError(
+            "Charting requires matplotlib and seaborn (optionnel). "
+            "Installe-les avec : uv add matplotlib seaborn"
+        )
     
     plt.figure(figsize=(10, 6))
     

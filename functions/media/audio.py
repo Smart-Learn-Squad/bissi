@@ -43,7 +43,9 @@ class AudioProcessor:
         validate_path_safety(audio_path)
         if not self.whisper_available:
             raise ImportError(
-                "Whisper not installed. Install with: pip install openai-whisper"
+                "Whisper (openai-whisper) n'est pas installé. "
+                "Outil audio optionnel : `uv add openai-whisper` pour l'activer. "
+                "La transcription de l'interface utilise faster-whisper (déjà inclus)."
             )
         
         import whisper
@@ -68,7 +70,10 @@ class AudioProcessor:
         """
         validate_path_safety(audio_path)
         if not self.whisper_available:
-            raise ImportError("Whisper not installed")
+            raise ImportError(
+                "Whisper (openai-whisper) n'est pas installé. "
+                "Outil audio optionnel : `uv add openai-whisper` pour l'activer."
+            )
         
         import whisper
         

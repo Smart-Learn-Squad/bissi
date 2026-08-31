@@ -1,0 +1,80 @@
+[project]
+name = "bissi"
+version = "2.0.0"
+description = "BISSI — Local-first offline AI agent (Gemma 4 E2B) for digital equity & education"
+readme = "README.md"
+requires-python = ">=3.13"
+
+dependencies = [
+    # --- Web / API (FastAPI backend :8765) ---
+    "fastapi>=0.136",
+    "uvicorn[standard]>=0.44",
+    "starlette>=1.0",
+    "pydantic>=2.13",
+    "pydantic-settings>=2.13",
+    "python-multipart>=0.0.28",
+    "httpx>=0.28",
+    # --- LLM serveur (llama.cpp :8001), wheel CPU précompilée ---
+    "llama-cpp-python==0.3.23",
+    # sse-starlette + starlette-context : requis par llama_cpp.server
+    "sse-starlette>=2.1",
+    "starlette-context>=0.3",
+    # --- Mémoire / RAG ---
+    "chromadb>=1.5",
+    # --- Transcription vocale (/transcribe) ---
+    "faster-whisper>=1.1",
+    # --- Office / Documents ---
+    "python-docx>=1.2",
+    "python-pptx>=1.0",
+    "openpyxl>=3.1",
+    "PyPDF2>=3.0",
+    "pdfplumber>=0.11",
+    "pypdfium2>=5.0",
+    "pdf2image>=1.17",
+    "pytesseract>=0.3",
+    "Pillow>=12.0",
+    # --- Data / Analyse ---
+    "pandas>=3.0",
+    "numpy>=2.4",
+    "matplotlib>=3.10",
+    "scipy>=1.17",
+    "scikit-learn>=1.8",
+    # --- Accès BDD ---
+    "pyodbc>=5.0",
+    # --- Media (audio/video) ---
+    "av>=17.0",
+    "mutagen>=1.47",
+    "gtts>=2.0",
+    "pyttsx3>=2.90",
+    # --- Web / réseau ---
+    "requests>=2.32",
+    "beautifulsoup4>=4.14",
+    "lxml>=6.0",
+    "jinja2>=3.1",
+    # --- Communication (email/calendar) ---
+    "keyring>=25",
+    "vobject>=0.9",
+    "google-auth-oauthlib>=1.2",
+    "google-api-python-client>=2.160",
+    # --- Vision (découpe) ---
+    "ollama>=0.4",
+    # --- Système / clipboard ---
+    "pyperclip>=1.9",
+    # --- CLI / REPL ---
+    "rich>=15.0",
+    "prompt_toolkit>=3.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+charting = ["seaborn>=0.13"]
+
+# uv gère les wheels CPU précompilées de llama-cpp-python (pas de compilation C).
+# L'index officiel d'abetlen fournit ces wheels pour Python 3.13 sur Linux x86-64.
+[tool.uv]
+extra-index-url = ["https://abetlen.github.io/llama-cpp-python/whl/cpu"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]

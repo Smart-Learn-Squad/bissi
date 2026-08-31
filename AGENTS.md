@@ -1,116 +1,76 @@
-# AGENTS.md — Règles de contribution BISSI Master
+# AGENTS.md — BISSI
 
-## Qui fait quoi
+Local-first AI agent (Gemma 4 E2B, offline). Electron frontend + Python/FastAPI backend serving a fine-tuned LLM via llama.cpp. Windows 11 & Ubuntu/Debian 24.04.
 
-| Rôle | Fichiers autorisés |
-| --- | --- |
-| Design | `bissi-master-ui/renderer/chat.html` · `bissi-master-ui/renderer/onboarding.html` |
-| Backend | `core/` · `api/` · `functions/` · `onboarding/` · `main.py` |
+## Architecture (two servers — both required to run the app)
 
-## ⛔ NE PAS TOUCHER — Équipe Design
-
-Ces fichiers sont critiques et ne doivent pas être modifiés :
-
-- `core/` — Moteur agent, mémoire, contexte, types
-- `api/server.py` — API FastAPI
-- `functions/` — Tools de l'agent
-- `main.py` — Point d'entrée backend
-- `preload.js` — Bridge Electron sécurisé
-- `main.js` — Process principal Electron
-- `bissi-master.sh` — Lancement llama.cpp
-- `requirements.txt`
-
-## ✅ Fichiers design — Ce que vous pouvez modifier
-
-### `renderer/chat.html`
-
-- CSS variables en haut du fichier → couleurs, espacements
-- Layout HTML → structure visuelle
-- Animations, transitions
-- Tailles de police
-
-### `renderer/onboarding.html`
-
-- Même règles que chat.html
-
-### Variables CSS à modifier en priorité
-
-```css
-:root {
-  --acc: #7C3AED;        /* Couleur d'accent */
-  --bg: #0D0D12;         /* Fond principal */
-  --sb: #1A1A2E;         /* Sidebar */
-  --text: #E2E8F0;       /* Texte principal */
-  --muted: ...;          /* Texte secondaire */
-}
+```
+llama.cpp (port 8001)  ← OpenAI-compatible HTTP API serving bissi-gemma4-e2b-Q4_K_M.gguf
+FastAPI   (port 8765)  → SSE streaming to Electron renderer
+Electron  (bissi-master-ui/) → renderer/chat.html + onboarding.html
 ```
 
-Ce qu'il ne faut PAS modifier dans chat.html:
+- Ports are fixed: llama.cpp `:8001`, backend `:8765`. Never change them — scripts hardcode them.
+- All agent + tool logic lives in `core/` and `functions/`. `api/server.py` is a thin bridge.
+- See `README.md` (architecture diagram) and `AGENT_TESTING.md` for background.
 
-Les fonctions JavaScript (connexion SSE, fetch, etc.)
-Les id et class utilisés par le JS
-La structure des éléments interactifs
+## Directory ownership — do not cross
 
-### Workflow
+| Team | Files |
+| --- | --- |
+| Backend | `core/` `api/` `functions/` `onboarding/` `configs/` `main.py` `utils/` |
+| Design | `bissi-master-ui/renderer/chat.html` `bissi-master-ui/renderer/onboarding.html` only |
 
-1. Créer une branche : git checkout -b design/nom-du-changement
-2. Modifier uniquement les fichiers autorisés
-3. Tester visuellement (npm start)
-4. Pull request → review obligatoire avant merge
+In `chat.html` you may change CSS variables, layout, animations, and font sizes. **Do not** touch the JavaScript (SSE reader, fetch), element `id`/`class` used by JS, or interactive element structure — breaking these silently kills the UI.
 
-### En cas de doute
+Design workflow: `git checkout -b design/<change>` → edit only allowed files → `npm start` to test visually → PR with review before merge. When in doubt, don't touch; open an issue.
 
-Ne touche pas. Ouvre une issue et demande.
+## Setup / run
 
----
+```bash
+# One-time: .venv + pip deps + GGUF model + npm deps
+./install.sh                 # or start from README Quick Start
 
-## 🔴 Backend non connecté au Frontend — Plan de travail
+# Full stack (llama.cpp → backend → Electron), cleans stale procs first
+./start.sh
 
-### HIGH — Priorité haute (nécessite backend + frontend)
+# Backend alone
+source .venv/bin/activate && uvicorn api.server:app --port 8765 --reload
 
-#### Canvas / Visionneur de documents (~200-300 lignes)
-- **Où** : `chat.html` (l.620-638) + `preload.js` + `main.js`
-- **Problème** : Les onglets Document/Données/Code existent, les libs vendor (`mammoth`, `xlsx`, `pdfjs`, `highlight.js`) sont importées, mais **aucun code** ne peuple le canvas.
-- **À faire** : Écrire les handlers d'appel IPC `bissi.file.read/readBuffer` depuis le renderer, instancier chaque lib pour le rendu, gérer les états loading/erreur.
-- **Réf**: `@tobiamadou-eng`
+# Frontend alone (backend must already be on :8765)
+cd bissi-master-ui && npm start
+```
 
-#### Audio / Enregistrement vocal (~300-400 lignes)
-- **Où** : `chat.html` (l.602-609 bouton micro sans handler) + nouvelle route API
-- **Problème** : `functions/media/audio.py` existe (Whisper + TTS) mais aucune route REST, pas de `MediaRecorder` côté renderer, pas de flux SSE pour retour audio.
-- **À faire** : Nouvel endpoint API + `MediaRecorder` dans renderer + envoi blob → backend → transcription.
-- **Réf**: `@tobiamadou-eng`
+- The app **cannot run without the GGUF model file** (`bissi-gemma4-e2b-Q4_K_M.gguf`, ~3.2 GB) at repo root or `models/`. Start scripts exit if missing.
+- `main.py` refuses to start (exits 1) if llama.cpp isn't on `:8001` — run `bissi-master.sh` first.
 
-### MEDIUM — Priorité moyenne (frontend uniquement)
+## Testing (three layers — pick the right one)
 
-#### Upload fichiers → agent (~50-80 lignes)
-- **Où** : `api/server.py:69-81` + `core/agent.py`
-- **Problème** : Les fichiers sont reçus par `POST /chat` (FormData) et loggués, mais **jamais passés** à `agent.process_request()`. L'utilisateur attache des fichiers qui ne servent à rien.
-- **À faire** : Passer `files` dans `process_request()`, ajouter le paramètre dans la signature de l'agent, lire le texte des fichiers et l'injecter dans le contexte.
-- **Réf**: `@tobiamadou-eng`
+```bash
+# Unit tests — NO LLM needed, ~3s, mocked engine. Safe to run anytime.
+source .venv/bin/activate && python -m pytest tests/test_agentic_capabilities.py -v
 
-#### Trace outils SSE (tool_start / tool_done) (~60-100 lignes)
-- **Où** : `chat.html` — boucle SSE reader (l.1175-1197)
-- **Problème** : Les events `tool_start`/`tool_done` sont émis par le backend (server.py:60-64) mais **ignorés** dans le reader. Les classes CSS existent (`.tool-t`, `.t-verb` l.429-435).
-- **À faire** : Ajouter `case 'tool_start'` / `case 'tool_done'` dans le reader SSE, créer des éléments DOM pour chaque outil, gérer le nesting temporel.
-- **Réf**: `@tobiamadou-eng`
+# Integration tests — NO LLM needed, executes real tools against temp files.
+python -m pytest tests/test_agentic_integration.py -v -s
 
-### LOW — Priorité basse (frontend uniquement, déjà faits)
+# E2E / REPL — REQUIRE a live llama.cpp on :8001 (via ./start.sh or bissi-master.sh).
+python test_e2e_quick.py      # speed + tool-use + clean-response check
+python agent_repl.py          # interactive; commands: tools, info, history
+```
 
-✅ *Erreurs SSE* — Connecté (bannière #error-banner + handler SSE)
-✅ *Thinking SSE* — Connecté (affichage en direct du reasoning)
-✅ *Modèle display-only* — Dropdown rendu non-cliquable (info-only)
-✅ *Greeting onboarding* — Fixé (consommation correcte du flux SSE POST /chat)
+- Unit/integration tests mock `BissiEngine`; E2E/REPL hit the real model and are slow (`n_ctx` 16384 → first response can be slow).
+- E2E tool calls are historically flaky — the model sometimes emits a raw `<|tool_call|>` trace instead of executing. Inspect the tracked tool names via `on_tool_start`, don't assume success.
+- The agent is tuned for French prompts.
 
----
+## Conventions & gotchas
 
-## Résultats des tests agent
+- Agent config lives in `core/config.py` (dataclasses, immutable `DEFAULT_CONFIG`); keep `n_ctx`/`context_token_limit` consistent with the llama.cpp `n_ctx` (16384 in start scripts).
+- Renderer receives SSE events from `POST /chat`: `chunk`, `thinking`, `tool_start`, `tool_done`, `file_created`, `done`, `ping`, `error`. The `chat.html` SSE loop must handle them; `tool_start`/`tool_done` wiring has historically been missing in the renderer.
+- Backend reads/decodes uploaded files (UTF-8) and injects a truncated preview into the message — files are already passed to `agent.process_request()`.
+- `/transcribe` (Speech-to-text, faster-whisper tiny) exists and is lazy-loaded. `functions/media/` contains office/media tool code.
+- Run from repo root; `tests/conftest.py` adds root to `sys.path` for pytest.
 
-- `test_e2e_quick.py` démarre bien quand `llama.cpp` et l’API sont en place.
-- La réponse simple fonctionne, mais elle peut être lente selon le chargement du modèle.
-- Les tool calls sont encore mal remontés côté test rapide : la réponse contient parfois la trace `<|tool_call|>` au lieu d’un vrai appel exécuté.
+## Docs to consult (keep in sync, don't duplicate)
 
-### Lecture rapide
-
-Le runtime répond, mais l’exécution des outils reste à fiabiliser pour obtenir un cycle agent complet.
-
-`@tobiamadou-eng` : point de suivi sur la fiabilisation des outils et du flux de réponse.
+- `README.md` — architecture & full API reference
+- `tests/README.md` + `AGENTIC_TESTS.md` + `AGENT_TESTING.md` — test suite, mocking pattern, REPL usage

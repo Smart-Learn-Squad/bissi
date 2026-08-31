@@ -5,13 +5,12 @@ export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH"
 echo "Bienvenue dans l'installateur de Bissi 🤖"
 echo "Voici ce qui va se passer :"
 echo "1. Vérification des outils requis"
-echo "2. Clonage du repo GitHub"
-echo "3. Création du virtualenv Python"
-echo "4. Installation de huggingface-cli"
-echo "5. Installation des dépendances npm"
-echo "6. Téléchargement du modèle IA (~3 GB)"
-echo "7. Ouverture de VS Code"
-echo "8. Lancement de l'application"
+echo "2. Prise en compte du repo (in place, pas de clone si déjà présent)"
+echo "3. Installation des dépendances Python via uv"
+echo "4. Installation des dépendances npm"
+echo "5. Téléchargement du modèle IA (~3 GB)"
+echo "6. Ouverture de VS Code"
+echo "7. Lancement de l'application"
 echo ""
 
 # ÉTAPE 1 — Vérifications
@@ -33,29 +32,41 @@ check_tool "npm"    "https://nodejs.org"
 check_tool "python3" "https://python.org"
 check_tool "curl"   "https://curl.se"
 
-# ÉTAPE 2 — Clone du repo
-PROJECT_DIR="${BISSI_INSTALL_DIR:-$HOME/Dev/Bissi}"
-mkdir -p "$PROJECT_DIR"
-cd "$PROJECT_DIR"
-
-if [ ! -w "$PROJECT_DIR" ]; then
-    echo "❌ Dossier d'installation non inscriptible: $PROJECT_DIR"
-    echo "→ Définit un dossier writable: export BISSI_INSTALL_DIR=~/Dev/Bissi"
-    exit 1
+# uv (gestionnaire de dépendances Python — recommandé). Installé si absent.
+if ! command -v uv &> /dev/null; then
+    echo "⚠ uv est introuvable. Installation d'uv (astral)..."
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    # recharge PATH pour disposer de uv dans cette session
+    export PATH="$HOME/.local/bin:$PATH"
+    if ! command -v uv &> /dev/null; then
+        echo "❌ Échec de l'installation d'uv. Ajoute-le au PATH puis relance."
+        exit 1
+    fi
 fi
+echo "✓ uv trouvé ($(uv --version))"
 
+# ÉTAPE 2 — Repo in place
+# On installe DANS le dossier courant. Si le dossier courant est déjà le repo
+# (présence de pyproject.toml), on ne clone rien — pas de copie séparée.
 REPO_URL="https://github.com/Smart-Learn-Squad/bissi.git"
-if [ -d "bissi" ]; then
-    echo "⚠ Le repo existe déjà. On continue quand même."
+if [ -f "pyproject.toml" ] && [ -f "start.sh" ]; then
+    echo "✓ Dossier courant = dépôt Bissi déjà présent. Installation in place."
+elif [ -d "bissi" ] && [ -f "bissi/pyproject.toml" ]; then
+    echo "→ Dépôt trouvé dans ./bissi — on y descend."
     cd bissi
-    if ! git pull --ff-only; then
-        echo "⚠ Impossible de mettre à jour automatiquement le repo (conflit ou historique local)."
-        echo "  On continue avec l'état local actuel."
+elif [ -d "bissi" ]; then
+    echo "⚠ ./bissi existe mais ne semble pas contenir un dépôt valide."
+    if git -C bissi rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        cd bissi
+        echo "  (c'est un dépôt git — on continue dans l'état local, sans pull forcé)"
+    else
+        echo "❌ ./bissi existe sans être un dépôt git. Déplace-le puis relance."
+        exit 1
     fi
 else
-    echo "→ Clonage du repo..."
+    echo "→ Aucun dépôt ici. Clonage de Bissi dans le dossier courant..."
     if git clone "$REPO_URL"; then
-        echo "✓ Repo cloné avec succès"
+        echo "✓ Repo cloné dans $(pwd)/bissi"
         cd bissi
     else
         echo "❌ Échec du clonage du repo"
@@ -63,49 +74,50 @@ else
     fi
 fi
 
-# ÉTAPE 3 — Virtualenv Python
-echo "→ Création du virtualenv Python..."
-if [ -d ".venv" ]; then
-    echo "⚠ .venv existe déjà. On réutilise."
-else
-    if python3 -m venv .venv; then
-        echo "✓ .venv créé"
-    else
-        echo "❌ Échec de la création du virtualenv"
+if [ ! -w "$(pwd)" ]; then
+    echo "❌ Dossier non inscriptible : $(pwd)"
+    exit 1
+fi
+echo "✓ Répertoire: $(pwd)"
+
+# ÉTAPE 3 — Dépendances Python via uv (pyproject.toml + uv.lock)
+echo "→ Installation des dépendances Python via uv..."
+if [ ! -f "pyproject.toml" ]; then
+    echo "⚠ pyproject.toml introuvable après détermination du repo — je le vérifie."
+    echo "  Assure-toi d'avoir la dernière version (git pull)."
+    exit 1
+fi
+
+# .venv cassé ? (interpréteur pointant vers un python inexistant) -> on le supprime.
+# uv le récréera proprement. Détection : le lien python du venv ne résout vers rien.
+VENV_PY=".venv/bin/python"
+if [ -L "$VENV_PY" ] && ! "$VENV_PY" --version >/dev/null 2>&1; then
+    echo "⚠ .venv cassé (interpréteur introuvable). Suppression pour recréation..."
+    rm -rf .venv
+fi
+
+# S'assurer qu'un Python 3.13 est disponible pour uv (pyproject.toml exige >=3.13).
+if ! uv python find 3.13 >/dev/null 2>&1; then
+    echo "→ Python 3.13 introuvable. Installation d'un Python 3.13 géré par uv..."
+    if ! uv python install 3.13; then
+        echo "❌ Impossible d'obtenir Python 3.13. Installe-le manuellement puis relance."
         exit 1
     fi
 fi
 
-source .venv/bin/activate
-echo "✓ Virtualenv activé"
-
-# ÉTAPE 4 — Mise à jour pip + dépendances Python
-echo "→ Mise à jour de pip..."
-if python3 -m pip install --upgrade pip -q; then
-    echo "✓ pip mis à jour"
-else
-    echo "❌ Échec de la mise à jour de pip"
-    exit 1
-fi
-
-echo "→ Installation des dépendances Python..."
-if python3 -m pip install -r requirements.txt; then
-    echo "✓ Dépendances Python installées"
+if uv sync; then
+    echo "✓ Dépendances Python installées (.venv géré par uv)"
 else
     echo "❌ Échec de l'installation des dépendances Python"
     exit 1
 fi
 
-echo "→ Installation de huggingface-cli..."
-if python3 -m pip install --upgrade huggingface_hub -q; then
-    echo "✓ huggingface-cli installé"
-else
-    echo "❌ Échec de l'installation de huggingface-hub"
+# ÉTAPE 4 — npm install
+echo "→ Installation des dépendances npm..."
+if [ ! -d "bissi-master-ui" ]; then
+    echo "❌ Dossier bissi-master-ui introuvable. Ce dépôt ne semble pas être Bissi."
     exit 1
 fi
-
-# ÉTAPE 5 — npm install
-echo "→ Installation des dépendances npm..."
 cd bissi-master-ui
 if npm install; then
     echo "✓ Dépendances npm installées"
@@ -115,39 +127,26 @@ else
 fi
 cd ..
 
-# ÉTAPE 6 — Téléchargement modèle
+# ÉTAPE 5 — Téléchargement modèle
 echo ""
 echo "→ Téléchargement du modèle IA (~3 GB)..."
 echo "  Cela peut prendre plusieurs minutes selon votre connexion."
 echo "  Ne fermez pas ce terminal."
 echo ""
 
-
-if hf download samsam8623/bissi-gemma4-e2b-GGUF \
+# La CLI hf vient du .venv géré par uv (huggingface_hub).
+if [ -f "bissi-gemma4-e2b-Q4_K_M.gguf" ]; then
+    echo "✓ Modèle déjà présent à la racine : bissi-gemma4-e2b-Q4_K_M.gguf"
+elif uv run hf download samsam8623/bissi-gemma4-e2b-GGUF \
     bissi-gemma4-e2b-Q4_K_M.gguf \
-  --local-dir .; then
-    echo "✓ Modèle téléchargé dans ./models/"
+    --local-dir . >/dev/null 2>&1; then
+    echo "✓ Modèle téléchargé dans le répertoire racine"
 else
-    if command -v hf &> /dev/null; then
-        HF_CLI=(hf)
-    elif command -v huggingface-cli &> /dev/null; then
-        HF_CLI=(huggingface-cli)
-    else
-        HF_CLI=(python3 -m huggingface_hub.commands.huggingface_cli)
-    fi
-
-    if "${HF_CLI[@]}" download unsloth/gemma-4-E2B-it-GGUF \
-      gemma-4-E2B-it-Q4_K_M.gguf \
-      --local-dir ./models \
-      --local-dir-use-symlinks False; then
-        echo "✓ Modèle téléchargé dans ./models/"
-    else
-        echo "❌ Échec du téléchargement du modèle"
-        exit 1
-    fi
+    echo "❌ Échec du téléchargement du modèle (source bissi-gemma4-e2b-GGUF)"
+    exit 1
 fi
 
-# ÉTAPE 7 — Ouverture VS Code
+# ÉTAPE 6 — Ouverture VS Code
 echo ""
 echo "→ Ouverture de VS Code..."
 if command -v code &> /dev/null; then
@@ -156,7 +155,8 @@ else
     echo "⚠ VS Code non trouvé. Ouvre le dossier manuellement."
 fi
 
-# ÉTAPE 8 — Lancement
+# ÉTAPE 7 — Lancement
 echo ""
 echo "→ Lancement de Bissi..."
-bash start.sh
+echo "  Appuyez sur Ctrl+C pour arrêter."
+exec bash start.sh

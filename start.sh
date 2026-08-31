@@ -6,12 +6,17 @@ cd "$SCRIPT_DIR"
 
 echo "━━━ BISSI Launcher ━━━"
 
-# 1. Check venv
+# 1. Ensure venv via uv
 if [ ! -d ".venv" ]; then
-    echo "❌ Virtual env not found in .venv"
-    exit 1
+    echo "→ .venv introuvable, lancement de 'uv sync'..."
+    if command -v uv &> /dev/null; then
+        uv sync
+    else
+        echo "❌ uv introuvable ET .venv absent. Lance install.sh d'abord."
+        exit 1
+    fi
 fi
-source .venv/bin/activate
+source .venv/bin/activate 2>/dev/null || true
 
 # 2. Kill stale processes
 echo "→ Cleaning up old processes..."

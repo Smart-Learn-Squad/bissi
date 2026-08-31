@@ -9,7 +9,7 @@ import tempfile
 import os
 from typing import Any, AsyncGenerator, Dict, Optional, List
 
-from fastapi import FastAPI, HTTPException, Form, UploadFile, File
+from fastapi import FastAPI, HTTPException, Form, UploadFile, File, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
@@ -61,18 +61,19 @@ class ConversationTitleRequest(BaseModel):
     title: str
 
 
-async def _chat_stream(
+def _start_agent_job(
+    loop: asyncio.AbstractEventLoop,
+    queue: "asyncio.Queue[Dict[str, Any]]",
     message: str,
-    conversation_id: Optional[int] = None,
-    files: Optional[List] = None,
+    conversation_id: Optional[int],
+    files: Optional[List],
     thinking_enabled: bool = True,
-) -> AsyncGenerator[str, None]:
-    """Run agent in worker thread and stream SSE events."""
-    loop = asyncio.get_running_loop()
-    queue: asyncio.Queue[Dict[str, Any]] = asyncio.Queue()
+) -> asyncio.Task:
+    """Run the agent in an executor thread and stream events into `queue`.
 
-    if conversation_id is not None:
-        agent.current_conversation_id = conversation_id
+    Shared by the SSE `/chat` endpoint and the WebSocket `/ws` endpoint so both
+    reuse the same streaming mechanics (asyncio.Queue + run_in_executor).
+    """
 
     def _send_event(payload: Dict[str, Any]) -> None:
         loop.call_soon_threadsafe(queue.put_nowait, payload)
@@ -86,9 +87,17 @@ async def _chat_stream(
     def on_tool_done(name: str, result: str) -> None:
         _send_event({"type": "tool_done", "name": name, "result": result})
         try:
-            r = json.loads(result)
-            if r.get("path"):
-                _send_event({"type": "file_created", "name": name, "file_path": r["path"], "file_name": os.path.basename(r["path"])})
+            parsed = json.loads(result)
+            path = parsed.get("path")
+            if path:
+                _send_event(
+                    {
+                        "type": "file_created",
+                        "name": name,
+                        "file_path": path,
+                        "file_name": os.path.basename(path),
+                    }
+                )
         except Exception:
             pass
 
@@ -127,14 +136,36 @@ async def _chat_stream(
     async def _watch_task() -> None:
         try:
             full_response = await task
-            _send_event({"type": "done", "full_response": full_response, "conversation_id": agent.current_conversation_id})
+            _send_event(
+                {
+                    "type": "done",
+                    "full_response": full_response,
+                    "conversation_id": agent.current_conversation_id,
+                }
+            )
         except Exception as exc:
             logger.exception("chat_failed")
             _send_event({"type": "error", "message": str(exc)})
         finally:
             _send_event({"type": "_end"})
 
-    watcher = asyncio.create_task(_watch_task())
+    return asyncio.create_task(_watch_task())
+
+
+async def _chat_stream(
+    message: str,
+    conversation_id: Optional[int] = None,
+    files: Optional[List] = None,
+    thinking_enabled: bool = True,
+) -> AsyncGenerator[str, None]:
+    """Run agent in worker thread and stream events via the shared job helper."""
+    loop = asyncio.get_running_loop()
+    queue: "asyncio.Queue[Dict[str, Any]]" = asyncio.Queue()
+
+    if conversation_id is not None:
+        agent.current_conversation_id = conversation_id
+
+    watcher = _start_agent_job(loop, queue, message, conversation_id, files, thinking_enabled)
 
     HEARTBEAT_INTERVAL = 15.0
 
@@ -297,3 +328,65 @@ async def transcribe(audio: UploadFile = File(...)) -> JSONResponse:
                 os.unlink(tmp_path)
             except Exception:
                 pass
+
+
+@app.websocket("/ws")
+async def ws_endpoint(websocket: WebSocket) -> None:
+    """WebSocket endpoint mirroring the SSE /chat behaviour.
+
+    Expects JSON frames:
+      {"message": "Bonjour", "conversation_id": 1, "thinking": true}
+
+    Streams JSON frames back:
+      {"type": "chunk", "content": "..."}
+      {"type": "tool_start", "name": "...", "args": {...}}
+      {"type": "tool_done",  "name": "...", "result": "..."}
+      {"type": "thinking",   "content": "..."}
+      {"type": "done",       "full_response": "...", "conversation_id": 1}
+      {"type": "ping"}
+
+    The frontend does NOT need to change — this endpoint is added for
+    future consumers; the current Electron UI continues to use POST /chat.
+    """
+    await websocket.accept()
+    try:
+        while True:
+            raw = await websocket.receive_json()
+            message = raw.get("message", "")
+            conversation_id = raw.get("conversation_id")
+            thinking = raw.get("thinking", True)
+
+            if not isinstance(message, str) or not message.strip():
+                await websocket.send_json({"type": "error", "message": "Empty message"})
+                continue
+
+            loop = asyncio.get_running_loop()
+            queue: "asyncio.Queue[Dict[str, Any]]" = asyncio.Queue()
+
+            if conversation_id is not None:
+                agent.current_conversation_id = conversation_id
+
+            watcher = _start_agent_job(loop, queue, message, conversation_id, files=None, thinking_enabled=thinking)
+
+            HEARTBEAT_INTERVAL = 15.0
+
+            while True:
+                try:
+                    event = await asyncio.wait_for(queue.get(), timeout=HEARTBEAT_INTERVAL)
+                except asyncio.TimeoutError:
+                    await websocket.send_json({"type": "ping"})
+                    continue
+                if event.get("type") == "_end":
+                    break
+                await websocket.send_json(event)
+
+            await watcher
+
+    except WebSocketDisconnect:
+        logger.info("ws_client_disconnected")
+    except Exception as exc:
+        logger.exception("ws_endpoint_error")
+        try:
+            await websocket.send_json({"type": "error", "message": str(exc)})
+        except Exception:
+            pass

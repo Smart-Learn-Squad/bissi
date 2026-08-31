@@ -68,8 +68,8 @@ class TestAgentToolExecution:
             agent = BissiAgent()
             search_fn = agent.available_functions["search_files"]
 
-            # Search for Python files (using correct parameter names)
-            result = search_fn(file_pattern="*.py", root_dir=tmpdir)
+            # Search for Python files
+            result = search_fn(query="*.py", root_dir=tmpdir)
 
             # Verify result
             assert isinstance(result, ToolResult)
@@ -88,8 +88,8 @@ class TestAgentToolExecution:
             agent = BissiAgent()
             list_fn = agent.available_functions["list_directory"]
 
-            # List directory (using correct parameter names)
-            result = list_fn(dir_path=tmpdir)
+            # List directory
+            result = list_fn(path=tmpdir)
 
             # Verify result
             assert isinstance(result, ToolResult)
@@ -151,13 +151,13 @@ class TestAgentWorkflows:
 
             agent = BissiAgent()
 
-            # Step 1: Search for files (using correct parameter names)
+            # Step 1: Search for files
             search_fn = agent.available_functions["search_files"]
-            search_result = search_fn(file_pattern="*.txt", root_dir=tmpdir)
+            search_result = search_fn(query="*.txt", root_dir=tmpdir)
             assert search_result.success is True
             print(f"✅ Step 1 - Found files: {search_result.output}")
 
-            # Step 2: Read the file (using correct parameter names)
+            # Step 2: Read the file
             read_fn = agent.available_functions["read_text_file"]
             read_result = read_fn(file_path=str(test_file))
             assert read_result.success is True
@@ -202,13 +202,13 @@ class TestAgentWorkflows:
                 assert result.success is True
             print(f"✅ Step 1 - Created 3 files")
 
-            # Step 2: List directory (using correct parameter names)
+            # Step 2: List directory
             list_fn = agent.available_functions["list_directory"]
-            list_result = list_fn(dir_path=tmpdir)
+            list_result = list_fn(path=tmpdir)
             assert list_result.success is True
             print(f"✅ Step 2 - Listed directory: {list_result.output}")
 
-            # Step 3: Edit one file (using correct parameter names)
+            # Step 3: Edit one file
             edit_fn = agent.available_functions["edit_text_file"]
             filepath = Path(tmpdir) / "file0.txt"
             edit_result = edit_fn(
@@ -292,8 +292,8 @@ class TestAgentCapabilitiesLive:
         # Verify conversation store
         assert agent.conversation_store is not None
 
-        # Verify vector store
-        assert agent.vector_store is not None
+        # Verify vector store (lazy: default y est None, activé à la demande)
+        assert agent.vector_store is None
 
         print(f"✅ Agent context components initialized:")
         print(f"   - ContextManager: token_limit={agent.context_manager.token_limit}")

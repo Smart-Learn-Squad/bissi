@@ -205,13 +205,16 @@ class TestAgentContextManagement:
                     assert agent.conversation_store is not None
 
     def test_vector_store_initialization(self):
-        """Test vector store is properly initialized."""
+        """Test vector store is lazy: None by default, honored when injected."""
         with patch.object(BissiEngine, '__init__', return_value=None):
             with patch.object(BissiEngine, 'health_check', return_value=True):
-                with patch('core.memory.vector_store.VectorStore'):
-                    agent = BissiAgent()
+                agent = BissiAgent()
+                assert agent.vector_store is None
 
-                    assert agent.vector_store is not None
+                fake_store = object()
+
+                agent2 = BissiAgent(vector_store=fake_store)
+                assert agent2.vector_store is fake_store
 
 
 class TestAgentCapabilities:

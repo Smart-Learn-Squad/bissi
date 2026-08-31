@@ -24,7 +24,7 @@ class LlamaCppConfig:
     timeout_seconds: int = 300
     max_retries: int = 3
     temperature: float = 0.5
-    n_ctx: int = 4096
+    n_ctx: int = 16384
 
 
 @dataclass(frozen=True)

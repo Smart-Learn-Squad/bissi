@@ -18,7 +18,7 @@ use axum::http::StatusCode;
 use axum::response::{sse::Event, IntoResponse, Response};
 use axum::routing::{delete, get, patch, post};
 use axum::{Json, Router};
-use futures_util::{SinkExt, StreamExt};
+use futures_util::StreamExt;
 use serde_json::{json, Value};
 use tokio::sync::mpsc;
 use tower_http::cors::CorsLayer;
@@ -130,11 +130,8 @@ async fn chat(
                 conversation_id = field.text().await.ok().and_then(|t| t.trim().parse().ok());
             }
             "files" => {
-                use tokio::io::AsyncReadExt;
-                let mut buf: Vec<u8> = Vec::new();
-                let mut reader = field.bytes().await;
-                if reader.read_to_end(&mut buf).await.is_ok() {
-                    let text = String::from_utf8_lossy(&buf).to_string();
+                if let Ok(bytes) = field.bytes().await {
+                    let text = String::from_utf8_lossy(&bytes).to_string();
                     let preview: String = text.chars().take(3000).collect();
                     let preview = if text.chars().count() > 3000 {
                         format!("{preview}\n... [tronqué — {} caractères au total]", text.chars().count())
@@ -158,14 +155,10 @@ async fn chat(
         message = format!("{}\n\n{}", file_contexts.join("\n\n"), message);
     }
 
-    if let Some(id) = conversation_id {
-        state.agent.current_conversation_id = Some(id);
-    }
-
     let (tx, mut rx) = mpsc::channel::<AgentEvent>(64);
     let agent_clone = state.agent.clone();
     tokio::spawn(async move {
-        agent_clone.process_request(&message, tx).await;
+        agent_clone.process_request(&message, conversation_id, tx).await;
     });
 
     let stream = async_stream::stream! {
@@ -213,17 +206,12 @@ async fn ws_run(mut socket: WebSocket, state: AppState) {
                 .await;
             continue;
         }
-        let thinking = raw.get("thinking").and_then(Value::as_bool).unwrap_or(true);
         let conversation_id = raw.get("conversation_id").and_then(Value::as_i64);
-
-        if let Some(id) = conversation_id {
-            state.agent.current_conversation_id = Some(id);
-        }
 
         let (tx, mut rx) = mpsc::channel::<AgentEvent>(64);
         let agent_clone = state.agent.clone();
         tokio::spawn(async move {
-            agent_clone.process_request(&message, tx).await;
+            agent_clone.process_request(&message, conversation_id, tx).await;
         });
 
         loop {

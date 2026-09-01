@@ -32,16 +32,15 @@ type EventSender = mpsc::Sender<AgentEvent>;
 
 pub struct Agent {
     engine: Arc<LlamaEngine>,
-    pub current_conversation_id: Option<i64>,
 }
 
 impl Agent {
     pub fn new(engine: Arc<LlamaEngine>) -> Self {
-        Self { engine, current_conversation_id: None }
+        Self { engine }
     }
 
     /// Run the agent on one user message, streaming events to `tx`.
-    pub async fn process_request(&self, user_input: &str, tx: EventSender) {
+    pub async fn process_request(&self, user_input: &str, conversation_id: Option<i64>, tx: EventSender) {
         let mut messages: Vec<Value> = vec![
             json!({"role":"user","content":user_input.to_string()}),
         ];
@@ -115,7 +114,7 @@ impl Agent {
                     let _ = tx
                         .send(AgentEvent::Done {
                             full_response: assistant_content,
-                            conversation_id: self.current_conversation_id,
+                            conversation_id,
                         })
                         .await;
                     let _ = tx.send(AgentEvent::End).await;

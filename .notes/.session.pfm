@@ -1,0 +1,63 @@
+.session.pfm
+[INTENT]
+# Refonte complète du backend Python de BISSI (~11,7k lignes, 26 tools) vers un
+# backend Rust natif (axum 0.8, SSE + WS Tokio) en conservant llama.cpp comme
+# sous-processus OpenAI-compatible (:8001) et le frontend Electron intact.
+# Sans casser la stack Python existante (reste serveur actif :8765 tant que le
+# port des tools n'est pas terminé) ni toucher au frontend (propriété Design).
+
+[STACK]
+# Rust (rustc 1.97.1, cargo, edition 2021) — axum 0.8 (features ws/multipart),
+#   tokio 1, tower/tower-http, serde/serde_json, reqwest 0.12, futures-util,
+#   async-stream, tempfile, thiserror 2. Build release 0 warning via build-rust.sh.
+# Python 3.13 (.venv uv) réutilisé en SOUS-PROCESSUS (remédiation hybride) :
+#   rust_shell.py → core.types.ToolResult ; functions.office.{word,excel,
+#   powerpoint,ocr}, functions.vision.describe, functions.code.python_runner.
+# llama.cpp (OpenAI-compatible :8001) — inchangé. Frontend Electron inchangé.
+
+[STRUCTURE]
+# bissi/                     (repo root)
+#   bissi-master-backend/    NOUVEAU backend Rust (crate "bissi-backend")
+#     src/
+#       main.rs              routes axum /chat SSE+multipart, /ws, /conversations*,
+#                            /health, /tools, /transcribe=501
+#       agent.rs             boucle chunk/tool_start/tool_done/file_created/done
+#       llama.rs             client OpenAI-compatible llama.cpp :8001 + agrégation tool_calls
+#       config.rs            config dataclasses (n_ctx/context_token_limit cohérents)
+#       conversation.rs      store JSON ~/.bissi (create/next_id réservés)
+#       tools/
+#         mod.rs             registre 26 tools + schemas OpenAI + dispatch
+#         filesystem.rs      11 tools filesystem natifs
+#         system.rs          clipboard + safe_operator (natifs)
+#         helper.rs          pont sous-processus vers rust_shell.py
+#     rust_shell.py          pont stdin/stdout JSON → ToolResult dict
+#   start.sh / install.sh    DEPUIS uv ; reste sur le backend Python :8765
+#   core/ api/ functions/    backend Python (source de vérité des shapes tools)
+
+[PLAN]
+1. Scaffold backend Rust complet (config/llama/agent/conversation/main + registre 26 tools)
+   OPS: création de build-rust.sh ; validation build release sur machine réelle
+        (sandbox sans cc/libc → compilation sur machine réelle samuelyevi@fedora).
+2. Port des tools filesystem réal (11 tools natifs Rust, schémas aux noms
+   canoniques Python file_path/source/destination/old_text/new_text/query/root_dir)
+   OPS: corrigé au review le mismatch de type (Result imbriquée) de write_text_file
+        branche append → normalisé en io::Result<()> ; puis 3 erreurs E0308/E0599
+        (Value::String(ext), walk() retourne Vec, PathBuf::file_name()→Option<&OsStr>).
+3. Port des tools office/vision/code (12 tools restants) — stratégie HYBRIDE validée
+   OPS: Rust natif + sous-processus du .venv via rust_shell.py (reproduit EXACTEMENT
+        les shapes ToolResult de core/agent.py) au lieu de crates natifs lourds
+        (office_oxide/lopdf → écart stratégie initiale "tout Rust" ; zéro nouveau
+        risque de build ; helper.rs renvoie toujours un JSON ToolResult pour que
+        l'agent émette TOOL_DONE même en cas d'échec sous-proc).
+4. Nettoyage final
+   OPS: suppression des stubs morts office.rs/vision.rs/code.rs ; retrait de la
+        note développeur de build-rust.sh ; rustfmt appliqué sur le module tools.
+
+[COLOR: TBD]
+# Placeholder — coloration du fichier pas encore implémentée (itération future)
+
+date: 2026-09-01
+
+[Session Performance]
+# Étapes: 4 réalisées / 5 totales (persistance conversations + script de bascule non faits)
+[################----] 80%

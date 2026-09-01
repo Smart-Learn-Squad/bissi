@@ -1,16 +1,23 @@
 # Python
-.venv
+.venv/
 __pycache__/
-*/__pycache__/
 *.pyc
 *.pyo
 *.pyd
-.Python
-env/
 venv/
-.venv/
+env/
+.Python
 pip-log.txt
 pip-delete-this-directory.txt
+*.egg-info/
+build/
+dist/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
 
 # Node.js
 bissi-master-ui/node_modules/
@@ -19,6 +26,9 @@ bissi-master-ui/yarn-debug.log*
 bissi-master-ui/yarn-error.log*
 bissi-master-ui/dist/
 bissi-master-ui/.electron-builder/
+
+# Rust (crates build backends)
+bissi-master-backend/target/
 
 # OS
 .DS_Store
@@ -43,3 +53,7 @@ graphify-out/
 
 # Modèles LLM (GGUF volumineux — jamais commités)
 *.gguf
+
+# Résidus de merge / patch
+*.orig
+*.rej

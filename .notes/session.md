@@ -320,3 +320,31 @@ Date: 2026-09-01
      search_by_content (dir.entry DirEntry->OsString OK ailleurs).
 - Port tools filesystem complet et compilable => prochaine étape libre :
   persistance conversations (ConversationStore::create) puis bascule.
+
+## Port tools office/vision/code (HYBRIDE, validé en runtime sandbox)
+- Stratégie validée par l'utilisateur : HYBRIDE = Rust natif + réutilisation du
+  `.venv` Python via sous-processus pour office/vision/code.
+- NOUVEAU bissi-master-backend/rust_shell.py : pont stdin/stdout JSON
+  {"tool","args"} -> ToolResult dict ; reproduit exactement les shapes des
+  wrappers _tool_* de core/agent.py (résultat TOOL_DONE identique Python).
+  Handlers : read_word, write_word, read_excel, write_excel, read_pptx,
+  write_pptx, read_pdf (smart_pdf_extract+truncation), describe_image,
+  analyze_screenshot, analyze_chart, extract_text_from_image, python_runner
+  (python_runner.py.run_code). ROOT = parent de rust_shell.py, inséré sys.path.
+- NOUVEAU bissi-master-backend/src/tools/helper.rs : lance python
+  (BISSI_PYTHON sinon ./.venv/bin/python sinon Python) sur rust_shell.py
+  (BISSI_RUST_SHELL sinon cwd/bissi-master-backend/rust_shell.py) ; renvoie
+  TOUJOURS un JSON ToolResult (échec sous-proc -> {"success":false,...}) pour
+  que l'agent émette TOOL_DONE (pas ERREUR). Rustfmt appliqué.
+- tools/mod.rs : supprimé office.rs/vision.rs/code.rs (stubs morts), dispatch
+  des 12 tools restants -> helper::run. Les 14 tools filesystem/system restent
+  natifs Rust.
+- VALIDÉ runtime (sandbox, .venv réel) : write/read word, excel (columns/data/
+  total_rows), pptx (slides), python_runner (safe+unsafe), read_pdf (shape +
+  chemin OCR-unavailable identique Python), vision (Image not found propre).
+- VISION dépend du service Ollama (gemma4:4b) au runtime (comme Python) ; si
+  absent -> clean fail JSON.
+- Compilation RUST à valider sur machine réelle (sandbox pas de cc/libc) :
+      cd bissi-master-backend && cargo build --release
+  Attention : dispatch match requiert des bras de type homogène (Value) ;
+  helper::run renvoie Value, les autres bras via `?` -> out: Value.

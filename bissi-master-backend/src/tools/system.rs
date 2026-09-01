@@ -22,16 +22,23 @@ pub fn set_clipboard(args: &Value) -> Result<Value, String> {
 pub fn safe_operator(args: &Value) -> Result<Value, String> {
     let operation = args.get("operation").and_then(Value::as_str).unwrap_or("");
     match operation {
-        "get_python_version" => Ok(json!({"success": true, "output": RUST_RUNTIME_VERSION, "task_done": true})),
+        "get_python_version" => {
+            Ok(json!({"success": true, "output": RUST_RUNTIME_VERSION, "task_done": true}))
+        }
         "get_current_directory" => {
             let cwd = std::env::current_dir()
                 .map(|p| p.to_string_lossy().to_string())
                 .unwrap_or_else(|e| format!("<error: {e}>"));
             Ok(json!({"success": true, "output": cwd, "task_done": true}))
         }
-        _ => Ok(json!({"success": false, "error": format!("Unknown operation: {operation}"), "task_done": false})),
+        _ => Ok(
+            json!({"success": false, "error": format!("Unknown operation: {operation}"), "task_done": false}),
+        ),
     }
 }
 
-const RUST_RUNTIME_VERSION: &str = concat!("rustc ", env!("CARGO_PKG_VERSION"), " (bissi-backend rust runtime)");
-
+const RUST_RUNTIME_VERSION: &str = concat!(
+    "rustc ",
+    env!("CARGO_PKG_VERSION"),
+    " (bissi-backend rust runtime)"
+);

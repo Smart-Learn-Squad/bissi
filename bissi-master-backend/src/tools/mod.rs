@@ -8,9 +8,7 @@
 use serde_json::{json, Value};
 
 pub mod filesystem;
-pub mod office;
-pub mod code;
-pub mod vision;
+pub mod helper;
 pub mod system;
 
 /// Descriptor for one agent tool.
@@ -83,13 +81,20 @@ pub async fn dispatch(name: &str, args: Value) -> Result<String, String> {
         "set_clipboard" => system::set_clipboard(&args)?,
         // Introspection tool (mirrors safe_operator).
         "safe_operator" => system::safe_operator(&args)?,
-        // Office / vision / code stubs (not yet ported).
-        "read_word" | "read_excel" | "read_pptx" | "read_pdf" => office::stub(name, &args)?,
-        "write_word" | "write_excel" | "write_pptx" => office::stub(name, &args)?,
-        "describe_image" | "analyze_chart" | "analyze_screenshot" | "extract_text_from_image" => {
-            vision::stub(name, &args)?
-        }
-        "python_runner" => code::python_runner(&args)?,
+        // Office / vision / code via the Python helper (reuses the proven
+        // .venv implementations; always returns a ToolResult JSON).
+        "read_word"
+        | "write_word"
+        | "read_excel"
+        | "write_excel"
+        | "read_pptx"
+        | "write_pptx"
+        | "read_pdf"
+        | "describe_image"
+        | "analyze_chart"
+        | "analyze_screenshot"
+        | "extract_text_from_image"
+        | "python_runner" => helper::run(name, &args),
         _ => return Err(format!("unknown tool: {name}")),
     };
     Ok(out.to_string())

@@ -91,7 +91,10 @@ pub fn read_text_file(args: &Value) -> Result<Value, String> {
         Err(e) => return Ok(fail(&e.to_string(), Some(path))),
     };
     if meta.len() > MAX_FILE_SIZE {
-        return Ok(fail(&format!("Fichier trop volumineux (> 50 Mo) : {path}"), Some(path)));
+        return Ok(fail(
+            &format!("Fichier trop volumineux (> 50 Mo) : {path}"),
+            Some(path),
+        ));
     }
     let bytes = match fs::read(path) {
         Ok(b) => b,
@@ -102,7 +105,10 @@ pub fn read_text_file(args: &Value) -> Result<Value, String> {
     let max_lines = args.get("max_lines").and_then(Value::as_u64).unwrap_or(0);
     let (content, truncated) = if max_lines > 0 {
         let lines: Vec<&str> = text.split('\n').take(max_lines as usize).collect();
-        (lines.join("\n"), text.split('\n').count() > max_lines as usize)
+        (
+            lines.join("\n"),
+            text.split('\n').count() > max_lines as usize,
+        )
     } else {
         (text, false)
     };
@@ -150,7 +156,10 @@ pub fn list_directory(args: &Value) -> Result<Value, String> {
         let da = a["type"] == "directory";
         let db = b["type"] == "directory";
         da.cmp(&db).reverse().then_with(|| {
-            a["name"].as_str().unwrap_or("").to_lowercase()
+            a["name"]
+                .as_str()
+                .unwrap_or("")
+                .to_lowercase()
                 .cmp(&b["name"].as_str().unwrap_or("").to_lowercase())
         })
     });
@@ -214,7 +223,10 @@ pub fn edit_text_file(args: &Value) -> Result<Value, String> {
         Err(e) => return Ok(fail(&e.to_string(), Some(path))),
     };
     if !content.contains(old_text) {
-        return Ok(fail(&format!("Text '{old_text}' not found in file."), Some(path)));
+        return Ok(fail(
+            &format!("Text '{old_text}' not found in file."),
+            Some(path),
+        ));
     }
     let count = content.matches(old_text).count();
     let new_content = content.replace(old_text, new_text);
@@ -225,7 +237,10 @@ pub fn edit_text_file(args: &Value) -> Result<Value, String> {
         .unwrap_or_else(|_| p.to_path_buf())
         .to_string_lossy()
         .to_string();
-    Ok(ok(json!({"replacements": count, "message": format!("Updated {count} occurrence(s) in {path}")}), Some(&absolute)))
+    Ok(ok(
+        json!({"replacements": count, "message": format!("Updated {count} occurrence(s) in {path}")}),
+        Some(&absolute),
+    ))
 }
 
 /// Real implementation: delete a file.
@@ -245,7 +260,10 @@ pub fn delete_file(args: &Value) -> Result<Value, String> {
         .unwrap_or_else(|_| p.to_path_buf())
         .to_string_lossy()
         .to_string();
-    Ok(ok(json!({"message": format!("Deleted {path}")}), Some(&absolute)))
+    Ok(ok(
+        json!({"message": format!("Deleted {path}")}),
+        Some(&absolute),
+    ))
 }
 
 /// Real implementation: move / rename a file.
@@ -283,8 +301,14 @@ pub fn get_file_info(args: &Value) -> Result<Value, String> {
         .unwrap_or_else(|_| p.to_path_buf())
         .to_string_lossy()
         .to_string();
-    let name = p.file_name().map(|s| s.to_string_lossy().to_string()).unwrap_or_default();
-    let ext = p.extension().map(|e| format!(".{}", e.to_string_lossy().to_lowercase())).unwrap_or_default();
+    let name = p
+        .file_name()
+        .map(|s| s.to_string_lossy().to_string())
+        .unwrap_or_default();
+    let ext = p
+        .extension()
+        .map(|e| format!(".{}", e.to_string_lossy().to_lowercase()))
+        .unwrap_or_default();
     let modified = iso(meta.modified().unwrap_or(std::time::UNIX_EPOCH));
     let created = iso(meta.created().unwrap_or(std::time::UNIX_EPOCH));
     let accessed = iso(meta.accessed().unwrap_or(std::time::UNIX_EPOCH));
@@ -381,7 +405,12 @@ pub fn get_recent_files(args: &Value) -> Result<Value, String> {
         }
     }
     // Sort by modified desc.
-    recent.sort_by(|a, b| b["modified"].as_str().unwrap_or("").cmp(a["modified"].as_str().unwrap_or("")));
+    recent.sort_by(|a, b| {
+        b["modified"]
+            .as_str()
+            .unwrap_or("")
+            .cmp(a["modified"].as_str().unwrap_or(""))
+    });
     recent.truncate(limit.max(1));
     Ok(ok(json!({"files": recent}), Some(directory)))
 }
@@ -395,11 +424,13 @@ pub fn search_files(args: &Value) -> Result<Value, String> {
         return Err("search_files requires `query`".into());
     }
     let root = if root.is_empty() { "." } else { root };
-    let pattern = if query.contains('*') || query.contains('?') || query.contains('[') || query.contains(']') {
-        query.to_string()
-    } else {
-        format!("*{query}*")
-    };
+    let pattern =
+        if query.contains('*') || query.contains('?') || query.contains('[') || query.contains(']')
+        {
+            query.to_string()
+        } else {
+            format!("*{query}*")
+        };
     let glob = glob::Pattern::new(&pattern).map_err(|e| e.to_string())?;
     let base = Path::new(root);
     let mut matches = Vec::new();
@@ -419,7 +450,10 @@ pub fn search_files(args: &Value) -> Result<Value, String> {
         }
     }
     matches.sort_by(|a, b| {
-        a["name"].as_str().unwrap_or("").to_lowercase()
+        a["name"]
+            .as_str()
+            .unwrap_or("")
+            .to_lowercase()
             .cmp(&b["name"].as_str().unwrap_or("").to_lowercase())
     });
     Ok(ok(json!({"results": matches}), Some(root)))

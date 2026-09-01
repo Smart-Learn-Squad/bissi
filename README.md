@@ -127,10 +127,13 @@ bissi/
 │       ├── chat.html          # Main UI (chat + canvas + voice)
 │       └── onboarding.html    # First-run onboarding
 │
+├── bissi-master-backend/       # Backend Rust (scaffold — futur remplaçant)
+│   └── ...                     # axum 0.8, ../build-rust.sh pour compiler
+│
 ├── main.py                    # Backend entry point
 ├── bissi-master.sh            # llama.cpp launch script
-├── start.sh / start.bat       # Dev startup scripts
-└── requirements.txt
+├── build-rust.sh              # Compile le backend Rust (cargo release)
+└── start.sh / start.bat       # Dev startup scripts
 ```
 
 ---
@@ -146,6 +149,9 @@ cd bissi-master-ui && npm start
 
 # Full stack
 ./start.sh
+
+# Backend Rust (scaffold du futur remplacement du backend Python)
+./build-rust.sh
 ```
 
 ### API Reference

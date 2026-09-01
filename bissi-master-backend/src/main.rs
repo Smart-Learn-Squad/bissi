@@ -15,7 +15,7 @@ use agent::AgentEvent;
 use axum::extract::ws::{Message, WebSocket};
 use axum::extract::{Multipart, Path as AxumPath, State, WebSocketUpgrade};
 use axum::http::StatusCode;
-use axum::response::{IntoResponse, Response};
+use axum::response::{sse::Event, IntoResponse, Response};
 use axum::routing::{delete, get, patch, post};
 use axum::{Json, Router};
 use futures_util::{SinkExt, StreamExt};
@@ -80,22 +80,27 @@ async fn main() {
     axum::serve(listener, app).await.expect("serve");
 }
 
-fn sse_event(event: &AgentEvent) -> String {
-    let value = match event {
-        AgentEvent::Chunk(c) => json!({"type":"chunk","content":c}),
-        AgentEvent::Thinking(c) => json!({"type":"thinking","content":c}),
-        AgentEvent::ToolStart { name, args } => json!({"type":"tool_start","name":name,"args":args}),
-        AgentEvent::ToolDone { name, result } => json!({"type":"tool_done","name":name,"result":result}),
+/// Convert an `AgentEvent` into the JSON object streamed to the client
+/// (`None` for the internal `End` sentinel, which is not sent).
+fn to_sse_json(event: &AgentEvent) -> Option<Value> {
+    match event {
+        AgentEvent::Chunk(c) => Some(json!({"type":"chunk","content":c})),
+        AgentEvent::Thinking(c) => Some(json!({"type":"thinking","content":c})),
+        AgentEvent::ToolStart { name, args } => Some(json!({"type":"tool_start","name":name,"args":args})),
+        AgentEvent::ToolDone { name, result } => Some(json!({"type":"tool_done","name":name,"result":result})),
         AgentEvent::FileCreated { name, file_path, file_name } => {
-            json!({"type":"file_created","name":name,"file_path":file_path,"file_name":file_name})
+            Some(json!({"type":"file_created","name":name,"file_path":file_path,"file_name":file_name}))
         }
         AgentEvent::Done { full_response, conversation_id } => {
-            json!({"type":"done","full_response":full_response,"conversation_id":conversation_id})
+            Some(json!({"type":"done","full_response":full_response,"conversation_id":conversation_id}))
         }
-        AgentEvent::Error(m) => json!({"type":"error","message":m}),
-        AgentEvent::End => return String::new(),
-    };
-    format!("data: {}\n\n", value)
+        AgentEvent::Error(m) => Some(json!({"type":"error","message":m})),
+        AgentEvent::End => None,
+    }
+}
+
+fn to_sse_event(event: &AgentEvent) -> Option<Event> {
+    to_sse_json(event).map(|v| Event::default().data(v.to_string()))
 }
 
 /// POST /chat — SSE stream. Mirrors the FastAPI `chat` endpoint, including
@@ -165,15 +170,15 @@ async fn chat(
             match tokio::time::timeout(std::time::Duration::from_secs(15), rx.recv()).await {
                 Ok(Some(AgentEvent::End)) => break,
                 Ok(Some(event)) => {
-                    let s = sse_event(&event);
-                    if !s.is_empty() {
-                        yield Ok::<_, std::convert::Infallible>(s);
+                    if let Some(evt) = to_sse_event(&event) {
+                        yield Ok::<_, std::convert::Infallible>(evt);
                     }
                 }
                 Ok(None) => break,
-                Err(_) => yield Ok::<_, std::convert::Infallible>(
-                    "data: {\"type\":\"ping\"}\n\n".to_string(),
-                ),
+                Err(_) => {
+                    let ping = Event::default().data(json!({"type":"ping"}).to_string());
+                    yield Ok::<_, std::convert::Infallible>(ping);
+                }
             }
         }
     };
@@ -183,7 +188,7 @@ async fn chat(
 
 /// GET /ws — WebSocket mirroring the SSE /chat behaviour (added for future
 /// consumers; the current Electron UI still uses POST /chat).
-async fn ws_handler(ws: WebSocketUpgrade, State(state): State<AppState>) -> Response {
+async fn ws_handler(State(state): State<AppState>, ws: WebSocketUpgrade) -> Response {
     ws.on_upgrade(move |socket| ws_run(socket, state))
 }
 
@@ -222,13 +227,9 @@ async fn ws_run(mut socket: WebSocket, state: AppState) {
             match tokio::time::timeout(std::time::Duration::from_secs(15), rx.recv()).await {
                 Ok(Some(AgentEvent::End)) => break,
                 Ok(Some(event)) => {
-                    let payload = sse_event(&event);
-                    if !payload.is_empty() {
-                        let data = payload.trim_end_matches("\n\n").trim_start_matches("data: ");
-                        if let Ok(v) = serde_json::from_str::<Value>(data) {
-                            if socket.send(Message::Text(v.to_string().into())).await.is_err() {
-                                return;
-                            }
+                    if let Some(v) = to_sse_json(&event) {
+                        if socket.send(Message::Text(v.to_string().into())).await.is_err() {
+                            return;
                         }
                     }
                 }

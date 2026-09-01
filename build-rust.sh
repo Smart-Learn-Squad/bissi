@@ -41,10 +41,3 @@ else
     echo "  Voir messages ci-dessus (cargo)."
     exit 1
 fi
-
-echo ""
-echo "─── Note ───"
-echo "Ce binaire est le squelette du futur backend Rust. Le backend Python"
-echo "(uvicorn api.server) reste actif pour l'instant via start.sh — on ne"
-echo "bascule le lancement sur ce binaire qu'une fois le port des tools"
-echo "terminé (voir .notes/session.md)."

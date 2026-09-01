@@ -110,7 +110,6 @@ async fn chat(
     mut multipart: Multipart,
 ) -> Response {
     let mut message = String::new();
-    let mut thinking = true;
     let mut conversation_id: Option<i64> = None;
     let mut file_contexts: Vec<String> = Vec::new();
 
@@ -123,13 +122,11 @@ async fn chat(
             "message" => {
                 message = field.text().await.unwrap_or_default();
             }
-            "thinking" => {
-                thinking = field.text().await.map(|t| t != "false").unwrap_or(true);
-            }
             "conversation_id" => {
                 conversation_id = field.text().await.ok().and_then(|t| t.trim().parse().ok());
             }
             "files" => {
+                let file_name = field.file_name().map(|f| f.to_string());
                 if let Ok(bytes) = field.bytes().await {
                     let text = String::from_utf8_lossy(&bytes).to_string();
                     let preview: String = text.chars().take(3000).collect();
@@ -138,7 +135,7 @@ async fn chat(
                     } else {
                         preview
                     };
-                    if let Some(filename) = field.file_name() {
+                    if let Some(filename) = file_name {
                         file_contexts.push(format!("[Fichier joint : {filename}]\n{preview}"));
                     }
                 }

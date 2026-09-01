@@ -20,35 +20,35 @@ pub struct ToolDef {
     pub parameters: Value,
 }
 
-/// The full tool registry (order mirrors `available_functions`).
+/// The full tool registry (schemas mirror `core/agent.py` _build_tool_definitions).
 pub fn registry() -> Vec<ToolDef> {
     vec![
-        ToolDef { name: "analyze_chart", description: "Analyze a chart/image and return insights", parameters: json!({"type":"object","properties":{"path":{"type":"string"}},"required":["path"]}) },
-        ToolDef { name: "analyze_screenshot", description: "Analyze a screenshot image", parameters: json!({"type":"object","properties":{"path":{"type":"string"}},"required":["path"]}) },
-        ToolDef { name: "delete_file", description: "Delete a file", parameters: json!({"type":"object","properties":{"path":{"type":"string"}},"required":["path"]}) },
-        ToolDef { name: "describe_image", description: "Describe an image", parameters: json!({"type":"object","properties":{"path":{"type":"string"}},"required":["path"]}) },
-        ToolDef { name: "edit_text_file", description: "Edit text in a file", parameters: json!({"type":"object","properties":{"path":{"type":"string"},"search":{"type":"string"},"replacement":{"type":"string"}},"required":["path","search","replacement"]}) },
-        ToolDef { name: "extract_text_from_image", description: "OCR an image", parameters: json!({"type":"object","properties":{"path":{"type":"string"}},"required":["path"]}) },
-        ToolDef { name: "get_clipboard", description: "Read clipboard content", parameters: json!({"type":"object","properties":{}}) },
-        ToolDef { name: "get_directory_tree", description: "Return directory tree", parameters: json!({"type":"object","properties":{"path":{"type":"string"}},"required":["path"]}) },
-        ToolDef { name: "get_file_info", description: "Return file metadata", parameters: json!({"type":"object","properties":{"path":{"type":"string"}},"required":["path"]}) },
-        ToolDef { name: "get_recent_files", description: "Return recent files", parameters: json!({"type":"object","properties":{"limit":{"type":"integer"}}}) },
-        ToolDef { name: "list_directory", description: "List directory entries", parameters: json!({"type":"object","properties":{"path":{"type":"string"}},"required":["path"]}) },
-        ToolDef { name: "move_file", description: "Move/rename a file", parameters: json!({"type":"object","properties":{"source":{"type":"string"},"destination":{"type":"string"}},"required":["source","destination"]}) },
-        ToolDef { name: "python_runner", description: "Run a Python snippet", parameters: json!({"type":"object","properties":{"code":{"type":"string"}},"required":["code"]}) },
-        ToolDef { name: "read_excel", description: "Read an Excel workbook", parameters: json!({"type":"object","properties":{"path":{"type":"string"}},"required":["path"]}) },
-        ToolDef { name: "read_pdf", description: "Read a PDF document", parameters: json!({"type":"object","properties":{"path":{"type":"string"}},"required":["path"]}) },
-        ToolDef { name: "read_pptx", description: "Read a PowerPoint deck", parameters: json!({"type":"object","properties":{"path":{"type":"string"}},"required":["path"]}) },
-        ToolDef { name: "read_text_file", description: "Read a text file", parameters: json!({"type":"object","properties":{"path":{"type":"string"}},"required":["path"]}) },
-        ToolDef { name: "read_word", description: "Read a Word document", parameters: json!({"type":"object","properties":{"path":{"type":"string"}},"required":["path"]}) },
-        ToolDef { name: "safe_operator", description: "Run a safe shell operator", parameters: json!({"type":"object","properties":{"command":{"type":"string"}},"required":["command"]}) },
-        ToolDef { name: "search_by_content", description: "Search files by content", parameters: json!({"type":"object","properties":{"query":{"type":"string"},"path":{"type":"string"}},"required":["query"]}) },
-        ToolDef { name: "search_files", description: "Search files by name", parameters: json!({"type":"object","properties":{"pattern":{"type":"string"},"path":{"type":"string"}},"required":["pattern"]}) },
-        ToolDef { name: "set_clipboard", description: "Write to clipboard", parameters: json!({"type":"object","properties":{"content":{"type":"string"}},"required":["content"]}) },
-        ToolDef { name: "write_excel", description: "Write an Excel workbook", parameters: json!({"type":"object","properties":{"path":{"type":"string"}},"required":["path"]}) },
-        ToolDef { name: "write_pptx", description: "Write a PowerPoint deck", parameters: json!({"type":"object","properties":{"path":{"type":"string"}},"required":["path"]}) },
-        ToolDef { name: "write_text_file", description: "Write a text file", parameters: json!({"type":"object","properties":{"path":{"type":"string"},"content":{"type":"string"}},"required":["path","content"]}) },
-        ToolDef { name: "write_word", description: "Write a Word document", parameters: json!({"type":"object","properties":{"path":{"type":"string"}},"required":["path"]}) },
+        ToolDef { name: "analyze_chart", description: "Analyze chart image.", parameters: json!({"type":"object","properties":{"file_path":{"type":"string"}},"required":["file_path"]}) },
+        ToolDef { name: "analyze_screenshot", description: "Analyze screenshot content.", parameters: json!({"type":"object","properties":{"file_path":{"type":"string"}},"required":["file_path"]}) },
+        ToolDef { name: "delete_file", description: "Delete a file from disk.", parameters: json!({"type":"object","properties":{"file_path":{"type":"string"}},"required":["file_path"]}) },
+        ToolDef { name: "describe_image", description: "Describe an image.", parameters: json!({"type":"object","properties":{"file_path":{"type":"string"},"prompt":{"type":"string"},"detail":{"type":"string"}},"required":["file_path"]}) },
+        ToolDef { name: "edit_text_file", description: "Replace text in file.", parameters: json!({"type":"object","properties":{"file_path":{"type":"string"},"old_text":{"type":"string"},"new_text":{"type":"string"}},"required":["file_path","old_text","new_text"]}) },
+        ToolDef { name: "extract_text_from_image", description: "Extract text from image.", parameters: json!({"type":"object","properties":{"file_path":{"type":"string"},"language":{"type":"string"}},"required":["file_path"]}) },
+        ToolDef { name: "get_clipboard", description: "Read clipboard content.", parameters: json!({"type":"object","properties":{}}) },
+        ToolDef { name: "get_directory_tree", description: "Get directory tree.", parameters: json!({"type":"object","properties":{"path":{"type":"string"},"max_depth":{"type":"integer"}},"required":["path"]}) },
+        ToolDef { name: "get_file_info", description: "Get file metadata.", parameters: json!({"type":"object","properties":{"file_path":{"type":"string"}},"required":["file_path"]}) },
+        ToolDef { name: "get_recent_files", description: "Get recent files from directory.", parameters: json!({"type":"object","properties":{"directory":{"type":"string"},"limit":{"type":"integer"}},"required":["directory"]}) },
+        ToolDef { name: "list_directory", description: "List directory content.", parameters: json!({"type":"object","properties":{"path":{"type":"string"}},"required":["path"]}) },
+        ToolDef { name: "move_file", description: "Move or rename a file.", parameters: json!({"type":"object","properties":{"source":{"type":"string"},"destination":{"type":"string"}},"required":["source","destination"]}) },
+        ToolDef { name: "python_runner", description: "Execute Python code for analysis/calculations.", parameters: json!({"type":"object","properties":{"code":{"type":"string"}},"required":["code"]}) },
+        ToolDef { name: "read_excel", description: "Read rows from Excel file.", parameters: json!({"type":"object","properties":{"file_path":{"type":"string"},"max_rows":{"type":"integer"}},"required":["file_path"]}) },
+        ToolDef { name: "read_pdf", description: "Extract text from PDF.", parameters: json!({"type":"object","properties":{"file_path":{"type":"string"},"max_chars":{"type":"integer"}},"required":["file_path"]}) },
+        ToolDef { name: "read_pptx", description: "Read text from PowerPoint.", parameters: json!({"type":"object","properties":{"file_path":{"type":"string"}},"required":["file_path"]}) },
+        ToolDef { name: "read_text_file", description: "Read plain text file.", parameters: json!({"type":"object","properties":{"file_path":{"type":"string"},"max_lines":{"type":"integer"}},"required":["file_path"]}) },
+        ToolDef { name: "read_word", description: "Read paragraphs from a .docx file.", parameters: json!({"type":"object","properties":{"file_path":{"type":"string"}},"required":["file_path"]}) },
+        ToolDef { name: "safe_operator", description: "Run safe introspection operation.", parameters: json!({"type":"object","properties":{"operation":{"type":"string","enum":["get_python_version","get_current_directory"]}},"required":["operation"]}) },
+        ToolDef { name: "search_by_content", description: "Search files by content.", parameters: json!({"type":"object","properties":{"directory":{"type":"string"},"query":{"type":"string"},"extensions":{"type":"array","items":{"type":"string"}}},"required":["directory","query"]}) },
+        ToolDef { name: "search_files", description: "Search files by name.", parameters: json!({"type":"object","properties":{"query":{"type":"string"},"root_dir":{"type":"string"}},"required":["query"]}) },
+        ToolDef { name: "set_clipboard", description: "Set clipboard content.", parameters: json!({"type":"object","properties":{"text":{"type":"string"}},"required":["text"]}) },
+        ToolDef { name: "write_excel", description: "Write tabular data to Excel file.", parameters: json!({"type":"object","properties":{"file_path":{"type":"string"},"data":{"type":"array","items":{"type":"object"}},"sheet_name":{"type":"string"}},"required":["file_path","data"]}) },
+        ToolDef { name: "write_pptx", description: "Write PowerPoint slides.", parameters: json!({"type":"object","properties":{"file_path":{"type":"string"},"title":{"type":"string"},"slides":{"type":"array","items":{"type":"object"}}},"required":["file_path","title","slides"]}) },
+        ToolDef { name: "write_text_file", description: "Write plain text file.", parameters: json!({"type":"object","properties":{"file_path":{"type":"string"},"content":{"type":"string"},"append":{"type":"boolean"}},"required":["file_path","content"]}) },
+        ToolDef { name: "write_word", description: "Write the FULL content to a .docx file in one call (400-500 mots max). Ne pas utiliser append.", parameters: json!({"type":"object","properties":{"file_path":{"type":"string"},"content":{"type":"string"},"append":{"type":"boolean"}},"required":["file_path","content"]}) },
     ]
 }
 
@@ -65,29 +65,32 @@ pub fn tools_payload() -> Vec<Value> {
 /// Dispatch a named tool call; returns a JSON string result (mirrors the
 /// `tool_done` result contract produced by the Python backend).
 pub async fn dispatch(name: &str, args: Value) -> Result<String, String> {
-    match name {
-        "list_directory" => filesystem::list_directory(&args).map(|v| v.to_string()).map_err(|e| e.to_string()),
-        "read_text_file" => filesystem::read_text_file(&args).map(|v| v.to_string()).map_err(|e| e.to_string()),
-        "write_text_file" => filesystem::write_text_file(&args).map(|v| v.to_string()).map_err(|e| e.to_string()),
-        "get_clipboard" => system::get_clipboard(&args).map(|v| v.to_string()).map_err(|e| e.to_string()),
-        "set_clipboard" => system::set_clipboard(&args).map(|v| v.to_string()).map_err(|e| e.to_string()),
-        // Office / vision / code stubs.
-        "read_word" | "read_excel" | "read_pptx" | "read_pdf" => {
-            office::stub(name, &args).map(|v| v.to_string()).map_err(|e| e.to_string())
-        }
-        "write_word" | "write_excel" | "write_pptx" => {
-            office::stub(name, &args).map(|v| v.to_string()).map_err(|e| e.to_string())
-        }
+    let out = match name {
+        // Real filesystem implementations.
+        "list_directory" => filesystem::list_directory(&args)?,
+        "read_text_file" => filesystem::read_text_file(&args)?,
+        "write_text_file" => filesystem::write_text_file(&args)?,
+        "edit_text_file" => filesystem::edit_text_file(&args)?,
+        "delete_file" => filesystem::delete_file(&args)?,
+        "move_file" => filesystem::move_file(&args)?,
+        "get_file_info" => filesystem::get_file_info(&args)?,
+        "get_directory_tree" => filesystem::get_directory_tree(&args)?,
+        "get_recent_files" => filesystem::get_recent_files(&args)?,
+        "search_files" => filesystem::search_files(&args)?,
+        "search_by_content" => filesystem::search_by_content(&args)?,
+        // Clipboard (real stubs in system.rs).
+        "get_clipboard" => system::get_clipboard(&args)?,
+        "set_clipboard" => system::set_clipboard(&args)?,
+        // Introspection tool (mirrors safe_operator).
+        "safe_operator" => system::safe_operator(&args)?,
+        // Office / vision / code stubs (not yet ported).
+        "read_word" | "read_excel" | "read_pptx" | "read_pdf" => office::stub(name, &args)?,
+        "write_word" | "write_excel" | "write_pptx" => office::stub(name, &args)?,
         "describe_image" | "analyze_chart" | "analyze_screenshot" | "extract_text_from_image" => {
-            vision::stub(name, &args).map(|v| v.to_string()).map_err(|e| e.to_string())
+            vision::stub(name, &args)?
         }
-        "python_runner" => code::python_runner(&args).map(|v| v.to_string()).map_err(|e| e.to_string()),
-        // Remaining filesystem / sys stubs.
-        "delete_file" | "move_file" | "get_file_info" | "get_directory_tree"
-        | "get_recent_files" | "search_files" | "search_by_content"
-        | "edit_text_file" | "safe_operator" => {
-            filesystem::stub(name, &args).map(|v| v.to_string()).map_err(|e| e.to_string())
-        }
-        _ => Err(format!("unknown tool: {name}")),
-    }
+        "python_runner" => code::python_runner(&args)?,
+        _ => return Err(format!("unknown tool: {name}")),
+    };
+    Ok(out.to_string())
 }

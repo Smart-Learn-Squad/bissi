@@ -289,3 +289,34 @@ Date: 2026-09-01
 - cd bissi-master-backend && cargo build --release  (vérifier compilation)
 - rappel : sur machine réelle aussi uv sync && ./start.sh pour valider la
   stack Python existante avant de basculer sur le backend Rust.
+
+## Port tools filesystem (terminé, à valider sur machine réelle)
+- bissi-master-backend/src/tools/filesystem.rs réécrit : implémentations RÉELLES
+  de list_directory, read_text_file (max_lines), write_text_file (append),
+  edit_text_file (old_text/new_text), delete_file, move_file, get_file_info,
+  get_directory_tree (max_depth), get_recent_files (limit/hours),
+  search_files (query/root_dir, glob maison), search_by_content
+  (directory/query, skip binaire). Résultat au format ToolResult dict :
+  {"success","output","path","error","task_done"} (helpers ok/fail) ; write/move/
+  edit/delete émettent un champ top-level "path" pour l'event file_created.
+- tools/mod.rs : schemas corrigés aux NOMS CANONIQUES Python (file_path,
+  source/destination, old_text/new_text, directory/query, root_dir) ; dispatch
+  branché sur les vraies impls (plus de stub filesystem).
+- tools/system.rs : safe_operator (get_current_directory / get_python_version),
+  set_clipboard corrigé (param "text", confirmé core/agent.py:736/863).
+- Bug corrigé au review : write_text_file branche append avait un mismatch de
+  type (Result imbriquée) → normalisé en io::Result<()>.
+- SANDBOX : cargo check échoue faute de cc ET de libs système (-lc -lpthread...).
+  Compilation à faire sur machine réelle : cd bissi-master-backend && cargo
+  build --release (ou ./build-rust.sh), attendre retour 0 warning.
+
+### VALIDÉ (machine réelle, build-rust.sh)
+- cargo build --release : Finished (34.60s), 0 erreur / 0 warning.
+  Binaire bissi-master-backend/target/release/bissi-backend (6.1M ELF).
+- 3 erreurs E0308/E0599 corrigées au 1er essai (cf. session) :
+  1) extension Value::String(ext) vs Value::Null (get_file_info),
+  2) walk() retourne Vec<PathBuf> (pas Result) dans get_recent_files,
+  3) PathBuf::file_name() -> Option<&OsStr> dans get_recent_files +
+     search_by_content (dir.entry DirEntry->OsString OK ailleurs).
+- Port tools filesystem complet et compilable => prochaine étape libre :
+  persistance conversations (ConversationStore::create) puis bascule.

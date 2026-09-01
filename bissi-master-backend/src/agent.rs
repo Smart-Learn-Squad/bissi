@@ -19,7 +19,6 @@ use crate::tools;
 #[derive(Debug, Clone)]
 pub enum AgentEvent {
     Chunk(String),
-    Thinking(String),
     ToolStart { name: String, args: Value },
     ToolDone { name: String, result: String },
     FileCreated { name: String, file_path: String, file_name: String },

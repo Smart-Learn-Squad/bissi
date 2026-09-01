@@ -25,6 +25,9 @@ pub struct Conversation {
 pub struct ConversationStore {
     path: std::path::PathBuf,
     inner: RwLock<HashMap<i64, Conversation>>,
+    /// Next id for new conversations (reserved — `create` is wired once the
+    /// chat flow persists a new conversation when no id is supplied).
+    #[allow(dead_code)]
     next_id: RwLock<i64>,
 }
 
@@ -72,6 +75,10 @@ impl ConversationStore {
         }
     }
 
+    /// Create a new empty conversation and return its id (reserved for the
+    /// new-chat path; not yet called by the agent loop, which currently
+    /// creates no conversation when the client omits `conversation_id`).
+    #[allow(dead_code)]
     pub fn create(&self) -> i64 {
         let id = {
             let mut next = self.next_id.write().expect("poisoned");

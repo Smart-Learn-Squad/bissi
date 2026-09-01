@@ -16,7 +16,10 @@ pub enum EngineError {
     Llama(&'static str, String),
     #[error("llama.cpp unreachable: {0}")]
     Transport(#[from] reqwest::Error),
+    /// Used when the model list is reachable but empty (reserved for retry/
+    /// health-check wiring — not yet consumed by the scaffold agent loop).
     #[error("llama.cpp unavailable: service returned no usable model/health")]
+    #[allow(dead_code)]
     Unavailable,
 }
 

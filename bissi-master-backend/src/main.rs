@@ -85,7 +85,6 @@ async fn main() {
 fn to_sse_json(event: &AgentEvent) -> Option<Value> {
     match event {
         AgentEvent::Chunk(c) => Some(json!({"type":"chunk","content":c})),
-        AgentEvent::Thinking(c) => Some(json!({"type":"thinking","content":c})),
         AgentEvent::ToolStart { name, args } => Some(json!({"type":"tool_start","name":name,"args":args})),
         AgentEvent::ToolDone { name, result } => Some(json!({"type":"tool_done","name":name,"result":result})),
         AgentEvent::FileCreated { name, file_path, file_name } => {

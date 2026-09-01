@@ -8,12 +8,19 @@
 pub const LLAMA_HOST: &str = "http://127.0.0.1:8001";
 pub const LLAMA_MODEL: &str = "bissi-gemma4-e2b-Q4_K_M";
 pub const LLAMA_TIMEOUT_SECS: u64 = 300;
-pub const LLAMA_MAX_RETRIES: u32 = 3;
 pub const LLAMA_TEMPERATURE: f32 = 0.5;
+
+/// Constants kept for parity with `core/config.py` (reserved for follow-up
+/// wiring of retries / context window management in the agent loop).
+#[allow(dead_code)]
+pub const LLAMA_MAX_RETRIES: u32 = 3;
+#[allow(dead_code)]
 pub const LLAMA_N_CTX: u32 = 16384;
 
 /// Agent loop settings.
 pub const AGENT_MAX_ITERATIONS: u32 = 5;
+/// Parity mirror of `core/config.py` context_token_limit (reserved).
+#[allow(dead_code)]
 pub const AGENT_CONTEXT_TOKEN_LIMIT: usize = 14000;
 
 /// Backend server settings.

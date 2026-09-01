@@ -6,14 +6,14 @@ description = "BISSI local-first AI agent backend (Rust). Proxies llama.cpp :800
 license = "MIT"
 
 [dependencies]
-axum = "0.8"
+axum = { version = "0.8", features = ["ws", "multipart"] }
 tokio = { version = "1", features = ["full"] }
 tower-http = { version = "0.6", features = ["cors", "trace"] }
 tower = "0.5"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 reqwest = { version = "0.12", features = ["json", "stream"] }
-futures-util = "0.3"
+futures-util = { version = "0.3", features = ["sink"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 async-stream = "0.3"

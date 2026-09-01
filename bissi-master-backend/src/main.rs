@@ -130,8 +130,11 @@ async fn chat(
                 conversation_id = field.text().await.ok().and_then(|t| t.trim().parse().ok());
             }
             "files" => {
-                if let Ok(bytes) = field.bytes().await {
-                    let text = String::from_utf8_lossy(&bytes).to_string();
+                use tokio::io::AsyncReadExt;
+                let mut buf: Vec<u8> = Vec::new();
+                let mut reader = field.bytes().await;
+                if reader.read_to_end(&mut buf).await.is_ok() {
+                    let text = String::from_utf8_lossy(&buf).to_string();
                     let preview: String = text.chars().take(3000).collect();
                     let preview = if text.chars().count() > 3000 {
                         format!("{preview}\n... [tronqué — {} caractères au total]", text.chars().count())

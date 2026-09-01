@@ -52,7 +52,8 @@ impl Agent {
                 .chat_stream(messages.clone(), Some(tools::tools_payload()))
                 .await
             {
-                Ok(mut stream) => {
+                Ok(stream) => {
+                    tokio::pin!(stream);
                     let mut assistant_content = String::new();
                     let mut tool_calls: Vec<tools_hack::Named> = Vec::new();
 

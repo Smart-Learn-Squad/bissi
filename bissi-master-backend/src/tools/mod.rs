@@ -66,27 +66,27 @@ pub fn tools_payload() -> Vec<Value> {
 /// `tool_done` result contract produced by the Python backend).
 pub async fn dispatch(name: &str, args: Value) -> Result<String, String> {
     match name {
-        "list_directory" => filesystem::list_directory(&args).map(serde_json::to_string).map_err(|e| e.to_string()),
-        "read_text_file" => filesystem::read_text_file(&args).map(serde_json::to_string).map_err(|e| e.to_string()),
-        "write_text_file" => filesystem::write_text_file(&args).map(serde_json::to_string).map_err(|e| e.to_string()),
-        "get_clipboard" => system::get_clipboard(&args).map(serde_json::to_string).map_err(|e| e.to_string()),
-        "set_clipboard" => system::set_clipboard(&args).map(serde_json::to_string).map_err(|e| e.to_string()),
+        "list_directory" => filesystem::list_directory(&args).map(|v| v.to_string()).map_err(|e| e.to_string()),
+        "read_text_file" => filesystem::read_text_file(&args).map(|v| v.to_string()).map_err(|e| e.to_string()),
+        "write_text_file" => filesystem::write_text_file(&args).map(|v| v.to_string()).map_err(|e| e.to_string()),
+        "get_clipboard" => system::get_clipboard(&args).map(|v| v.to_string()).map_err(|e| e.to_string()),
+        "set_clipboard" => system::set_clipboard(&args).map(|v| v.to_string()).map_err(|e| e.to_string()),
         // Office / vision / code stubs.
         "read_word" | "read_excel" | "read_pptx" | "read_pdf" => {
-            office::stub(name, &args).map(serde_json::to_string).map_err(|e| e.to_string())
+            office::stub(name, &args).map(|v| v.to_string()).map_err(|e| e.to_string())
         }
         "write_word" | "write_excel" | "write_pptx" => {
-            office::stub(name, &args).map(serde_json::to_string).map_err(|e| e.to_string())
+            office::stub(name, &args).map(|v| v.to_string()).map_err(|e| e.to_string())
         }
         "describe_image" | "analyze_chart" | "analyze_screenshot" | "extract_text_from_image" => {
-            vision::stub(name, &args).map(serde_json::to_string).map_err(|e| e.to_string())
+            vision::stub(name, &args).map(|v| v.to_string()).map_err(|e| e.to_string())
         }
-        "python_runner" => code::python_runner(&args).map(serde_json::to_string).map_err(|e| e.to_string()),
+        "python_runner" => code::python_runner(&args).map(|v| v.to_string()).map_err(|e| e.to_string()),
         // Remaining filesystem / sys stubs.
         "delete_file" | "move_file" | "get_file_info" | "get_directory_tree"
         | "get_recent_files" | "search_files" | "search_by_content"
         | "edit_text_file" | "safe_operator" => {
-            filesystem::stub(name, &args).map(serde_json::to_string).map_err(|e| e.to_string())
+            filesystem::stub(name, &args).map(|v| v.to_string()).map_err(|e| e.to_string())
         }
         _ => Err(format!("unknown tool: {name}")),
     }
